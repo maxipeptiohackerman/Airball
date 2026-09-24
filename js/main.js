@@ -10,13 +10,17 @@ async function loadHeader() {
         const html = await response.text();
         container.innerHTML = html;
 
-        // Détection automatique de la page active pour le menu
+        // Détection automatique de la page active pour le menu (Version robuste)
         const currentPath = window.location.pathname.split('/').pop() || 'index.html';
-        const navLinks = container.querySelectorAll('.nav-item');
+        const navLinks = container.querySelectorAll('a');
 
         navLinks.forEach(link => {
             const href = link.getAttribute('href');
-            if (href === currentPath) {
+            if (!href) return;
+            
+            const cleanHref = href.split('/').pop();
+
+            if (cleanHref === currentPath) {
                 link.classList.add('active');
             } else {
                 link.classList.remove('active');
@@ -165,7 +169,6 @@ async function fetchNBAStandings() {
                 const losses = stats.find(s => s.name === 'losses')?.displayValue || '0';
                 const pct = stats.find(s => s.name === 'winPercent')?.displayValue || '.000';
 
-                // Colonne GB retirée pour alléger l'affichage
                 const row = `
                     <tr>
                         <td class="col-rank">${index + 1}</td>
@@ -194,7 +197,6 @@ async function fetchNbaLeadersAndAwards() {
     if (!statsLeadersBody && !mvpBody && !dpoyBody) return;
 
     try {
-        // Récupération des leaders statistiques depuis l'API ESPN
         const response = await fetch('https://site.api.espn.com/apis/v2/sports/basketball/nba/leaders');
         const data = await response.json();
 
@@ -220,7 +222,6 @@ async function fetchNbaLeadersAndAwards() {
             statsLeadersBody.innerHTML = html || `<tr><td colspan="4" class="text-center" style="padding: 20px;">Aucune donnée disponible.</td></tr>`;
         }
 
-        // Top 3 MVP & DPOY (Exemple initialisable / adaptable selon tes préférences)
         if (mvpBody) {
             mvpBody.innerHTML = `
                 <tr><td class="text-center"><strong>1</strong></td><td>Shai Gilgeous-Alexander</td><td>OKC</td></tr>
@@ -289,16 +290,14 @@ document.addEventListener('DOMContentLoaded', () => {
     loadHeader(); 
     fetchLeaderboard();
     fetchNBAStandings();
-    fetchNbaLeadersAndAwards(); // <--- Lance le chargement des stats & awards sur la page standings
+    fetchNbaLeadersAndAwards();
     initPronostics();
     fetchHallOfFame();
 });
 
-// Variables globales pour le cache et le graphique
 let rankChartInstance = null;
 let cachedLeaderboardData = null;
 
-// Fonction pour dessiner le graphique Chart.js
 function renderPlayerChart(historyData) {
     const chartCard = document.getElementById('chart-card');
     const ctx = document.getElementById('playerRankChart');
@@ -511,7 +510,6 @@ function initPronostics() {
                 return;
             }
 
-            // Conférence Est
             let estHtml = '';
             for (let i = 5; i <= 19; i++) {
                 if (data[i]) {
@@ -525,7 +523,6 @@ function initPronostics() {
             }
             estBody.innerHTML = estHtml;
 
-            // Conférence Ouest
             let ouestHtml = '';
             for (let i = 5; i <= 19; i++) {
                 if (data[i]) {
@@ -539,7 +536,6 @@ function initPronostics() {
             }
             ouestBody.innerHTML = ouestHtml;
 
-            // Stats
             let statsHtml = '';
             for (let i = 5; i <= 9; i++) {
                 if (data[i] && data[i][9]) {
@@ -554,7 +550,6 @@ function initPronostics() {
             }
             statsBody.innerHTML = statsHtml;
 
-            // Trophées
             let tropheeHtml = '';
             for (let i = 14; i <= 19; i++) {
                 if (data[i] && data[i][9]) {
