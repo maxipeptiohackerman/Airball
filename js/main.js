@@ -10,17 +10,22 @@ async function loadHeader() {
         const html = await response.text();
         container.innerHTML = html;
 
-        // Détection automatique de la page active pour le menu (Version robuste)
-        const currentPath = window.location.pathname.split('/').pop() || 'index.html';
+        // Détection automatique de la page active (Version ultra-robuste pour l'accueil/leaderboard)
+        const rawPath = window.location.pathname;
+        const currentFileName = rawPath.split('/').pop().toLowerCase();
+        const isHome = rawPath === '/' || currentFileName === '' || currentFileName === 'index.html';
+
         const navLinks = container.querySelectorAll('a');
 
         navLinks.forEach(link => {
             const href = link.getAttribute('href');
             if (!href) return;
             
-            const cleanHref = href.split('/').pop();
+            const cleanHref = href.split('/').pop().toLowerCase();
+            const isLinkHome = href === '/' || href === './' || cleanHref === '' || cleanHref === 'index.html';
 
-            if (cleanHref === currentPath) {
+            // Si on est sur l'accueil et que le lien pointe vers l'accueil, OU si les noms de fichiers correspondent
+            if ((isHome && isLinkHome) || (cleanHref && cleanHref === currentFileName)) {
                 link.classList.add('active');
             } else {
                 link.classList.remove('active');
