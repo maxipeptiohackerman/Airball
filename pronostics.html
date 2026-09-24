@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airball - Pronostics des Joueurs</title>
+    <!-- Import de la police Marianne -->
+    <link href="https://fonts.googleapis.com/css2?family=Marianne:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Lien vers le fichier CSS unique -->
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="container">
+        <!-- Le header et la nav vont s'injecter ici automatiquement -->
+        <div id="header-container"></div>
+
+
+        <div class="card pronostics-card">
+            <div class="player-selector">
+                <label for="player-select">Sélectionner un joueur :</label>
+                <select id="player-select">
+                    <option value="">-- Choisir un joueur --</option>
+                    <option value="Max">Max</option>
+                    <option value="Erwan">Erwan</option>
+                    <option value="Titi">Titi</option>
+                    <option value="Sysy">Sysy</option>
+                    <option value="Guillaume">Guillaume</option>
+                    <option value="Norvez">Norvez</option>
+                </select>
+            </div>
+
+            <!-- Fiche Joueur -->
+<div id="player-profile" class="player-profile-card" style="display: none;">
+    <div class="profile-left">
+        <div class="profile-avatar-large" id="profile-avatar">🏀</div>
+        <div class="profile-info">
+            <h2 id="profile-name">Nom du joueur</h2>
+            <div class="profile-subtitle">Saison NBA 2026-2027</div>
+        </div>
+    </div>
+    <div class="profile-stats">
+        <div class="stat-box">
+            <div class="stat-value highlight" id="profile-rank">-</div>
+            <div class="stat-label">Classement</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value" id="profile-total-pts">-</div>
+            <div class="stat-label">Points Totaux</div>
+        </div>
+    </div>
+</div>
+
+<!-- Graphique d'historique du classement -->
+<div id="chart-card" class="player-profile-card" style="display: none; flex-direction: column; align-items: stretch;">
+    <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 1.1rem; color: #fff; text-align: left;">📈 Évolution du classement</h3>
+    <div style="position: relative; height: 220px; width: 100%;">
+        <canvas id="playerRankChart"></canvas>
+    </div>
+</div>
+
+            <div class="tables-grid">
+                <div>
+                    <h3>Conférence Est</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="text-center" style="width: 40px;">RK</th>
+                                <th>Équipe</th>
+                                <th class="text-right" style="width: 60px;">Pts</th>
+                            </tr>
+                        </thead>
+                        <tbody id="est-body">
+                            <tr><td colspan="3" class="text-center" style="padding: 20px; color: var(--text-sub);">Sélectionnez un joueur pour voir ses pronostics.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div>
+                    <h3>Conférence Ouest</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="text-center" style="width: 40px;">RK</th>
+                                <th>Équipe</th>
+                                <th class="text-right" style="width: 60px;">Pts</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ouest-body">
+                            <tr><td colspan="3" class="text-center" style="padding: 20px; color: var(--text-sub);">Sélectionnez un joueur pour voir ses pronostics.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <h3>Statistiques & Awards</h3>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Statistiques</th>
+                        <th>Pick 1</th>
+                        <th>Pick 2</th>
+                        <th>Pick 3</th>
+                        <th class="text-right">Pts</th>
+                    </tr>
+                </thead>
+                <tbody id="stats-body">
+                    <tr><td colspan="5" class="text-center" style="padding: 20px; color: var(--text-sub);">En attente de sélection...</td></tr>
+                </tbody>
+            </table>
+
+            <div class="trophies-spacer">
+                <table>
+                    <thead>
+                        <tr class="section-header-row">
+                            <th>Trophées</th>
+                            <th>Pick 1</th>
+                            <th>Pick 2</th>
+                            <th>Pick 3</th>
+                            <th class="text-right">Pts</th>
+                        </tr>
+                    </thead>
+                    <tbody id="trophee-body">
+                        <tr><td colspan="5" class="text-center" style="padding: 20px; color: var(--text-sub);">En attente de sélection...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script global unique (gère le compte à rebours + la logique des pronos) -->
+    <script src="js/main.js"></script>
+</body>
+</html>

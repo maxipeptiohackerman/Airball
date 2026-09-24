@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airball - Classement Général</title>
+    <!-- Import de la police Marianne -->
+    <link href="https://fonts.googleapis.com/css2?family=Marianne:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Lien vers le fichier CSS unique -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="container">
+        <!-- Le header et la nav vont s'injecter ici automatiquement -->
+        <div id="header-container"></div>
+
+        <!-- Carte Leaderboard -->
+        <div class="card">
+            <div class="table-title">
+                Classement Général des Joueurs
+                <span>Synchronisé avec Google Sheets</span>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th class="col-rank">RK</th>
+                        <th>Joueur</th>
+                        <th class="text-right">Pts Est</th>
+                        <th class="text-right">Pts Ouest</th>
+                        <th class="text-right">Pts Stats</th>
+                        <th class="text-right">Pts Awards</th>
+                        <th class="text-right">Total</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboard-body">
+                    <tr><td colspan="7" style="text-align:center; padding: 20px;">Chargement du classement...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Script global unique (gère le compte à rebours + le leaderboard) -->
+    <script src="js/main.js"></script>
+</body>
+</html>

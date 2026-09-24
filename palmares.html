@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airball - Hall of Fame</title>
+    <!-- Import de la police Marianne -->
+    <link href="https://fonts.googleapis.com/css2?family=Marianne:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Lien vers le fichier CSS unique dans le dossier css -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="container">
+        <!-- Le header et la nav vont s'injecter ici automatiquement -->
+        <div id="header-container"></div>
+
+        <!-- Contenu du Hall of Fame -->
+        <div class="card">
+            <div class="table-title">
+                Hall of Fame 🏆
+                <span>Les légendes de la ligue</span>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>SAISON</th>
+                            <th>VAINQUEUR</th>
+                            <th class="text-right">PTS</th>
+                            <th>2ÈME</th>
+                            <th class="text-right">PTS</th>
+                            <th>MAILLOT CHOISI</th>
+                        </tr>
+                    </thead>
+                    <tbody id="hall-of-fame-body">
+                        <tr>
+                            <td colspan="6" class="text-center" style="padding: 20px; color: var(--text-sub);">Chargement du palmarès...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script global unique dans le dossier js -->
+    <script src="js/main.js"></script>
+</body>
+</html>

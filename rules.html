@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airball - Règles du jeu</title>
+    <!-- Import de la police Marianne -->
+    <link href="https://fonts.googleapis.com/css2?family=Marianne:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Lien vers le fichier CSS unique -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="container">
+        <!-- Le header et la nav vont s'injecter ici automatiquement -->
+        <div id="header-container"></div>
+
+        <!-- Contenu des Règles -->
+        <div class="card rules-card">
+            <h2>🏆 Le Lot</h2>
+            <p>Le vainqueur à la fin de la saison remporte le maillot NBA de son choix, payé par les autres joueurs !</p>
+
+            <h2>📊 Barème des points</h2>
+
+            <h3>1. Classements Équipes (Conférences Est & Ouest)</h3>
+            <ul>
+                <li><strong>2 PTS</strong> si l'équipe est exactement à la bonne place.</li>
+                <li><strong>1 PT</strong> si l'équipe est à 1 place de décalage (ex: pronostiquée 4e, elle finit 3e ou 5e).</li>
+                <li><strong>0 PT</strong> si l'écart est supérieur.</li>
+            </ul>
+
+            <h3>2. Statistiques & Awards</h3>
+            <p>Pour chaque catégorie, un podium doit être établi (Pick 1, Pick 2, Pick 3).</p>
+            <ul>
+                <li><strong>2 PTS</strong> si ton <strong>Pick 1</strong> est le leader/gagnant.</li>
+                <li><strong>1 PT</strong> si ton <strong>Pick 2</strong> est le leader/gagnant.</li>
+                <li><strong>0.5 PT</strong> si ton <strong>Pick 3</strong> est le leader/gagnant.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Script global unique (gère le compte à rebours) -->
+    <script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airball - Statistiques & Classements NBA</title>
+    <!-- Import de la police Marianne -->
+    <link href="https://fonts.googleapis.com/css2?family=Marianne:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Lien vers le fichier CSS unique -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+   <div class="container">
+        <!-- Le header et la nav vont s'injecter ici automatiquement -->
+        <div id="header-container"></div>
+
+        <!-- 1. Classements des Conférences Côte à Côte -->
+        <div class="tables-grid">
+            <!-- Eastern Conference -->
+            <div class="card">
+                <div class="table-title">Eastern Conference</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="col-rank">RK</th>
+                            <th>Equipe</th>
+                            <th class="text-right">W</th>
+                            <th class="text-right">L</th>
+                            <th class="text-right">PCT</th>
+                        </tr>
+                    </thead>
+                    <tbody id="east-standings">
+                        <tr><td colspan="5" style="text-align:center; padding: 20px;">Chargement des données...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Western Conference -->
+            <div class="card">
+                <div class="table-title">Western Conference</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="col-rank">RK</th>
+                            <th>Equipe</th>
+                            <th class="text-right">W</th>
+                            <th class="text-right">L</th>
+                            <th class="text-right">PCT</th>
+                        </tr>
+                    </thead>
+                    <tbody id="west-standings">
+                        <tr><td colspan="5" style="text-align:center; padding: 20px;">Chargement des données...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 2. Bloc Leaders Statistiques NBA -->
+        <div class="card" style="margin-top: 25px;">
+            <div class="table-title">
+                Leaders Statistiques NBA
+                <span>Points, Rebonds, Passes décisives...</span>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Catégorie</th>
+                        <th>Joueur</th>
+                        <th>Équipe</th>
+                        <th class="text-right">Moyenne</th>
+                    </tr>
+                </thead>
+                <tbody id="stats-leaders-body">
+                    <tr><td colspan="4" style="text-align:center; padding: 20px;">Chargement des leaders stats...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 3. Bloc Awards & MVP Ladder (Top 3) -->
+        <div class="card" style="margin-top: 25px; margin-bottom: 30px;">
+            <div class="table-title">
+                Race aux Awards & Trophées
+                <span>Top 3 Pressentis</span>
+            </div>
+            <div style="padding: 20px;">
+                <div class="tables-grid" style="margin-bottom: 0;">
+                    
+                    <!-- MVP Ladder -->
+                    <div>
+                        <h3 style="margin-top: 0;">🏆 MVP (Most Valuable Player)</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px;" class="text-center">#</th>
+                                    <th>Joueur</th>
+                                    <th>Équipe</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mvp-ladder-body">
+                                <tr><td colspan="3" class="text-center" style="padding: 15px;">Chargement du MVP Ladder...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- DPOY Ladder -->
+                    <div>
+                        <h3 style="margin-top: 0;">🛡️ DPOY (Defensive Player of the Year)</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px;" class="text-center">#</th>
+                                    <th>Joueur</th>
+                                    <th>Équipe</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dpoy-ladder-body">
+                                <tr><td colspan="3" class="text-center" style="padding: 15px;">Chargement du DPOY Ladder...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Script global unique -->
+    <script src="js/main.js"></script>
+</body>
+</html>
