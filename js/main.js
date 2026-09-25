@@ -419,6 +419,40 @@ function initPronostics() {
         return { rowClass: 'row-tier-2', ptsClass: 'pts-badge pts-tier-2' };
     }
 
+    /**
+     * NOUVEAU : Remplit dynamiquement le menu déroulant avec les joueurs du Leaderboard
+     */
+    async function populatePlayerSelect() {
+        try {
+            if (!cachedLeaderboardData) {
+                const lbResponse = await fetch(leaderboardUrl);
+                cachedLeaderboardData = await lbResponse.json();
+            }
+
+            if (cachedLeaderboardData && Array.isArray(cachedLeaderboardData)) {
+                const validRows = cachedLeaderboardData.filter(row => {
+                    const j = row[2];
+                    return j && String(j).trim() !== "" && String(j).toUpperCase() !== "JOUEUR";
+                });
+
+                // Optionnel : tu peux trier par ordre alphabétique si tu preferes
+                // validRows.sort((a, b) => String(a[2]).localeCompare(String(b[2])));
+
+                playerSelect.innerHTML = '<option value="">-- Choisir un joueur --</option>';
+
+                validRows.forEach(row => {
+                    const playerName = String(row[2]).trim();
+                    const option = document.createElement('option');
+                    option.value = playerName;
+                    option.textContent = playerName;
+                    playerSelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error("Erreur lors du chargement de la liste des joueurs :", error);
+        }
+    }
+
     async function loadPlayerData(playerName) {
         const profileCard = document.getElementById('player-profile');
         const chartCard = document.getElementById('chart-card');
@@ -430,7 +464,7 @@ function initPronostics() {
         if (!playerName) {
             if (profileCard) profileCard.style.display = 'none';
             if (chartCard) chartCard.style.display = 'none';
-            if (rankChartInstance) rankChartInstance.destroy();
+            if (typeof rankChartInstance !== 'undefined' && rankChartInstance) rankChartInstance.destroy();
 
             estBody.innerHTML = `<tr><td colspan="3" class="text-center" style="padding: 20px; color: var(--text-sub);">Sélectionnez un joueur pour voir ses pronostics.</td></tr>`;
             ouestBody.innerHTML = `<tr><td colspan="3" class="text-center" style="padding: 20px; color: var(--text-sub);">Sélectionnez un joueur pour voir ses pronostics.</td></tr>`;
@@ -502,7 +536,7 @@ function initPronostics() {
                 renderPlayerChart(histData);
             } else {
                 if (chartCard) chartCard.style.display = 'none';
-                if (rankChartInstance) rankChartInstance.destroy();
+                if (typeof rankChartInstance !== 'undefined' && rankChartInstance) rankChartInstance.destroy();
             }
 
             if (data.error) {
@@ -576,7 +610,10 @@ function initPronostics() {
         loadPlayerData(this.value);
     });
 
-    if (playerSelect.value) {
-        loadPlayerData(playerSelect.value);
-    }
+    // Lancement : on peuple le menu déroulant dès l'ouverture de la page
+    populatePlayerSelect().then(() => {
+        if (playerSelect.value) {
+            loadPlayerData(playerSelect.value);
+        }
+    });
 }

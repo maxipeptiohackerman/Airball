@@ -125,7 +125,6 @@ function buildPodiumSections() {
 
 function createCategoryHTML(catId, catTitle) {
     const dummyJersey = getTeamJerseySvg("Default");
-    // Placeholder spécifique pour le COY
     const placeholderText = (catId === 'coy') ? '🔍 Rechercher un coach...' : '🔍 Rechercher un joueur...';
 
     return `
@@ -169,7 +168,6 @@ function setupSearchListeners() {
                 return;
             }
 
-            // Utilisation de la liste des coachs pour le COY, et des joueurs pour le reste
             const sourceList = (catId === 'coy') ? nbaCoaches : nbaPlayers;
             const filtered = sourceList.filter(item => item.name.toLowerCase().includes(query));
 
@@ -192,7 +190,6 @@ function setupSearchListeners() {
             dropdown.style.display = 'block';
         });
 
-        // Clic sur un élément de la liste déroulante
         dropdown.addEventListener('click', (e) => {
             const item = e.target.closest('.search-result-item');
             if (!item) return;
@@ -203,10 +200,8 @@ function setupSearchListeners() {
             input.value = name;
             dropdown.style.display = 'none';
 
-            // Injection dans l'input caché pour le formulaire
             document.getElementById(`input-${catId}-${pickNum}`).value = name;
             
-            // Mise à jour de la carte visuelle avec le maillot de l'équipe
             const card = document.getElementById(`card-${catId}-${pickNum}`);
             const imgEl = card.querySelector('img');
             
@@ -215,7 +210,6 @@ function setupSearchListeners() {
         });
     });
 
-    // Fermer les dropdowns si on clique en dehors
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.player-search-container')) {
             document.querySelectorAll('.search-results-dropdown').forEach(d => d.style.display = 'none');
@@ -244,22 +238,17 @@ function updateRanks(containerId) {
 /**
  * Gestion de la navigation dans le Wizard (Étapes 1 à 5)
  */
-/**
- * Gestion de la navigation dans le Wizard (Étapes 1 à 5)
- */
 function updateWizard() {
     steps.forEach((step, index) => {
         step.classList.toggle('active', index + 1 === currentStep);
     });
 
-        // Mise à jour de l'indicateur textuel (haut ET bas du wizard)
     if (stepIndicators.length) {
         stepIndicators.forEach(el => {
             el.textContent = `Étape ${currentStep} sur ${totalSteps}`;
         });
     }
     
-    // Mise à jour dynamique de la progress bar en pourcentage
     const progressFill = document.getElementById('wizard-progress-fill');
     if (progressFill) {
         const percentage = (currentStep / totalSteps) * 100;
@@ -283,12 +272,142 @@ function updateWizard() {
     }
 }
 
-nextBtn.addEventListener('click', () => {
+/**
+ * Vérification des champs obligatoires par étape
+ */
+function validateCurrentStep() {
+    // Étape 1 : Le pseudo est obligatoire
+    if (currentStep === 1) {
+        const pseudoInput = document.getElementById('pseudo');
+        if (!pseudoInput || !pseudoInput.value.trim()) {
+            alert("⚠️ Merci d'indiquer ton pseudo pour continuer !");
+            pseudoInput.focus();
+            return false;
+        }
+    }
+
+    // Étape 4 : Tous les picks de statistiques (1, 2, 3) sont obligatoires
+    if (currentStep === 4) {
+        const statCats = ['pts', 'reb', 'ast', 'stl', 'blk'];
+        for (let cat of statCats) {
+            for (let i = 1; i <= 3; i++) {
+                const hiddenInput = document.getElementById(`input-${cat}-${i}`);
+                if (!hiddenInput || !hiddenInput.value.trim()) {
+                    alert(`⚠️ Il te manque des choix dans les Statistiques (Pick #${i}). Tous les choix sont obligatoires !`);
+                    return false;
+                }
+            }
+        }
+    }
+
+    // Étape 5 : Tous les picks d'awards (1, 2, 3) sont obligatoires
+    if (currentStep === 5) {
+        const awardCats = ['mvp', 'coy', 'roy', 'mip', 'dpoy', 'sixth'];
+        for (let cat of awardCats) {
+            for (let i = 1; i <= 3; i++) {
+                const hiddenInput = document.getElementById(`input-${cat}-${i}`);
+                if (!hiddenInput || !hiddenInput.value.trim()) {
+                    alert(`⚠️ Il te manque des choix dans les Awards (Pick #${i}). Tous les choix sont obligatoires !`);
+                    return false;
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
+/**
+ * Fonction d'envoi final des données vers Google Sheets via Apps Script
+ */
+async function submitOnboardingForm() {
+    const pseudoInput = document.getElementById('pseudo');
+    const pseudo = pseudoInput ? pseudoInput.value.trim() : "";
+
+    // Ordre exact des en-têtes de ton Google Sheet pour l'Est
+    const eastSheetHeaders = ["Hawks", "Celtics", "Nets", "Hornets", "Bulls", "Cavs", "Pistons", "Pacers", "Heat", "Bucks", "Knicks", "Magic", "76ers", "Raptors", "Wizards"];
+    const eastMap = { "Cavs": "Cavaliers" };
+
+    // Ordre exact des en-têtes de ton Google Sheet pour l'Ouest
+    const westSheetHeaders = ["Mavericks", "Nuggets", "Warriors", "Rockets", "Clippers", "Lakers", "Grizzlies", "Wolves", "Pelicans", "Thunder", "Suns", "Blazers", "Kings", "Spurs", "Jazz"];
+    const westMap = { "Wolves": "Timberwolves", "Blazers": "Trail Blazers" };
+
+    const eastItems = Array.from(document.querySelectorAll('#east-list .team-row-item'));
+    const westItems = Array.from(document.querySelectorAll('#west-list .team-row-item'));
+
+    const eastRanks = eastSheetHeaders.map(sheetName => {
+        const htmlName = eastMap[sheetName] || sheetName;
+        const index = eastItems.findIndex(li => li.getAttribute('data-team') === htmlName);
+        return index !== -1 ? index + 1 : "";
+    });
+
+    const westRanks = westSheetHeaders.map(sheetName => {
+        const htmlName = westMap[sheetName] || sheetName;
+        const index = westItems.findIndex(li => li.getAttribute('data-team') === htmlName);
+        return index !== -1 ? index + 1 : "";
+    });
+
+    const payload = {
+        pseudo: pseudo,
+        avatar: document.getElementById('avatar') ? document.getElementById('avatar').value.trim() : "",
+        east: eastRanks,
+        west: westRanks,
+        stats: {},
+        awards: {}
+    };
+
+    ['pts', 'reb', 'ast', 'stl', 'blk'].forEach(cat => {
+        payload.stats[cat] = [
+            document.getElementById(`input-${cat}-1`)?.value || "",
+            document.getElementById(`input-${cat}-2`)?.value || "",
+            document.getElementById(`input-${cat}-3`)?.value || ""
+        ];
+    });
+
+    ['mvp', 'coy', 'roy', 'mip', 'dpoy', 'sixth'].forEach(cat => {
+        payload.awards[cat] = [
+            document.getElementById(`input-${cat}-1`)?.value || "",
+            document.getElementById(`input-${cat}-2`)?.value || "",
+            document.getElementById(`input-${cat}-3`)?.value || ""
+        ];
+    });
+
+    const scriptUrl = 'https://script.google.com/macros/s/AKfycbxHwqLOe_S1_j-V9mGdn_OjeBuqRU5b10tWBydlL_3L-k9UH5Fxwk607si7di5D/exec';
+
+    try {
+        nextBtn.textContent = 'Envoi en cours... ⏳';
+        nextBtn.disabled = true;
+
+        await fetch(scriptUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        alert("🎉 Tes pronostics ont été enregistrés avec succès !");
+        window.location.href = 'index.html';
+        
+    } catch (error) {
+        console.error("Erreur lors de l'envoi :", error);
+        alert("Une erreur est survenue lors de l'enregistrement.");
+        nextBtn.textContent = 'Valider mes pronos 🚀';
+        nextBtn.disabled = false;
+    }
+}
+
+nextBtn.addEventListener('click', async () => {
+    // Vérification des champs obligatoires de l'étape en cours
+    if (!validateCurrentStep()) {
+        return;
+    }
+
     if (currentStep < totalSteps) {
         currentStep++;
         updateWizard();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-        alert("🎉 Tous tes pronos ont été validés avec succès !");
+        await submitOnboardingForm();
     }
 });
 
@@ -296,6 +415,7 @@ prevBtn.addEventListener('click', () => {
     if (currentStep > 1) {
         currentStep--;
         updateWizard();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 });
 
