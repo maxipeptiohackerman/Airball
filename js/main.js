@@ -248,7 +248,6 @@ async function fetchNbaLeadersAndAwards() {
     }
 }
 
-
 // ==========================================
 // 4. HALL OF FAME / PALMARES
 // ==========================================
@@ -286,7 +285,6 @@ async function fetchHallOfFame() {
         hallBody.innerHTML = `<tr><td colspan="6" class="text-center" style="padding: 20px; color: #cc0000;">Erreur lors du chargement.</td></tr>`;
     }
 }
-
 
 // ==========================================
 // 5. LANCEMENT GLOBAL AU CHARGEMENT DE LA PAGE
