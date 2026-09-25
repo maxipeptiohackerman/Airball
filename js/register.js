@@ -10,7 +10,7 @@ let nbaCoaches = [];
 const steps = document.querySelectorAll('.wizard-step');
 const prevBtn = document.getElementById('prev-btn');
 const nextBtn = document.getElementById('next-btn');
-const stepIndicator = document.getElementById('step-indicator');
+const stepIndicators = document.querySelectorAll('.step-indicator');
 const bannerTitle = document.getElementById('banner-title');
 
 // Couleurs officielles des équipes NBA pour les maillots dynamiques
@@ -22,14 +22,14 @@ const teamColors = {
     "Boston Celtics": "#007A33",
     "Milwaukee Bucks": "#00471B",
     "Oklahoma City Thunder": "#007AC1",
-    "San Antonio Spurs": "#111111", // Noir élégant mis à jour
+    "San Antonio Spurs": "#111111",
     "Minnesota Timberwolves": "#0C2340",
     "Memphis Grizzlies": "#5D76A9",
     "Utah Jazz": "#002B5C",
     "Atlanta Hawks": "#E03A3E",
-    "Indiana Pacers": "#002D62",
+    "Indiana Pacers": "#FDBB30",
     "Orlando Magic": "#0077C0",
-    "Phoenix Suns": "#1D1160",
+    "Phoenix Suns": "#E56020",
     "Philadelphia 76ers": "#006BB6",
     "Cleveland Cavaliers": "#6F263D",
     "New York Knicks": "#F58426",
@@ -252,9 +252,11 @@ function updateWizard() {
         step.classList.toggle('active', index + 1 === currentStep);
     });
 
-    // Mise à jour de l'indicateur textuel
-    if (stepIndicator) {
-        stepIndicator.textContent = `Étape ${currentStep} sur ${totalSteps}`;
+        // Mise à jour de l'indicateur textuel (haut ET bas du wizard)
+    if (stepIndicators.length) {
+        stepIndicators.forEach(el => {
+            el.textContent = `Étape ${currentStep} sur ${totalSteps}`;
+        });
     }
     
     // Mise à jour dynamique de la progress bar en pourcentage
