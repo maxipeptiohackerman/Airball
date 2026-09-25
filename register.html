@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airball - Inscription & Pronostics</title>
+    <!-- Inclusion de SortableJS pour le Drag and Drop -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js" defer></script>
+    <!-- Lien vers le fichier CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div class="container">
+        <div class="header-banner" id="banner-title">
+            Airball - Inscription
+        </div>
+
+        <div class="content-body">
+            <!-- Barre de progression et bouton Quitter intégrés -->
+            <div class="wizard-header-bar">
+                <span id="step-indicator" class="step-indicator">Étape 1 sur 5</span>
+                <a href="index.html" class="wizard-exit-btn">✕ Quitter</a>
+            </div>
+
+            <div class="wizard-progress-container">
+                <div id="wizard-progress-fill" class="wizard-progress-fill"></div>
+            </div>
+
+            <form id="onboarding-form">
+
+                <!-- ÉTAPE 1 : IDENTITÉ -->
+                <div class="wizard-step active" data-step="1">
+                    <h2>👤 Ton Identité</h2>
+                    <p class="subtitle">Choisis ton pseudo et ton avatar pour la saison.</p>
+                    
+                    <div class="form-group">
+                        <label for="pseudo">Pseudo :</label>
+                        <input type="text" id="pseudo" required placeholder="Ex: LeKing23">
+                    </div>
+                    <div class="form-group">
+                        <label for="avatar">Lien de ton Avatar (URL ou Emoji) :</label>
+                        <input type="text" id="avatar" placeholder="https://... ou 🏀">
+                    </div>
+                </div>
+
+                <!-- ÉTAPE 2 : CONFÉRENCE EST -->
+                <div class="wizard-step" data-step="2">
+                    <h2>Eastern Conference</h2>
+                    <p class="subtitle">Glisse et dépose les lignes pour établir ton classement de 1 à 15.</p>
+                    
+                    <ul id="east-list" class="teams-list">
+                        <li class="team-row-item" data-team="Celtics"><span class="team-rank-badge">1st</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/bos.png" alt="Celtics"><span class="team-name-row">Boston Celtics</span><span class="drag-handle">☰</span></li>
+                        <li class="team-row-item" data-team="Bucks"><span class="team-rank-badge">2nd</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/mil.png" alt="Bucks"><span class="team-name-row">Milwaukee Bucks</span><span class="drag-handle">☰</span></li>
+                        <li class="team-row-item" data-team="Knicks"><span class="team-rank-badge">3rd</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/nyk.png" alt="Knicks"><span class="team-name-row">New York Knicks</span><span class="drag-handle">☰</span></li>
+                        <li class="team-row-item" data-team="Cavaliers"><span class="team-rank-badge">4th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/cle.png" alt="Cavaliers"><span class="team-name-row">Cleveland Cavaliers</span><span class="drag-handle">☰</span></li>
+                        <li class="team-row-item" data-team="Magic"><span class="team-rank-badge">5th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/orl.png" alt="Magic"><span class="team-name-row">Orlando Magic</span><span class="drag-handle">☰</span></li>
+                        <li class="team-row-item" data-team="Pacers"><span class="team-rank-badge">6th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/ind.png" alt="Pacers"><span class="team-name-row">Indiana Pacers</span><span class="drag-handle">☰</span></li>
+                        <li class="team-row-item" data-team="76ers"><span class="team-rank-badge">7th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/phi.png" alt="76ers"><span class="team-name-row">Philadelphia 76ers</span><span class="drag-handle">☰</span></li>
+                        <li class="team-row-item" data-team="Heat"><span class="team-rank-badge">8th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/mia.png" alt="Heat"><span class="team-name-row">Miami Heat</span><span class="drag-handle">☰</span></li>
+                        <li class="team-row-item" data-team="Bulls"><span class="team-rank-badge">9th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/chi.png" alt="Bulls"><span class="team-name-row">Chicago Bulls</span><span class="drag-handle">☰</span></li>
+                        <li class="team-row-item" data-team="Hawks"><span class="team-rank-badge">10th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/atl.png" alt="Hawks"><span class="team-name-row">Atlanta Hawks</span><span class="drag-handle">☰</span></li>
+                        <li class="team-row-item" data-team="Nets"><span class="team-rank-badge">11th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/bkn.png" alt="Nets"><span class="team-name-row">Brooklyn Nets</span><span class="drag-handle">☰</span></li>
+                        <li class="team-row-item" data-team="Raptors"><span class="team-rank-badge">12th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/tor.png" alt="Raptors"><span class="team-name-row">Toronto Raptors</span><span class="drag-handle">☰</span></li>
+                        <li class="team-row-item" data-team="Hornets"><span class="team-rank-badge">13th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/cha.png" alt="Hornets"><span class="team-name-row">Charlotte Hornets</span><span class="drag-handle">☰</span></li>
+                        <li class="team-row-item" data-team="Wizards"><span class="team-rank-badge">14th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/wsh.png" alt="Wizards"><span class="team-name-row">Washington Wizards</span><span class="drag-handle">☰</span></li>
+                        <li class="team-row-item" data-team="Pistons"><span class="team-rank-badge">15th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/det.png" alt="Pistons"><span class="team-name-row">Detroit Pistons</span><span class="drag-handle">☰</span></li>
+                    </ul>
+                </div>
+
+                <!-- ÉTAPE 3 : CONFÉRENCE OUEST -->
+                <div class="wizard-step" data-step="3">
+                    <h2>Western Conference</h2>
+                    <p class="subtitle">Classe les 15 franchises de l'Ouest par glisser-déposer.</p>
+                    
+                    <ul id="west-list" class="teams-list">
+                        <li class="team-row-item" data-team="Thunder"><span class="team-rank-badge">1st</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/okc.png" alt="Thunder"><span class="team-name-row">Oklahoma City Thunder</span><span class="drag-handle">☰</span></li>
+                        <li class="team-row-item" data-team="Nuggets"><span class="team-rank-badge">2nd</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/den.png" alt="Nuggets"><span class="team-name-row">Denver Nuggets</span><span class="drag-handle">☰</span></li>
+                        <li class="team-row-item" data-team="Timberwolves"><span class="team-rank-badge">3rd</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/min.png" alt="Timberwolves"><span class="team-name-row">Minnesota Timberwolves</span><span class="drag-handle">☰</span></li>
+                        <li class="team-row-item" data-team="Clippers"><span class="team-rank-badge">4th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/lac.png" alt="Clippers"><span class="team-name-row">LA Clippers</span><span class="drag-handle">☰</span></li>
+                        <li class="team-row-item" data-team="Mavericks"><span class="team-rank-badge">5th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/dal.png" alt="Mavericks"><span class="team-name-row">Dallas Mavericks</span><span class="drag-handle">☰</span></li>
+                        <li class="team-row-item" data-team="Suns"><span class="team-rank-badge">6th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/phx.png" alt="Suns"><span class="team-name-row">Phoenix Suns</span><span class="drag-handle">☰</span></li>
+                        <li class="team-row-item" data-team="Pelicans"><span class="team-rank-badge">7th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/no.png" alt="Pelicans"><span class="team-name-row">New Orleans Pelicans</span><span class="drag-handle">☰</span></li>
+                        <li class="team-row-item" data-team="Lakers"><span class="team-rank-badge">8th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/lal.png" alt="Lakers"><span class="team-name-row">Los Angeles Lakers</span><span class="drag-handle">☰</span></li>
+                        <li class="team-row-item" data-team="Kings"><span class="team-rank-badge">9th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/sac.png" alt="Kings"><span class="team-name-row">Sacramento Kings</span><span class="drag-handle">☰</span></li>
+                        <li class="team-row-item" data-team="Warriors"><span class="team-rank-badge">10th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/gsw.png" alt="Warriors"><span class="team-name-row">Golden State Warriors</span><span class="drag-handle">☰</span></li>
+                        <li class="team-row-item" data-team="Grizzlies"><span class="team-rank-badge">11th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/mem.png" alt="Grizzlies"><span class="team-name-row">Memphis Grizzlies</span><span class="drag-handle">☰</span></li>
+                        <li class="team-row-item" data-team="Rockets"><span class="team-rank-badge">12th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/hou.png" alt="Rockets"><span class="team-name-row">Houston Rockets</span><span class="drag-handle">☰</span></li>
+                        <li class="team-row-item" data-team="Spurs"><span class="team-rank-badge">13th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/sas.png" alt="Spurs"><span class="team-name-row">San Antonio Spurs</span><span class="drag-handle">☰</span></li>
+                        <li class="team-row-item" data-team="Jazz"><span class="team-rank-badge">14th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/utah.png" alt="Jazz"><span class="team-name-row">Utah Jazz</span><span class="drag-handle">☰</span></li>
+                        <li class="team-row-item" data-team="Trail Blazers"><span class="team-rank-badge">15th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/por.png" alt="Trail Blazers"><span class="team-name-row">Portland Trail Blazers</span><span class="drag-handle">☰</span></li>
+                    </ul>
+                </div>
+
+                <!-- ÉTAPE 4 : STATISTIQUES -->
+                <div class="wizard-step" data-step="4">
+                    <h2>📊 Statistiques Individuelles</h2>
+                    <p class="subtitle">Sélectionne ton podium (Pick 1, 2, 3) pour chaque catégorie.</p>
+                    <div id="stats-container"></div>
+                </div>
+
+                <!-- ÉTAPE 5 : AWARDS -->
+                <div class="wizard-step" data-step="5">
+                    <h2>🏆 Les Awards de la Saison</h2>
+                    <p class="subtitle">Qui formera le podium pour chaque trophée individuel ?</p>
+                    <div id="awards-container"></div>
+                </div>
+
+                <!-- NAVIGATION -->
+                <div class="wizard-footer">
+                    <span class="step-indicator" id="step-indicator">Étape 1 sur 5</span>
+                    <div>
+                        <button type="button" id="prev-btn" class="btn btn-prev" style="display: none; margin-right: 10px;">Précédent</button>
+                        <button type="button" id="next-btn" class="btn btn-next">Suivant</button>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <!-- Lien vers le fichier JavaScript dédié à l'onboarding -->
+    <script src="js/register.js" defer></script>
+</body>
+</html>

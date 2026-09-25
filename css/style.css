@@ -254,7 +254,6 @@ tr:nth-child(3) .rank-badge { background-color: var(--bronze); color: #fff; }
     margin-top: 30px;
 }
 
-/* Styles spécifiques pour la page Règles et textes généraux */
 .card.rules-card {
     padding: 30px;
 }
@@ -289,7 +288,6 @@ li {
     margin-bottom: 8px;
 }
 
-/* Variables de couleurs pour les paliers de points */
 :root {
     --pts-05-bg: #fef9e7;
     --pts-05-color: #b78103;
@@ -380,7 +378,6 @@ li {
 .pts-tier-1  { color: var(--pts-1-color) !important; }
 .pts-tier-2  { color: var(--pts-2-color) !important; }
 
-/* --- Fiche Joueur --- */
 .player-profile-card {
     background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
     color: #fff;
@@ -460,8 +457,580 @@ li {
     letter-spacing: 0.5px;
 }
 
-/* Empêche le texte de la colonne équipe de passer sur plusieurs lignes */
 table td:nth-child(2), 
 table th:nth-child(2) {
     white-space: nowrap;
+}
+
+/* ==========================================
+   AJOUTS SPÉCIFIQUES POUR LE WIZARD (REGISTER)
+   ================================---------- */
+.header-banner {
+    background-color: var(--airball-red);
+    color: #ffffff;
+    padding: 24px 32px;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.content-body {
+    padding: 32px;
+}
+
+.wizard-step { display: none; }
+.wizard-step.active { display: block; }
+
+p.subtitle { 
+    color: var(--text-sub); 
+    margin-bottom: 24px; 
+    font-size: 15px; 
+}
+
+.teams-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 500px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: #f9fafb;
+}
+
+.team-row-item {
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+    border-bottom: 1px solid var(--border-color);
+    padding: 12px 20px;
+    cursor: grab;
+    user-select: none;
+    transition: background 0.15s;
+}
+
+.team-row-item:last-child { border-bottom: none; }
+.team-row-item:active { cursor: grabbing; }
+.team-row-item:hover { background: #f1f5f9; }
+
+.team-rank-badge {
+    font-weight: bold;
+    color: var(--airball-red);
+    width: 45px;
+    font-size: 15px;
+}
+
+.team-logo-row {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    margin-right: 16px;
+}
+
+.team-name-row {
+    font-weight: 600;
+    font-size: 16px;
+    flex-grow: 1;
+}
+
+.drag-handle {
+    color: var(--text-sub);
+    font-size: 18px;
+    padding-left: 10px;
+}
+
+.category-container {
+    margin-bottom: 30px;
+    background: #f9fafb;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.category-title {
+    font-weight: bold;
+    font-size: 17px;
+    color: var(--text-main);
+    margin-bottom: 15px;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 8px;
+}
+
+.podium-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+}
+
+.podium-slot {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.podium-label {
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--text-sub);
+    text-transform: uppercase;
+}
+
+.player-search-container {
+    position: relative;
+}
+
+.player-search-input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    font-size: 14px;
+    box-sizing: border-box;
+    background: #fff;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.player-search-input:focus {
+    border-color: var(--airball-red);
+    box-shadow: 0 0 0 3px rgba(204, 0, 0, 0.1);
+}
+
+.search-results-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 0 0 8px 8px;
+    max-height: 180px;
+    overflow-y: auto;
+    z-index: 100;
+    display: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.search-result-item {
+    padding: 8px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.search-result-item:hover {
+    background: #f3f4f6;
+}
+
+.selected-player-card {
+    display: flex;
+    align-items: center;
+    background: #f8fafc;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 10px;
+    gap: 10px;
+    min-height: 50px;
+    margin-top: 5px;
+}
+
+.selected-player-card img {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    max-width: 40px !important;
+    max-height: 40px !important;
+    object-fit: contain !important;
+    background: transparent;
+    flex-shrink: 0;
+}
+
+.selected-player-info {
+    overflow: hidden;
+}
+
+.selected-player-name {
+    font-weight: bold;
+    font-size: 13px;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.wizard-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 32px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 20px;
+}
+
+.step-indicator {
+    color: var(--text-sub);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.btn {
+    padding: 12px 28px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+    font-size: 15px;
+    transition: background 0.2s;
+}
+
+.btn-prev { background: #e5e7eb; color: var(--text-main); }
+.btn-prev:hover { background: #d1d5db; }
+
+.btn-next, .btn-submit { background: var(--airball-red); color: #ffffff; }
+.btn-next:hover, .btn-submit:hover { background: #a30000; }
+
+.form-group { margin-bottom: 20px; }
+.form-group label { display: block; margin-bottom: 8px; font-weight: 600; }
+.form-group input {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    font-size: 15px;
+    box-sizing: border-box;
+    outline: none;
+}
+.form-group input:focus {
+    border-color: var(--airball-red);
+}
+
+/* ==========================================
+   HARMONISATION GRAPHIQUE DU WIZARD (REGISTER)
+   ================================---------- */
+
+/* Le conteneur principal du wizard adopte le style .card du site */
+.container.wizard-container {
+    background-color: var(--card-bg);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+/* Le bandeau d'en-tête du wizard aux couleurs Airball */
+.header-banner {
+    background-color: #000; /* Rappel du header principal */
+    color: #ffffff;
+    padding: 20px 25px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    border-bottom: 2px solid var(--airball-red);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.content-body {
+    padding: 30px;
+}
+
+.wizard-step { display: none; }
+.wizard-step.active { display: block; }
+
+p.subtitle { 
+    color: var(--text-sub); 
+    margin-bottom: 20px; 
+    font-size: 0.95rem; 
+}
+
+/* --- Listes d'équipes (Drag & Drop) harmonisées avec les tableaux --- */
+.teams-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 450px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: #ffffff;
+}
+
+.team-row-item {
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+    border-bottom: 1px solid var(--border-color);
+    padding: 12px 18px;
+    cursor: grab;
+    user-select: none;
+    transition: background 0.15s;
+}
+
+.team-row-item:last-child { border-bottom: none; }
+.team-row-item:active { cursor: grabbing; }
+.team-row-item:hover { background: #f1f4f8; } /* Même hover que les tableaux */
+
+.team-rank-badge {
+    font-weight: 700;
+    color: var(--airball-red);
+    width: 40px;
+    font-size: 0.95rem;
+}
+
+.team-logo-row {
+    width: 26px !important;
+    height: 26px !important;
+    object-fit: contain !important;
+    margin-right: 14px;
+}
+
+.team-name-row {
+    font-weight: 600;
+    font-size: 0.95rem;
+    flex-grow: 1;
+    color: var(--text-main);
+}
+.drag-handle {
+    color: var(--text-sub);
+    font-size: 1.1rem;
+    padding-left: 10px;
+}
+
+/* --- Podiums Stats & Awards harmonisés --- */
+.category-container {
+    margin-bottom: 25px;
+    background: #f9f9f9;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 20px;
+}
+
+.category-title {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text-main);
+    margin-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
+}
+
+.podium-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 15px;
+}
+
+.podium-slot {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.podium-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-sub);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* --- Recherche interactive (Inputs et Dropdowns) --- */
+.player-search-container {
+    position: relative;
+}
+
+.player-search-input {
+    width: 100%;
+    padding: 9px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    font-family: 'Marianne', sans-serif;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+    background: #fff;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.player-search-input:focus {
+    border-color: var(--airball-red);
+}
+
+.search-results-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 0 0 4px 4px;
+    max-height: 180px;
+    overflow-y: auto;
+    z-index: 100;
+    display: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.search-result-item {
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.search-result-item:hover {
+    background: #f1f4f8;
+}
+
+.search-result-item img {
+    width: 26px !important;
+    height: 26px !important;
+    object-fit: contain !important;
+    flex-shrink: 0;
+}
+
+/* Carte de prévisualisation de la sélection (Joueur/Coach) */
+.selected-player-card {
+    display: flex;
+    align-items: center;
+    background: #f9f9f9;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 8px 10px;
+    gap: 10px;
+    min-height: 44px;
+    margin-top: 4px;
+}
+
+.selected-player-card img {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    object-fit: contain !important;
+    background: transparent;
+    flex-shrink: 0;
+}
+
+.selected-player-info {
+    overflow: hidden;
+}
+
+.selected-player-name {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* --- Boutons et Navigation du Wizard harmonisés avec .btn-form --- */
+.wizard-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 25px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 20px;
+}
+
+.step-indicator {
+    color: var(--text-sub);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.btn {
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    font-size: 0.9rem;
+    font-family: 'Marianne', sans-serif;
+    transition: background 0.2s;
+}
+
+.btn-prev { 
+    background: #e2e8f0; 
+    color: var(--text-main); 
+}
+.btn-prev:hover { 
+    background: #cbd5e1; 
+}
+
+.btn-next, .btn-submit { 
+    background-color: var(--airball-red); 
+    color: #ffffff; 
+}
+.btn-next:hover, .btn-submit:hover { 
+    background-color: #a30000; 
+}
+
+/* Champs de formulaires globaux du wizard */
+.form-group { margin-bottom: 20px; }
+.form-group label { display: block; margin-bottom: 8px; font-weight: 700; font-size: 0.95rem; }
+.form-group input {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    font-family: 'Marianne', sans-serif;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+    outline: none;
+}
+.form-group input:focus {
+    border-color: var(--airball-red);
+}
+
+/* ==========================================
+   BARRE DE PROGRESSION ET BOUTON QUITTER
+   ================================---------- */
+.wizard-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.wizard-exit-btn {
+    color: var(--text-sub);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: color 0.2s;
+}
+
+.wizard-exit-btn:hover {
+    color: var(--airball-red);
+}
+
+.wizard-progress-container {
+    width: 100%;
+    height: 6px;
+    background-color: #e2e8f0;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 25px;
+}
+
+.wizard-progress-fill {
+    height: 100%;
+    background-color: var(--airball-red);
+    width: 20%;
+    transition: width 0.3s ease-in-out;
 }
