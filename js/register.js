@@ -323,13 +323,11 @@ async function submitOnboardingForm() {
         ];
     });
 
-    const scriptUrl = 'https://script.google.com/macros/s/AKfycbxHwqLOe_S1_j-V9mGdn_OjeBuqRU5b10tWBydlL_3L-k9UH5Fxwk607si7di5D/exec';
-
     try {
         nextBtn.textContent = 'Inscription en cours... ⏳';
         nextBtn.disabled = true;
 
-        await fetch(scriptUrl, {
+        await fetch(APPS_SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors',
             headers: { 'Content-Type': 'application/json' },
