@@ -8,9 +8,16 @@ async function fetchLeaderboard() {
     try {
         const scriptUrl = APPS_SCRIPT_URL + '?page=leaderboard';
         const response = await fetch(scriptUrl);
-        const data = await response.json();
+        const json = await response.json();
 
         tbody.innerHTML = '';
+
+        if (!json.revealed) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 30px;">🔒 Le classement sera révélé au lancement de la saison (ou avant, si une soirée reveal est organisée !).</td></tr>`;
+            return;
+        }
+
+        const data = json.rows;
 
         if (!data || data.length === 0) {
             tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 20px; color: #707070;">Aucune donnée disponible.</td></tr>`;

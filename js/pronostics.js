@@ -128,22 +128,29 @@ function initPronostics() {
                 cachedLeaderboardData = await lbResponse.json();
             }
 
-            if (cachedLeaderboardData && Array.isArray(cachedLeaderboardData)) {
-                const validRows = cachedLeaderboardData.filter(row => {
-                    const j = row[2];
-                    return j && String(j).trim() !== "" && String(j).toUpperCase() !== "JOUEUR";
-                });
-
-                playerSelect.innerHTML = '<option value="">-- Choisir un joueur --</option>';
-
-                validRows.forEach(row => {
-                    const playerName = String(row[2]).trim();
-                    const option = document.createElement('option');
-                    option.value = playerName;
-                    option.textContent = playerName;
-                    playerSelect.appendChild(option);
-                });
+            if (!cachedLeaderboardData.revealed) {
+                playerSelect.innerHTML = '<option value="">🔒 Pronostics non révélés</option>';
+                playerSelect.disabled = true;
+                return;
             }
+
+            playerSelect.disabled = false;
+            const rows = cachedLeaderboardData.rows || [];
+
+            const validRows = rows.filter(row => {
+                const j = row[2];
+                return j && String(j).trim() !== "" && String(j).toUpperCase() !== "JOUEUR";
+            });
+
+            playerSelect.innerHTML = '<option value="">-- Choisir un joueur --</option>';
+
+            validRows.forEach(row => {
+                const playerName = String(row[2]).trim();
+                const option = document.createElement('option');
+                option.value = playerName;
+                option.textContent = playerName;
+                playerSelect.appendChild(option);
+            });
         } catch (error) {
             console.error("Erreur lors du chargement de la liste des joueurs :", error);
         }
@@ -186,8 +193,8 @@ function initPronostics() {
                 cachedLeaderboardData = await lbResponse.json();
             }
 
-            if (cachedLeaderboardData && Array.isArray(cachedLeaderboardData)) {
-                const validRows = cachedLeaderboardData.filter(row => {
+            if (cachedLeaderboardData && cachedLeaderboardData.revealed && Array.isArray(cachedLeaderboardData.rows)) {
+                const validRows = cachedLeaderboardData.rows.filter(row => {
                     const j = row[2];
                     return j && String(j).trim() !== "" && String(j).toUpperCase() !== "JOUEUR";
                 });
@@ -217,7 +224,7 @@ function initPronostics() {
                 console.warn("Pas d'historique valide ou erreur de parsing JSON :", e);
             }
 
-            const data = await pronosRes.json();
+            const responseJson = await pronosRes.json();
 
             if (Array.isArray(histData) && histData.length > 0) {
                 renderPlayerChart(histData);
@@ -226,13 +233,24 @@ function initPronostics() {
                 if (rankChartInstance) rankChartInstance.destroy();
             }
 
-            if (data.error) {
-                estBody.innerHTML = `<tr><td colspan="3" class="text-center" style="padding: 20px; color: #cc0000;">${data.error}</td></tr>`;
-                ouestBody.innerHTML = `<tr><td colspan="3" class="text-center" style="padding: 20px; color: #cc0000;">${data.error}</td></tr>`;
-                statsBody.innerHTML = `<tr><td colspan="5" class="text-center" style="padding: 20px; color: #cc0000;">${data.error}</td></tr>`;
-                tropheeBody.innerHTML = `<tr><td colspan="5" class="text-center" style="padding: 20px; color: #cc0000;">${data.error}</td></tr>`;
+            if (responseJson.error) {
+                estBody.innerHTML = `<tr><td colspan="3" class="text-center" style="padding: 20px; color: #cc0000;">${responseJson.error}</td></tr>`;
+                ouestBody.innerHTML = `<tr><td colspan="3" class="text-center" style="padding: 20px; color: #cc0000;">${responseJson.error}</td></tr>`;
+                statsBody.innerHTML = `<tr><td colspan="5" class="text-center" style="padding: 20px; color: #cc0000;">${responseJson.error}</td></tr>`;
+                tropheeBody.innerHTML = `<tr><td colspan="5" class="text-center" style="padding: 20px; color: #cc0000;">${responseJson.error}</td></tr>`;
                 return;
             }
+
+            if (!responseJson.revealed) {
+                const lockedMsg = "🔒 Les pronostics de ce joueur seront révélés au lancement de la saison.";
+                estBody.innerHTML = `<tr><td colspan="3" class="text-center" style="padding: 20px; color: var(--text-sub);">${lockedMsg}</td></tr>`;
+                ouestBody.innerHTML = `<tr><td colspan="3" class="text-center" style="padding: 20px; color: var(--text-sub);">${lockedMsg}</td></tr>`;
+                statsBody.innerHTML = `<tr><td colspan="5" class="text-center" style="padding: 20px; color: var(--text-sub);">${lockedMsg}</td></tr>`;
+                tropheeBody.innerHTML = `<tr><td colspan="5" class="text-center" style="padding: 20px; color: var(--text-sub);">${lockedMsg}</td></tr>`;
+                return;
+            }
+
+            const data = responseJson.data;
 
             let estHtml = '';
             for (let i = 5; i <= 19; i++) {
