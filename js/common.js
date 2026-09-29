@@ -70,21 +70,38 @@ function startCountdown() {
 }
 
 /**
+ * Neutralise le HTML d'un texte venant du Sheet (pseudo, noms...).
+ * À utiliser à chaque fois qu'une valeur saisie par un joueur est
+ * insérée dans la page via innerHTML.
+ */
+function escapeHtml(value) {
+    return String(value === null || value === undefined ? '' : value).replace(/[&<>"']/g, char => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[char]));
+}
+
+/**
  * Génère le HTML d'un avatar à partir du contenu brut renvoyé par le Sheet
  * (une URL ou data:image -> <img>, sinon la première lettre du pseudo en repli).
  * Utilisé à la fois par le Leaderboard et la Fiche joueur, pour ne pas dupliquer
  * cette logique à deux endroits différents.
  */
 function renderAvatarHtml(avatarContent, playerName) {
-    if (avatarContent) {
-        const avatarStr = String(avatarContent).trim();
-        if (avatarStr.startsWith('http') || avatarStr.startsWith('data:image')) {
-            return `<img src="${avatarStr}" alt="${playerName}">`;
-        }
-        return avatarStr;
+    const avatarStr = avatarContent ? String(avatarContent).trim() : '';
+    if (avatarStr.startsWith('http') || avatarStr.startsWith('data:image')) {
+        return `<img src="${escapeHtml(avatarStr)}" alt="${escapeHtml(playerName)}">`;
     }
-    return String(playerName).charAt(0).toUpperCase();
+    if (avatarStr) return escapeHtml(avatarStr);
+    return escapeHtml(String(playerName).charAt(0).toUpperCase());
 }
+
+// Catégories de stats et d'awards, partagées par pronostics.js et standings.js
+const STAT_KEYS = ['pts', 'reb', 'ast', 'stl', 'blk'];
+const AWARD_KEYS = ['mvp', 'coy', 'roy', 'mip', 'dpoy', 'sixth'];
+const CATEGORY_LABELS = {
+    pts: 'Points', reb: 'Rebonds', ast: 'Passes', stl: 'Interceptions', blk: 'Contres',
+    mvp: 'MVP', coy: 'COY', roy: 'ROY', mip: 'MIP', dpoy: 'DPOY', sixth: '6th Man'
+};
 
 document.addEventListener('DOMContentLoaded', () => {
     loadHeader();

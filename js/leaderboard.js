@@ -49,12 +49,12 @@ async function fetchLeaderboard() {
                 <tr>
                     <td class="col-rank"><span class="rank-badge">${index + 1}</span></td>
                     <td class="col-player">
-                        <div class="player-avatar">${avatarHtml}</div> ${joueur}
+                        <div class="player-avatar">${avatarHtml}</div> ${escapeHtml(joueur)}
                     </td>
-                    <td class="text-right"><span>${ptsEst}</span></td>
-                    <td class="text-right"><span>${ptsOuest}</span></td>
-                    <td class="text-right"><span>${ptsStats}</span></td>
-                    <td class="text-right"><span>${ptsAwards}</span></td>
+                    <td class="text-right" data-label="Est"><span>${ptsEst}</span></td>
+                    <td class="text-right" data-label="Ouest"><span>${ptsOuest}</span></td>
+                    <td class="text-right" data-label="Stats"><span>${ptsStats}</span></td>
+                    <td class="text-right" data-label="Awards"><span>${ptsAwards}</span></td>
                     <td class="score-total text-right">${total}</td>
                 </tr>
             `;

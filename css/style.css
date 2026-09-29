@@ -808,3 +808,457 @@ p.subtitle {
     width: 20%;
     transition: width 0.3s ease-in-out;
 }
+
+/* ==========================================
+   PRONOSTICS - ONGLETS, PASTILLES, ÉCARTS
+   ========================================== */
+[hidden] { display: none !important; }
+
+.table-responsive { overflow-x: auto; }
+.pronostics-card .text-center { text-align: center; }
+
+.pronostics-card h3 {
+    margin: 0 0 10px;
+}
+
+.pronos-message {
+    padding: 30px 20px;
+    text-align: center;
+    color: var(--text-sub);
+}
+
+/* Bouton "Copier le lien" dans la carte joueur */
+.link-btn {
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    color: #fff;
+    border-radius: 4px;
+    padding: 3px 10px;
+    margin-top: 8px;
+    font-family: inherit;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+.link-btn:hover { background: rgba(255, 255, 255, 0.12); }
+
+/* Pastilles de points par catégorie (cliquables) */
+.score-pills {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.score-pill {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    padding: 8px 6px;
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s;
+}
+.score-pill:hover {
+    border-color: var(--airball-red);
+    transform: translateY(-1px);
+}
+
+.pill-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-sub);
+}
+.pill-rank {
+    color: var(--bronze);
+    text-transform: none;
+    letter-spacing: 0;
+}
+.pill-value {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+.pill-vs {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-sub);
+}
+
+/* Onglets */
+.tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--border-color);
+    overflow-x: auto;
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    padding: 10px 18px;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-sub);
+    white-space: nowrap;
+    cursor: pointer;
+}
+.tab-btn:hover { color: var(--text-main); }
+.tab-btn.active {
+    color: var(--airball-red);
+    border-bottom-color: var(--airball-red);
+}
+
+/* Sélecteur Est / Ouest (visible sur mobile uniquement) */
+.conf-switch {
+    display: none;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+.conf-switch button {
+    flex: 1;
+    padding: 9px;
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-family: inherit;
+    font-weight: 700;
+    color: var(--text-sub);
+    cursor: pointer;
+}
+.conf-switch button.active {
+    background: var(--airball-red);
+    border-color: var(--airball-red);
+    color: #fff;
+}
+
+/* Écart entre pronostic et classement réel */
+.gap-badge {
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.gap-exact { color: var(--pts-2-color); }
+.gap-close { color: var(--pts-1-color); }
+.gap-miss  { color: #b91c1c; }
+.gap-none  { color: var(--text-sub); }
+
+.pick-hit {
+    font-weight: 700;
+    color: var(--pts-2-color);
+}
+.real-cell {
+    color: var(--text-sub);
+    font-style: italic;
+}
+
+.chart-wrap {
+    position: relative;
+    width: 100%;
+    height: 280px;
+}
+
+@media (max-width: 900px) {
+    .conf-switch { display: flex; }
+    .conf-grid { grid-template-columns: 1fr; }
+    .conf-panel { display: none; }
+    .conf-panel.active { display: block; }
+}
+
+@media (max-width: 768px) {
+    .score-pills { grid-template-columns: repeat(2, 1fr); }
+
+    .player-profile-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    .profile-stats { gap: 20px; }
+
+    .pronostics-card th,
+    .pronostics-card td { padding-left: 6px; padding-right: 6px; }
+}
+
+/* ==========================================
+   PRONOSTICS - MODE DUEL ET DENSITÉ DES TABLEAUX
+   ========================================== */
+.selector-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Les colonnes de la grille peuvent rétrécir : un tableau trop large défile au lieu de déborder */
+.tables-grid > * { min-width: 0; }
+
+/* Lignes de tableau plus compactes sur cette page */
+.pronostics-card td { padding-top: 8px; padding-bottom: 8px; }
+.pronostics-card th { padding-top: 9px; padding-bottom: 9px; }
+.trophies-spacer { margin-top: 22px; }
+
+/* Bandeau de duel */
+.duel-card {
+    justify-content: space-around;
+    gap: 20px;
+    margin-bottom: 12px;
+}
+.duel-side {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+.duel-name {
+    font-size: 1.3rem;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+.duel-meta {
+    margin-top: 2px;
+    font-size: 0.9rem;
+    color: #9ca3af;
+}
+.duel-vs {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--gold);
+}
+.duel-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+.duel-chip {
+    padding: 4px 12px;
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    font-size: 0.85rem;
+}
+
+/* Tableaux de duel */
+.duel-table th, .duel-table td { padding-left: 8px; padding-right: 8px; }
+.duel-col {
+    max-width: 72px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.real-rank { color: var(--text-sub); }
+.pick-line {
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+.pick-common {
+    padding: 0 4px;
+    background: #dbeafe;
+    border-radius: 3px;
+}
+.duel-legend {
+    margin-bottom: 10px;
+    font-size: 0.85rem;
+    color: var(--text-sub);
+}
+
+@media (max-width: 768px) {
+    .duel-card { align-items: flex-start; }
+    .duel-vs { flex-direction: row; }
+    .selector-group { width: 100%; justify-content: space-between; }
+
+    /* Duel sur petit écran : tableau plus serré, sans logos */
+    .duel-table th, .duel-table td { padding-left: 4px; padding-right: 4px; }
+    .duel-table .team-logo { display: none; }
+    .duel-col { max-width: 58px; }
+}
+
+@media (max-width: 480px) {
+    /* Les trois onglets tiennent sur une ligne */
+    .tabs { gap: 0; }
+    .tab-btn { padding: 10px 7px; font-size: 0.85rem; }
+    .pronostics-card { padding: 16px; }
+}
+
+@media (max-width: 400px) {
+    .tab-btn { flex: 1; padding: 10px 2px; font-size: 0.8rem; }
+}
+
+/* ==========================================
+   MOBILE (téléphones) - TOUTES LES PAGES
+   Rien ici ne s'applique au-dessus de 640px : l'affichage
+   sur ordinateur reste strictement identique.
+   ========================================== */
+@media (max-width: 640px) {
+    body { padding: 12px 8px; }
+
+    /* En-tête et compte à rebours */
+    .airball-header { padding: 12px 14px; font-size: 1.1rem; gap: 8px; }
+    .countdown-container {
+        width: 100%;
+        box-sizing: border-box;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        padding: 6px 10px;
+        font-size: 0.8rem;
+    }
+    #timer { font-weight: 700; white-space: nowrap; }
+
+    /* Navigation : cibles tactiles de 44 px, boutons sur toute la largeur */
+    .nav-sub { flex-wrap: wrap; padding: 0 8px 10px; row-gap: 6px; }
+    .nav-links { flex-wrap: wrap; height: auto; width: 100%; gap: 0 6px; padding-top: 4px; }
+    .nav-sub a.nav-item { height: auto; min-height: 42px; padding: 0 6px; }
+    .nav-sub > div:last-child { width: 100%; }
+    .nav-sub .btn-form {
+        flex: 1;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        text-align: center;
+    }
+
+    /* Cartes et tableaux : plus compacts, et jamais coupés sans pouvoir défiler */
+    .card { overflow-x: auto; }
+    .table-title { padding: 14px; flex-direction: column; align-items: flex-start; gap: 2px; }
+    th, td { padding: 10px 8px; }
+    table td:nth-child(2), table th:nth-child(2) { white-space: normal; }
+    .col-rank { width: 34px; }
+    .col-team { gap: 8px; }
+    .container > .card + .card,
+    .container > .tables-grid + .card { margin-top: 16px; }
+
+    /* Leaderboard : une carte par joueur (rang | nom + détail Est/Ouest/Stats/Awards | total) */
+    .lb-table thead { display: none; }
+    .lb-table, .lb-table tbody { display: block; }
+    .lb-table tr {
+        display: grid;
+        grid-template-columns: 44px repeat(4, 1fr) 68px;
+        align-items: center;
+        padding: 10px 12px 10px 2px;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .lb-table td { padding: 0; border: none; min-width: 0; text-align: center; }
+    .lb-table td.col-rank { grid-column: 1; grid-row: 1 / span 2; width: auto; }
+    .lb-table td.col-player {
+        grid-column: 2 / 6;
+        grid-row: 1;
+        justify-content: flex-start;
+        text-align: left;
+        overflow-wrap: anywhere;
+        padding-bottom: 6px;
+    }
+    .lb-table td.score-total { grid-column: 6; grid-row: 1 / span 2; font-size: 1.5rem; text-align: right; }
+    .lb-table td[data-label] { grid-row: 2; font-size: 0.95rem; font-weight: 600; }
+    .lb-table td[data-label]::before {
+        content: attr(data-label);
+        display: block;
+        font-size: 0.62rem;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+        color: var(--text-sub);
+    }
+    .lb-table td[colspan] { grid-column: 1 / -1; grid-row: auto; padding: 20px 10px; }
+
+    /* Hall of Fame : une carte par saison */
+    .hof-table thead { display: none; }
+    .hof-table, .hof-table tbody { display: block; }
+    .hof-table tr {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 4px 12px;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .hof-table td { padding: 0; border: none; white-space: normal; }
+    .hof-table td:nth-child(1) { grid-column: 1 / -1; font-size: 0.8rem; letter-spacing: 0.5px; color: var(--airball-red); }
+    .hof-table td:nth-child(3)::after,
+    .hof-table td:nth-child(5)::after { content: " pts"; color: var(--text-sub); font-weight: 400; }
+    .hof-table td:nth-child(6) { grid-column: 1 / -1; color: var(--text-sub); }
+    .hof-table td[colspan] { grid-column: 1 / -1; padding: 10px 0; }
+
+    /* Formulaire d'inscription */
+    .header-banner { padding: 14px 16px; font-size: 1.05rem; }
+    .content-body { padding: 16px; }
+    .wizard-exit-btn { display: inline-block; padding: 12px 4px; }
+    .btn { min-height: 44px; }
+    .team-row-item { padding: 4px 8px 4px 12px; cursor: default; }
+    .drag-handle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 44px;
+        min-height: 44px;
+        padding: 0;
+        font-size: 1.4rem;
+        cursor: grab;
+        touch-action: none;
+    }
+
+    /* iOS zoome la page quand on touche un champ dont le texte fait moins de 16 px */
+    .form-group input,
+    .player-search-input,
+    .player-selector select { font-size: 16px; }
+
+    /* Pronostics : cibles tactiles */
+    .tab-btn { min-height: 44px; }
+    .score-pill { min-height: 48px; }
+    .conf-switch button { min-height: 44px; }
+    .link-btn { min-height: 40px; padding: 0 14px; }
+    .form-group input,
+    .player-search-input { min-height: 44px; }
+}
+
+/* Très petits écrans (320 px) : tableaux encore plus serrés */
+@media (max-width: 400px) {
+    .nav-links { gap: 0 2px; }
+    .nav-sub a.nav-item { padding: 0 4px; font-size: 0.85rem; }
+    .nav-sub .btn-form { font-size: 0.8rem; padding: 6px; }
+    table { font-size: 0.85rem; }
+    th, td { padding-left: 6px; padding-right: 6px; }
+    th { font-size: 0.68rem; letter-spacing: 0; }
+    .col-rank { width: 20px; }
+}
+
+/* ==========================================
+   FORMULAIRE - MESSAGES D'ERREUR ET D'ÉTAT
+   ========================================== */
+.form-error {
+    margin: 8px 0 0;
+    color: #b91c1c;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+.wizard-footer + .form-error,
+#submit-error { margin: 15px 0 0; }
+
+.register-notice {
+    padding: 30px 10px;
+    text-align: center;
+}
+.register-notice h2 { justify-content: center; }
+a.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 10px 22px;
+    text-decoration: none;
+    text-align: center;
+    box-sizing: border-box;
+}

@@ -13,6 +13,81 @@ const nextBtn = document.getElementById('next-btn');
 const stepIndicators = document.querySelectorAll('.step-indicator');
 const bannerTitle = document.getElementById('banner-title');
 
+// Identifiant de cette inscription, choisi ici : si le joueur renvoie le formulaire
+// (connexion coupée, second clic), le serveur reconnaît la même inscription et ne crée pas de doublon.
+const registrationId = 'p' + Array.from(
+    (window.crypto && crypto.getRandomValues) ? crypto.getRandomValues(new Uint8Array(4)) : [0, 0, 0, 0].map(() => Math.floor(Math.random() * 256)),
+    byte => byte.toString(16).padStart(2, '0')
+).join('');
+
+// Après l'envoi, on vérifie que l'inscription est bien enregistrée (5 essais espacés)
+const CONFIRM_ATTEMPTS = 5;
+const CONFIRM_DELAY_MS = 1500;
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+const PSEUDO_MESSAGES = {
+    too_short: 'Ton pseudo doit faire au moins 2 caractères.',
+    too_long: 'Ton pseudo doit faire 24 caractères maximum.',
+    bad_start: 'Ton pseudo ne peut pas commencer par = + - @ ou une apostrophe.',
+    bad_chars: 'Ton pseudo contient un caractère interdit (< > " \\ `).',
+    taken: 'Ce pseudo est déjà pris, choisis-en un autre.'
+};
+
+function normalizePseudo(value) {
+    return String(value || '').trim().replace(/\s+/g, ' ');
+}
+
+// Mêmes règles que le serveur, pour répondre tout de suite sans attendre le réseau
+function pseudoProblem(pseudo) {
+    if (pseudo.length < 2) return 'too_short';
+    if (pseudo.length > 24) return 'too_long';
+    if (/^[=+\-@']/.test(pseudo)) return 'bad_start';
+    if (/[<>"\\`\u0000-\u001f]/.test(pseudo)) return 'bad_chars';
+    return '';
+}
+
+function showPseudoError(message) {
+    const box = document.getElementById('pseudo-error');
+    box.textContent = message;
+    box.hidden = false;
+    document.getElementById('pseudo').focus();
+}
+
+function clearPseudoError() {
+    document.getElementById('pseudo-error').hidden = true;
+}
+
+function showSubmitError(message) {
+    const box = document.getElementById('submit-error');
+    box.textContent = message;
+    box.hidden = !message;
+}
+
+// Remplace le formulaire par un message (inscriptions fermées, inscription confirmée)
+function showNotice(title, text, linkLabel) {
+    document.querySelector('.wizard-header-bar').hidden = true;
+    document.querySelector('.wizard-progress-container').hidden = true;
+    document.getElementById('onboarding-form').hidden = true;
+
+    const notice = document.getElementById('register-notice');
+    notice.innerHTML = `<h2></h2><p></p><a class="btn btn-next" href="index.html"></a>`;
+    notice.querySelector('h2').textContent = title;
+    notice.querySelector('p').textContent = text;
+    notice.querySelector('a').textContent = linkLabel;
+    notice.hidden = false;
+    window.scrollTo({ top: 0 });
+}
+
+function showClosedNotice(duringFilling) {
+    showNotice(
+        '🔒 Les inscriptions sont fermées',
+        duringFilling
+            ? "Les inscriptions ont fermé pendant que tu remplissais le formulaire : ton inscription n'a malheureusement pas été enregistrée."
+            : "La saison a commencé, ou l'organisateur a fermé les inscriptions : il n'est plus possible de s'inscrire pour cette saison.",
+        'Voir le classement'
+    );
+}
+
 // Couleurs officielles des équipes NBA pour les maillots dynamiques
 const teamColors = {
     "Los Angeles Lakers": "#552583", "Golden State Warriors": "#1D428A",
@@ -207,8 +282,7 @@ function validateCurrentStep() {
     if (currentStep === 1) {
         const pseudoInput = document.getElementById('pseudo');
         if (!pseudoInput || !pseudoInput.value.trim()) {
-            alert("⚠️ Merci d'indiquer ton pseudo pour continuer !");
-            pseudoInput.focus();
+            showPseudoError("Merci d'indiquer ton pseudo pour continuer.");
             return false;
         }
     }
@@ -323,30 +397,94 @@ async function submitOnboardingForm() {
         ];
     });
 
+    payload.id = registrationId;
+    showSubmitError('');
+    nextBtn.textContent = 'Inscription en cours... ⏳';
+    nextBtn.disabled = true;
+
     try {
-        nextBtn.textContent = 'Inscription en cours... ⏳';
-        nextBtn.disabled = true;
-
-        await fetch(APPS_SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        alert("🎉 Inscription réussie ! Tes pronostics et ta photo ont bien été enregistrés.");
-        window.location.href = 'index.html';
-        
+        await Api.postRegistration(payload);
     } catch (error) {
-        console.error("Erreur lors de l'envoi :", error);
-        alert("Une erreur est survenue lors de l'enregistrement.");
-        nextBtn.textContent = "S'inscrire 🚀";
-        nextBtn.disabled = false;
+        // Le réseau a pu couper après l'envoi : on ne conclut rien, la vérification ci-dessous tranche.
+        console.warn("Envoi de l'inscription :", error);
     }
+
+    const outcome = await confirmRegistration(payload.pseudo);
+    nextBtn.disabled = false;
+    nextBtn.textContent = "S'inscrire 🚀";
+
+    if (outcome === 'registered') {
+        showNotice('🎉 Tu es inscrit !', 'Tes pronostics sont bien enregistrés. Ils resteront secrets jusqu\'à la révélation.', "Retour à l'accueil");
+    } else if (outcome === 'closed') {
+        showClosedNotice(true);
+    } else if (outcome === 'taken') {
+        currentStep = 1;
+        updateWizard();
+        showPseudoError("Ce pseudo vient d'être pris par quelqu'un d'autre, choisis-en un autre.");
+    } else {
+        showSubmitError("On n'a pas pu confirmer ton inscription (connexion instable ?). Appuie de nouveau sur « S'inscrire » : il n'y aura pas de doublon.");
+    }
+}
+
+/**
+ * Interroge le serveur jusqu'à voir notre inscription (identifiant) dans le Sheet.
+ * Retourne 'registered', 'closed', 'taken' ou 'unknown'.
+ */
+async function confirmRegistration(pseudo) {
+    for (let attempt = 0; attempt < CONFIRM_ATTEMPTS; attempt++) {
+        try {
+            const status = await Api.getRegistrationStatus({ id: registrationId });
+            if (status.registered) return 'registered';
+        } catch (error) {
+            console.warn('Vérification :', error);
+        }
+        if (attempt < CONFIRM_ATTEMPTS - 1) await sleep(CONFIRM_DELAY_MS);
+    }
+
+    // Pas d'inscription trouvée : on cherche pourquoi
+    try {
+        const status = await Api.getRegistrationStatus({ pseudo });
+        if (status.open === false) return 'closed';
+        if (status.pseudo && status.pseudo.status === 'taken') return 'taken';
+    } catch (error) {
+        console.warn('Vérification :', error);
+    }
+    return 'unknown';
+}
+
+/** Étape 1 : le pseudo est-il valide et libre ? Retourne true si on peut continuer. */
+async function checkPseudoStep() {
+    const input = document.getElementById('pseudo');
+    const pseudo = normalizePseudo(input.value);
+    input.value = pseudo;
+
+    const problem = pseudoProblem(pseudo);
+    if (problem) { showPseudoError(PSEUDO_MESSAGES[problem]); return false; }
+
+    const label = nextBtn.textContent;
+    nextBtn.disabled = true;
+    nextBtn.textContent = 'Vérification...';
+    try {
+        const status = await Api.getRegistrationStatus({ pseudo });
+        if (status.open === false) { showClosedNotice(false); return false; }
+        if (status.pseudo && status.pseudo.status === 'taken') { showPseudoError(PSEUDO_MESSAGES.taken); return false; }
+        if (status.pseudo && status.pseudo.status === 'invalid') {
+            showPseudoError(PSEUDO_MESSAGES[status.pseudo.reason] || 'Ce pseudo est invalide.');
+            return false;
+        }
+    } catch (error) {
+        // Serveur injoignable : on laisse continuer, il revérifiera au moment de l'envoi
+        console.warn('Vérification du pseudo impossible :', error);
+    } finally {
+        nextBtn.disabled = false;
+        nextBtn.textContent = label;
+    }
+    return true;
 }
 
 nextBtn.addEventListener('click', async () => {
     if (!validateCurrentStep()) return;
+    if (currentStep === 1 && !(await checkPseudoStep())) return;
     if (currentStep < totalSteps) {
         currentStep++;
         updateWizard();
@@ -367,7 +505,22 @@ prevBtn.addEventListener('click', () => {
 const eastList = document.getElementById('east-list');
 const westList = document.getElementById('west-list');
 
-if (eastList) new Sortable(eastList, { animation: 150, ghostClass: 'sortable-ghost', onEnd: () => updateRanks('east-list') });
-if (westList) new Sortable(westList, { animation: 150, ghostClass: 'sortable-ghost', onEnd: () => updateRanks('west-list') });
+// Sur écran tactile, on ne déplace une équipe que par sa poignée ☰ :
+// sinon un doigt qui fait défiler la liste la réordonnerait par erreur.
+const isTouchScreen = window.matchMedia('(pointer: coarse)').matches;
+function sortableOptions(listId) {
+    const options = { animation: 150, ghostClass: 'sortable-ghost', onEnd: () => updateRanks(listId) };
+    if (isTouchScreen) options.handle = '.drag-handle';
+    return options;
+}
+if (eastList) new Sortable(eastList, sortableOptions('east-list'));
+if (westList) new Sortable(westList, sortableOptions('west-list'));
 
 loadData();
+
+document.getElementById('pseudo').addEventListener('input', clearPseudoError);
+
+// Dès l'ouverture : si les inscriptions sont fermées, on le dit avant que le joueur remplisse 5 étapes
+Api.getRegistrationStatus()
+    .then(status => { if (status.open === false) showClosedNotice(false); })  // fermé seulement si le serveur le dit explicitement
+    .catch(error => console.warn("Impossible de vérifier l'ouverture des inscriptions :", error));

@@ -56,71 +56,54 @@
             </div>
         </div>
 
-        <!-- 2. Bloc Leaders Statistiques NBA -->
-        <div class="card" style="margin-top: 25px;">
-            <div class="table-title">
-                Leaders Statistiques NBA
-                <span>Points, Rebonds, Passes décisives...</span>
-            </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Catégorie</th>
-                        <th>Joueur</th>
-                        <th>Équipe</th>
-                        <th class="text-right">Moyenne</th>
-                    </tr>
-                </thead>
-                <tbody id="stats-leaders-body">
-                    <tr><td colspan="4" style="text-align:center; padding: 20px;">Chargement des leaders stats...</td></tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- 3. Bloc Awards & MVP Ladder (Top 3) -->
+        <!-- 3. Bloc Statistiques & Awards, mis à jour à la main dans le Google Sheet (onglet "NBA DATA") -->
         <div class="card" style="margin-top: 25px; margin-bottom: 30px;">
             <div class="table-title">
-                Race aux Awards & Trophées
-                <span>Top 3 Pressentis</span>
+                Statistiques & Awards
+                <span>Meneurs actuels de la saison</span>
             </div>
             <div style="padding: 20px;">
-                <div class="tables-grid" style="margin-bottom: 0;">
-                    
-                    <!-- MVP Ladder -->
-                    <div>
-                        <h3 style="margin-top: 0;">🏆 MVP (Most Valuable Player)</h3>
+
+                <!-- Statistiques -->
+                <div>
+                    <h3 style="margin-top: 0;">📊 Statistiques</h3>
+                    <div class="table-responsive">
                         <table>
                             <thead>
                                 <tr>
-                                    <th style="width: 40px;" class="text-center">#</th>
-                                    <th>Joueur</th>
-                                    <th>Équipe</th>
+                                    <th>Catégorie</th>
+                                    <th>1er</th>
+                                    <th>2e</th>
+                                    <th>3e</th>
                                 </tr>
                             </thead>
-                            <tbody id="mvp-ladder-body">
-                                <tr><td colspan="3" class="text-center" style="padding: 15px;">Chargement du MVP Ladder...</td></tr>
+                            <tbody id="nba-stats-body">
+                                <tr><td colspan="4" class="text-center" style="padding: 15px;">Chargement...</td></tr>
                             </tbody>
                         </table>
                     </div>
-
-                    <!-- DPOY Ladder -->
-                    <div>
-                        <h3 style="margin-top: 0;">🛡️ DPOY (Defensive Player of the Year)</h3>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th style="width: 40px;" class="text-center">#</th>
-                                    <th>Joueur</th>
-                                    <th>Équipe</th>
-                                </tr>
-                            </thead>
-                            <tbody id="dpoy-ladder-body">
-                                <tr><td colspan="3" class="text-center" style="padding: 15px;">Chargement du DPOY Ladder...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-
                 </div>
+
+                <!-- Awards -->
+                <div style="margin-top: 30px;">
+                    <h3 style="margin-top: 0;">🏆 Awards</h3>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Trophée</th>
+                                    <th>1er</th>
+                                    <th>2e</th>
+                                    <th>3e</th>
+                                </tr>
+                            </thead>
+                            <tbody id="nba-awards-body">
+                                <tr><td colspan="4" class="text-center" style="padding: 15px;">Chargement...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -129,6 +112,7 @@
     <!-- Config partagée, header/countdown communs, puis logique propre à cette page -->
     <script src="js/config.js"></script>
     <script src="js/common.js"></script>
+    <script src="js/api.js"></script>
     <script src="js/standings.js"></script>
 </body>
 </html>

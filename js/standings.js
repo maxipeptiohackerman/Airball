@@ -7,8 +7,29 @@ async function fetchNBAStandings() {
     if (!eastTable || !westTable) return;
 
     try {
+        // Appel direct depuis le navigateur (pas via Apps Script) : ESPN bloque les
+        // requêtes venant de serveurs Google (403), mais n'a jamais bloqué un vrai
+        // navigateur. Voir TODO.md pour le détail.
         const response = await fetch('https://site.api.espn.com/apis/v2/sports/basketball/nba/standings');
-        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status} ${response.statusText}`);
+        }
+
+        const rawText = await response.text();
+        let data;
+        try {
+            data = JSON.parse(rawText);
+        } catch (parseError) {
+            console.error("Réponse ESPN non-JSON (aperçu) :", rawText.slice(0, 300));
+            throw new Error("réponse illisible (pas du JSON)");
+        }
+
+        if (!data.children) {
+            console.error("Réponse ESPN reçue mais sans 'children' :", data);
+            throw new Error("format de réponse inattendu (plus de 'children')");
+        }
+
         eastTable.innerHTML = '';
         westTable.innerHTML = '';
 
@@ -46,66 +67,56 @@ async function fetchNBAStandings() {
         });
     } catch (error) {
         console.error("Erreur lors de la récupération des classements NBA:", error);
+        const message = `<tr><td colspan="5" class="text-center" style="padding: 20px; color: #cc0000;">Erreur de chargement (${error.message}).</td></tr>`;
+        eastTable.innerHTML = message;
+        westTable.innerHTML = message;
     }
 }
 
-async function fetchNbaLeadersAndAwards() {
-    const statsLeadersBody = document.getElementById('stats-leaders-body');
-    const mvpBody = document.getElementById('mvp-ladder-body');
-    const dpoyBody = document.getElementById('dpoy-ladder-body');
+/**
+ * Statistiques & Awards : saisis à la main dans l'onglet "NBA DATA" du Sheet
+ * (dépend de : common.js pour STAT_KEYS / AWARD_KEYS / CATEGORY_LABELS).
+ * Information NBA réelle, sans rapport avec les pronos des joueurs : reste
+ * visible même avant la révélation.
+ */
+async function fetchNbaDataStatsAwards() {
+    const statsBody = document.getElementById('nba-stats-body');
+    const awardsBody = document.getElementById('nba-awards-body');
+    if (!statsBody && !awardsBody) return;
 
-    if (!statsLeadersBody && !mvpBody && !dpoyBody) return;
+    const podiumRow = (label, picks) => {
+        const cell = name => name ? escapeHtml(name) : '—';
+        return `<tr>
+            <td><strong>${label}</strong></td>
+            <td>${cell(picks[0])}</td>
+            <td>${cell(picks[1])}</td>
+            <td>${cell(picks[2])}</td>
+        </tr>`;
+    };
 
     try {
-        const response = await fetch('https://site.api.espn.com/apis/v2/sports/basketball/nba/leaders');
-        const data = await response.json();
+        const data = await Api.getNbaData();
 
-        if (statsLeadersBody && data.categories) {
-            let html = '';
-            data.categories.forEach(cat => {
-                const catName = cat.displayName || cat.name;
-                const leader = cat.leaders && cat.leaders[0] ? cat.leaders[0] : null;
-                if (leader) {
-                    const playerName = leader.athlete ? leader.athlete.displayName : 'Inconnu';
-                    const teamName = leader.team ? leader.team.abbreviation : '';
-                    const value = leader.displayValue || '';
-                    html += `
-                        <tr>
-                            <td><strong>${catName}</strong></td>
-                            <td>${playerName}</td>
-                            <td>${teamName}</td>
-                            <td class="text-right"><strong>${value}</strong></td>
-                        </tr>
-                    `;
-                }
-            });
-            statsLeadersBody.innerHTML = html || `<tr><td colspan="4" class="text-center" style="padding: 20px;">Aucune donnée disponible.</td></tr>`;
+        if (!data.stats || !data.awards) {
+            console.error("Réponse 'nba-data' reçue mais sans 'stats'/'awards' :", data);
+            throw new Error("format de réponse inattendu (plus de 'stats'/'awards')");
         }
 
-        // TODO: Remplacer par de vraies données dynamiques (ESPN ne fournit pas de ladder
-        // MVP/DPOY tout fait) le jour où une source fiable sera branchée.
-        if (mvpBody) {
-            mvpBody.innerHTML = `
-                <tr><td class="text-center"><strong>1</strong></td><td>Shai Gilgeous-Alexander</td><td>OKC</td></tr>
-                <tr><td class="text-center"><strong>2</strong></td><td>Nikola Jokic</td><td>DEN</td></tr>
-                <tr><td class="text-center"><strong>3</strong></td><td>Luka Doncic</td><td>DAL</td></tr>
-            `;
+        if (statsBody) {
+            statsBody.innerHTML = STAT_KEYS.map(key => podiumRow(CATEGORY_LABELS[key], data.stats[key] || [])).join('');
         }
-        if (dpoyBody) {
-            dpoyBody.innerHTML = `
-                <tr><td class="text-center"><strong>1</strong></td><td>Victor Wembanyama</td><td>SAS</td></tr>
-                <tr><td class="text-center"><strong>2</strong></td><td>Evan Mobley</td><td>CLE</td></tr>
-                <tr><td class="text-center"><strong>3</strong></td><td>Anthony Davis</td><td>LAL</td></tr>
-            `;
+        if (awardsBody) {
+            awardsBody.innerHTML = AWARD_KEYS.map(key => podiumRow(CATEGORY_LABELS[key], data.awards[key] || [])).join('');
         }
-
     } catch (error) {
-        console.error("Erreur lors du chargement des leaders stats ESPN :", error);
-        if (statsLeadersBody) statsLeadersBody.innerHTML = `<tr><td colspan="4" class="text-center" style="padding: 20px; color: #cc0000;">Erreur de chargement des statistiques.</td></tr>`;
+        console.error("Erreur lors du chargement de NBA DATA :", error);
+        const message = `<tr><td colspan="4" class="text-center" style="padding: 20px; color: #cc0000;">Erreur de chargement (${error.message}).</td></tr>`;
+        if (statsBody) statsBody.innerHTML = message;
+        if (awardsBody) awardsBody.innerHTML = message;
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     fetchNBAStandings();
-    fetchNbaLeadersAndAwards();
+    fetchNbaDataStatsAwards();
 });

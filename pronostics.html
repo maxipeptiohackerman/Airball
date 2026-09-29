@@ -13,120 +13,97 @@
 <body>
 
 <div class="container">
-        <!-- Le header et la nav vont s'injecter ici automatiquement -->
-        <div id="header-container"></div>
+    <!-- Le header et la nav vont s'injecter ici automatiquement -->
+    <div id="header-container"></div>
 
+    <div class="card pronostics-card">
 
-        <div class="card pronostics-card">
-            <div class="player-selector">
-    <label for="player-select">Sélectionner un joueur :</label>
-    <select id="player-select">
-        <option value="">-- Choisir un joueur --</option>
-    </select>
+        <!-- Sélection du joueur et du joueur à comparer -->
+        <div class="player-selector" id="player-selector">
+            <div class="selector-group">
+                <label for="player-select">Joueur :</label>
+                <select id="player-select" disabled>
+                    <option value="">Chargement...</option>
+                </select>
+            </div>
+            <div class="selector-group">
+                <label for="compare-select">⚖️ Comparer avec :</label>
+                <select id="compare-select" disabled>
+                    <option value="">Personne</option>
+                </select>
+            </div>
         </div>
 
-            <!-- Fiche Joueur -->
-<div id="player-profile" class="player-profile-card" style="display: none;">
-    <div class="profile-left">
-        <div class="profile-avatar-large" id="profile-avatar">🏀</div>
-        <div class="profile-info">
-            <h2 id="profile-name">Nom du joueur</h2>
-            <div class="profile-subtitle">Saison NBA 2026-2027</div>
-        </div>
-    </div>
-    <div class="profile-stats">
-        <div class="stat-box">
-            <div class="stat-value highlight" id="profile-rank">-</div>
-            <div class="stat-label">Classement</div>
-        </div>
-        <div class="stat-box">
-            <div class="stat-value" id="profile-total-pts">-</div>
-            <div class="stat-label">Points Totaux</div>
+        <!-- Message d'état (chargement, verrouillé, erreur, aucun joueur choisi) -->
+        <div id="pronos-message" class="pronos-message">Chargement des pronostics...</div>
+
+        <!-- Contenu, affiché une fois un joueur choisi -->
+        <div id="pronos-content" hidden>
+
+            <!-- Carte du joueur -->
+            <div class="player-profile-card" id="profile-card">
+                <div class="profile-left">
+                    <div class="profile-avatar-large" id="profile-avatar"></div>
+                    <div class="profile-info">
+                        <h2 id="profile-name"></h2>
+                        <button type="button" class="link-btn copy-link-btn">🔗 Copier le lien</button>
+                    </div>
+                </div>
+                <div class="profile-stats">
+                    <div class="stat-box">
+                        <div class="stat-value highlight" id="profile-rank">-</div>
+                        <div class="stat-label">Classement</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="profile-total-pts">-</div>
+                        <div class="stat-label">Points totaux</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bandeau de duel (visible uniquement quand on compare deux joueurs) -->
+            <div id="duel-banner" hidden></div>
+
+            <!-- Points par catégorie (cliquables : ouvrent l'onglet correspondant) -->
+            <div class="score-pills" id="score-pills"></div>
+
+            <!-- Onglets -->
+            <div class="tabs" role="tablist">
+                <button type="button" class="tab-btn" role="tab" data-tab="classements">Classements</button>
+                <button type="button" class="tab-btn" role="tab" data-tab="stats">Stats &amp; Awards</button>
+                <button type="button" class="tab-btn" role="tab" data-tab="evolution">Évolution</button>
+            </div>
+
+            <!-- Onglet 1 : classements Est / Ouest -->
+            <section class="tab-panel" data-panel="classements" hidden>
+                <div class="conf-switch" role="group" aria-label="Conférence">
+                    <button type="button" data-conf="east">Est</button>
+                    <button type="button" data-conf="west">Ouest</button>
+                </div>
+                <div class="tables-grid conf-grid" id="conf-grid"></div>
+            </section>
+
+            <!-- Onglet 2 : stats et trophées -->
+            <section class="tab-panel" data-panel="stats" hidden>
+                <div id="stats-panel"></div>
+            </section>
+
+            <!-- Onglet 3 : évolution du classement -->
+            <section class="tab-panel" data-panel="evolution" hidden>
+                <div id="evolution-message" class="pronos-message" hidden></div>
+                <div class="chart-wrap" id="chart-wrap" hidden>
+                    <canvas id="playerRankChart"></canvas>
+                </div>
+            </section>
         </div>
     </div>
 </div>
 
-<!-- Graphique d'historique du classement -->
-<div id="chart-card" class="player-profile-card" style="display: none; flex-direction: column; align-items: stretch;">
-    <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 1.1rem; color: #fff; text-align: left;">📈 Évolution du classement</h3>
-    <div style="position: relative; height: 220px; width: 100%;">
-        <canvas id="playerRankChart"></canvas>
-    </div>
-</div>
-
-            <div class="tables-grid">
-                <div>
-                    <h3>Conférence Est</h3>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th class="text-center" style="width: 40px;">RK</th>
-                                <th>Équipe</th>
-                                <th class="text-right" style="width: 60px;">Pts</th>
-                            </tr>
-                        </thead>
-                        <tbody id="est-body">
-                            <tr><td colspan="3" class="text-center" style="padding: 20px; color: var(--text-sub);">Sélectionnez un joueur pour voir ses pronostics.</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div>
-                    <h3>Conférence Ouest</h3>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th class="text-center" style="width: 40px;">RK</th>
-                                <th>Équipe</th>
-                                <th class="text-right" style="width: 60px;">Pts</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ouest-body">
-                            <tr><td colspan="3" class="text-center" style="padding: 20px; color: var(--text-sub);">Sélectionnez un joueur pour voir ses pronostics.</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <h3>Statistiques & Awards</h3>
-            
-            <table>
-                <thead>
-                    <tr>
-                        <th>Statistiques</th>
-                        <th>Pick 1</th>
-                        <th>Pick 2</th>
-                        <th>Pick 3</th>
-                        <th class="text-right">Pts</th>
-                    </tr>
-                </thead>
-                <tbody id="stats-body">
-                    <tr><td colspan="5" class="text-center" style="padding: 20px; color: var(--text-sub);">En attente de sélection...</td></tr>
-                </tbody>
-            </table>
-
-            <div class="trophies-spacer">
-                <table>
-                    <thead>
-                        <tr class="section-header-row">
-                            <th>Trophées</th>
-                            <th>Pick 1</th>
-                            <th>Pick 2</th>
-                            <th>Pick 3</th>
-                            <th class="text-right">Pts</th>
-                        </tr>
-                    </thead>
-                    <tbody id="trophee-body">
-                        <tr><td colspan="5" class="text-center" style="padding: 20px; color: var(--text-sub);">En attente de sélection...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- Config partagée, header/countdown communs, puis logique propre à cette page -->
+    <!-- Config, communs, puis logique propre à cette page -->
     <script src="js/config.js"></script>
     <script src="js/common.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/scoring.js"></script>
     <script src="js/pronostics.js"></script>
 </body>
 </html>
