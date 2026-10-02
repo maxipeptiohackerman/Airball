@@ -3,113 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Airball - Statistiques & Classements NBA</title>
-    <!-- Import de la police Marianne -->
-    <link href="https://fonts.googleapis.com/css2?family=Marianne:wght@400;500;700&display=swap" rel="stylesheet">
-    <!-- Lien vers le fichier CSS unique -->
+    <title>Airball - Statistiques &amp; classements NBA</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-   <div class="container">
-        <!-- Le header et la nav vont s'injecter ici automatiquement -->
+    <div class="container">
+        <!-- Fond, menu latéral et barre du haut s'injectent ici (common.js) -->
         <div id="header-container"></div>
 
-        <!-- 1. Classements des Conférences Côte à Côte -->
+        <!-- Classements des conférences (ESPN, en direct) -->
         <div class="tables-grid">
-            <!-- Eastern Conference -->
-            <div class="card">
-                <div class="table-title">Eastern Conference</div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th class="col-rank">RK</th>
-                            <th>Equipe</th>
-                            <th class="text-right">W</th>
-                            <th class="text-right">L</th>
-                            <th class="text-right">PCT</th>
-                        </tr>
-                    </thead>
-                    <tbody id="east-standings">
-                        <tr><td colspan="5" style="text-align:center; padding: 20px;">Chargement des données...</td></tr>
-                    </tbody>
-                </table>
-            </div>
+            <section class="card" aria-labelledby="east-title">
+                <div class="table-title" id="east-title">
+                    Conférence Est
+                    <span>Classement NBA en direct</span>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="col-rank">Rg</th>
+                                <th>Équipe</th>
+                                <th class="text-right">V</th>
+                                <th class="text-right">D</th>
+                                <th class="text-right">%</th>
+                            </tr>
+                        </thead>
+                        <tbody id="east-standings">
+                            <tr><td colspan="5" class="table-message">Chargement du classement…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
 
-            <!-- Western Conference -->
-            <div class="card">
-                <div class="table-title">Western Conference</div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th class="col-rank">RK</th>
-                            <th>Equipe</th>
-                            <th class="text-right">W</th>
-                            <th class="text-right">L</th>
-                            <th class="text-right">PCT</th>
-                        </tr>
-                    </thead>
-                    <tbody id="west-standings">
-                        <tr><td colspan="5" style="text-align:center; padding: 20px;">Chargement des données...</td></tr>
-                    </tbody>
-                </table>
-            </div>
+            <section class="card" aria-labelledby="west-title">
+                <div class="table-title" id="west-title">
+                    Conférence Ouest
+                    <span>Classement NBA en direct</span>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="col-rank">Rg</th>
+                                <th>Équipe</th>
+                                <th class="text-right">V</th>
+                                <th class="text-right">D</th>
+                                <th class="text-right">%</th>
+                            </tr>
+                        </thead>
+                        <tbody id="west-standings">
+                            <tr><td colspan="5" class="table-message">Chargement du classement…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         </div>
 
-        <!-- 3. Bloc Statistiques & Awards, mis à jour à la main dans le Google Sheet (onglet "NBA DATA") -->
-        <div class="card" style="margin-top: 25px; margin-bottom: 30px;">
-            <div class="table-title">
-                Statistiques & Awards
-                <span>Meneurs actuels de la saison</span>
-            </div>
-            <div style="padding: 20px;">
-
-                <!-- Statistiques -->
-                <div>
-                    <h3 style="margin-top: 0;">📊 Statistiques</h3>
-                    <div class="table-responsive">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Catégorie</th>
-                                    <th>1er</th>
-                                    <th>2e</th>
-                                    <th>3e</th>
-                                </tr>
-                            </thead>
-                            <tbody id="nba-stats-body">
-                                <tr><td colspan="4" class="text-center" style="padding: 15px;">Chargement...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
+        <!-- Statistiques & awards, mis à jour à la main dans le Google Sheet (onglet "NBA DATA") -->
+        <div class="cards-stack">
+            <section class="card" aria-labelledby="stats-title">
+                <div class="table-title" id="stats-title">
+                    Statistiques
+                    <span>Meneurs actuels de la saison</span>
                 </div>
-
-                <!-- Awards -->
-                <div style="margin-top: 30px;">
-                    <h3 style="margin-top: 0;">🏆 Awards</h3>
-                    <div class="table-responsive">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Trophée</th>
-                                    <th>1er</th>
-                                    <th>2e</th>
-                                    <th>3e</th>
-                                </tr>
-                            </thead>
-                            <tbody id="nba-awards-body">
-                                <tr><td colspan="4" class="text-center" style="padding: 15px;">Chargement...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Catégorie</th>
+                                <th>1er</th>
+                                <th>2e</th>
+                                <th>3e</th>
+                            </tr>
+                        </thead>
+                        <tbody id="nba-stats-body">
+                            <tr><td colspan="4" class="table-message">Chargement…</td></tr>
+                        </tbody>
+                    </table>
                 </div>
+            </section>
 
-            </div>
+            <section class="card" aria-labelledby="awards-title">
+                <div class="table-title" id="awards-title">
+                    Awards
+                    <span>Favoris actuels pour chaque trophée</span>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Trophée</th>
+                                <th>1er</th>
+                                <th>2e</th>
+                                <th>3e</th>
+                            </tr>
+                        </thead>
+                        <tbody id="nba-awards-body">
+                            <tr><td colspan="4" class="table-message">Chargement…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         </div>
-
     </div>
 
-    <!-- Config partagée, header/countdown communs, puis logique propre à cette page -->
+    <!-- Config partagée, menu/compte à rebours communs, API, puis logique propre à cette page -->
     <script src="js/config.js"></script>
     <script src="js/common.js"></script>
     <script src="js/api.js"></script>

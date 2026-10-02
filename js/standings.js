@@ -54,8 +54,10 @@ async function fetchNBAStandings() {
                     <tr>
                         <td class="col-rank">${index + 1}</td>
                         <td class="col-team">
-                            <img src="${logoUrl}" class="team-logo-img" alt="${shortName}" onerror="this.src='https://a.espncdn.com/i/teamlogos/nba/500/default.png'">
-                            ${teamName}
+                            <span class="team-inline">
+                                <img src="${logoUrl}" class="team-logo-img" alt="" onerror="this.onerror=null; this.src='https://a.espncdn.com/i/teamlogos/nba/500/default.png'">
+                                ${teamName}
+                            </span>
                         </td>
                         <td class="text-right">${wins}</td>
                         <td class="text-right">${losses}</td>
@@ -67,7 +69,7 @@ async function fetchNBAStandings() {
         });
     } catch (error) {
         console.error("Erreur lors de la récupération des classements NBA:", error);
-        const message = `<tr><td colspan="5" class="text-center" style="padding: 20px; color: #cc0000;">Erreur de chargement (${error.message}).</td></tr>`;
+        const message = `<tr><td colspan="5" class="table-message table-message--error">Le classement n’a pas pu être chargé (${escapeHtml(error.message)}).</td></tr>`;
         eastTable.innerHTML = message;
         westTable.innerHTML = message;
     }
@@ -87,7 +89,7 @@ async function fetchNbaDataStatsAwards() {
     const podiumRow = (label, picks) => {
         const cell = name => name ? escapeHtml(name) : '—';
         return `<tr>
-            <td><strong>${label}</strong></td>
+            <td>${label}</td>
             <td>${cell(picks[0])}</td>
             <td>${cell(picks[1])}</td>
             <td>${cell(picks[2])}</td>
@@ -110,7 +112,7 @@ async function fetchNbaDataStatsAwards() {
         }
     } catch (error) {
         console.error("Erreur lors du chargement de NBA DATA :", error);
-        const message = `<tr><td colspan="4" class="text-center" style="padding: 20px; color: #cc0000;">Erreur de chargement (${error.message}).</td></tr>`;
+        const message = `<tr><td colspan="4" class="table-message table-message--error">Les données n’ont pas pu être chargées (${escapeHtml(error.message)}).</td></tr>`;
         if (statsBody) statsBody.innerHTML = message;
         if (awardsBody) awardsBody.innerHTML = message;
     }

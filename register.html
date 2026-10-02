@@ -2,131 +2,168 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Airball - Inscription & Pronostics</title>
-    <!-- Inclusion de SortableJS pour le Drag and Drop -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js" defer></script>
-    <!-- Lien vers le fichier CSS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Airball - Inscription</title>
     <link rel="stylesheet" href="css/style.css">
+    <!-- Glisser-déposer des équipes -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js" defer></script>
 </head>
-<body>
+<body class="reg">
 
-    <div class="container">
-        <div class="header-banner" id="banner-title">
-            Airball - Inscription
-        </div>
+    <!-- Fond commun du site (terrain, texture, halos) -->
+    <div class="app-bg" aria-hidden="true"></div>
 
-        <div class="content-body">
-            <!-- Message affiché à la place du formulaire (inscriptions fermées, inscription confirmée) -->
-            <div id="register-notice" class="register-notice" hidden></div>
+    <a href="index.html" class="reg-exit" aria-label="Quitter l'inscription et revenir au site" title="Quitter">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
 
-            <!-- Barre de progression et bouton Quitter intégrés -->
-            <div class="wizard-header-bar">
-                <span id="step-indicator" class="step-indicator">Étape 1 sur 5</span>
-                <a href="index.html" class="wizard-exit-btn">✕ Quitter</a>
+    <!-- ÉCRAN D'ACCUEIL -->
+    <section class="reg-welcome" id="reg-welcome" aria-labelledby="welcome-title">
+        <!-- Décor (maquette Figma) : masqué sur petit écran. Les images manquantes sont simplement ignorées. -->
+        <div class="reg-deco" aria-hidden="true">
+            <div class="deco-folder deco-folder--1">
+                <img src="img/register/folder.png" alt="" onerror="this.remove()">
+                <span>Ja Morant Gun pics</span>
+            </div>
+            <div class="deco-folder deco-folder--2">
+                <img src="img/register/folder.png" alt="" onerror="this.remove()">
+                <span>Kawhi Salary Cap</span>
             </div>
 
-            <div class="wizard-progress-container">
-                <div id="wizard-progress-fill" class="wizard-progress-fill"></div>
-            </div>
+            <div class="deco-popin deco-popin--back2"><div class="deco-popin-bar is-faded"><span>clevelandthisisforyou</span><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="#717171" stroke-width="2" stroke-linecap="round"/></svg></div><div class="deco-popin-view"></div></div>
+            <div class="deco-popin deco-popin--back1"><div class="deco-popin-bar is-faded"><span>clevelandthisisforyou</span><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="#717171" stroke-width="2" stroke-linecap="round"/></svg></div><div class="deco-popin-view"></div></div>
+            <div class="deco-popin deco-popin--front"><div class="deco-popin-bar"><span>clevelandthisisforyou</span><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="#717171" stroke-width="2" stroke-linecap="round"/></svg></div><div class="deco-popin-view"><img src="img/register/popin-left.gif" alt="" onerror="this.remove()"></div></div>
 
-            <form id="onboarding-form">
+            <div class="deco-popin deco-popin--right"><div class="deco-popin-bar"><span>clevelandthisisforyou</span><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="#717171" stroke-width="2" stroke-linecap="round"/></svg></div><div class="deco-popin-view"><img src="img/register/popin-right.gif" alt="" onerror="this.remove()"></div></div>
 
-                <!-- ÉTAPE 1 : IDENTITÉ -->
-                <div class="wizard-step active" data-step="1">
-                    <h2>👤 Ton Identité</h2>
-                    <p class="subtitle">Choisis ton pseudo et ton avatar pour la saison.</p>
-                    
-                    <div class="form-group">
-                        <label for="pseudo">Pseudo :</label>
-                        <input type="text" id="pseudo" required placeholder="Ex: King James" maxlength="24" autocomplete="off">
-                        <p id="pseudo-error" class="form-error" role="alert" hidden></p>
-                    </div>
-                    <div class="form-group" style="margin-top: 20px;">
-                        <label for="avatar-file">📸 Photo de profil (optionnel) :</label>
-                        <input type="file" id="avatar-file" accept="image/png, image/jpeg, image/jpg" style="margin-top: 8px; display: block;">
-                        <small style="color: var(--text-sub); font-size: 0.85rem;">Format accepté : JPG, PNG (compressé automatiquement).</small>
-                    </div>
-                </div>
-
-                <!-- ÉTAPE 2 : CONFÉRENCE EST -->
-                <div class="wizard-step" data-step="2">
-                    <h2>Eastern Conference</h2>
-                    <p class="subtitle">Glisse les équipes (par la poignée ☰) pour établir ton classement de 1 à 15.</p>
-                    
-                    <ul id="east-list" class="teams-list">
-                        <li class="team-row-item" data-team="Celtics"><span class="team-rank-badge">1st</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/bos.png" alt="Celtics"><span class="team-name-row">Boston Celtics</span><span class="drag-handle">☰</span></li>
-                        <li class="team-row-item" data-team="Bucks"><span class="team-rank-badge">2nd</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/mil.png" alt="Bucks"><span class="team-name-row">Milwaukee Bucks</span><span class="drag-handle">☰</span></li>
-                        <li class="team-row-item" data-team="Knicks"><span class="team-rank-badge">3rd</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/nyk.png" alt="Knicks"><span class="team-name-row">New York Knicks</span><span class="drag-handle">☰</span></li>
-                        <li class="team-row-item" data-team="Cavaliers"><span class="team-rank-badge">4th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/cle.png" alt="Cavaliers"><span class="team-name-row">Cleveland Cavaliers</span><span class="drag-handle">☰</span></li>
-                        <li class="team-row-item" data-team="Magic"><span class="team-rank-badge">5th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/orl.png" alt="Magic"><span class="team-name-row">Orlando Magic</span><span class="drag-handle">☰</span></li>
-                        <li class="team-row-item" data-team="Pacers"><span class="team-rank-badge">6th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/ind.png" alt="Pacers"><span class="team-name-row">Indiana Pacers</span><span class="drag-handle">☰</span></li>
-                        <li class="team-row-item" data-team="76ers"><span class="team-rank-badge">7th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/phi.png" alt="76ers"><span class="team-name-row">Philadelphia 76ers</span><span class="drag-handle">☰</span></li>
-                        <li class="team-row-item" data-team="Heat"><span class="team-rank-badge">8th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/mia.png" alt="Heat"><span class="team-name-row">Miami Heat</span><span class="drag-handle">☰</span></li>
-                        <li class="team-row-item" data-team="Bulls"><span class="team-rank-badge">9th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/chi.png" alt="Bulls"><span class="team-name-row">Chicago Bulls</span><span class="drag-handle">☰</span></li>
-                        <li class="team-row-item" data-team="Hawks"><span class="team-rank-badge">10th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/atl.png" alt="Hawks"><span class="team-name-row">Atlanta Hawks</span><span class="drag-handle">☰</span></li>
-                        <li class="team-row-item" data-team="Nets"><span class="team-rank-badge">11th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/bkn.png" alt="Nets"><span class="team-name-row">Brooklyn Nets</span><span class="drag-handle">☰</span></li>
-                        <li class="team-row-item" data-team="Raptors"><span class="team-rank-badge">12th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/tor.png" alt="Raptors"><span class="team-name-row">Toronto Raptors</span><span class="drag-handle">☰</span></li>
-                        <li class="team-row-item" data-team="Hornets"><span class="team-rank-badge">13th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/cha.png" alt="Hornets"><span class="team-name-row">Charlotte Hornets</span><span class="drag-handle">☰</span></li>
-                        <li class="team-row-item" data-team="Wizards"><span class="team-rank-badge">14th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/wsh.png" alt="Wizards"><span class="team-name-row">Washington Wizards</span><span class="drag-handle">☰</span></li>
-                        <li class="team-row-item" data-team="Pistons"><span class="team-rank-badge">15th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/det.png" alt="Pistons"><span class="team-name-row">Detroit Pistons</span><span class="drag-handle">☰</span></li>
-                    </ul>
-                </div>
-
-                <!-- ÉTAPE 3 : CONFÉRENCE OUEST -->
-                <div class="wizard-step" data-step="3">
-                    <h2>Western Conference</h2>
-                    <p class="subtitle">Classe les 15 franchises de l'Ouest en les glissant par la poignée ☰.</p>
-                    
-                    <ul id="west-list" class="teams-list">
-                        <li class="team-row-item" data-team="Thunder"><span class="team-rank-badge">1st</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/okc.png" alt="Thunder"><span class="team-name-row">Oklahoma City Thunder</span><span class="drag-handle">☰</span></li>
-                        <li class="team-row-item" data-team="Nuggets"><span class="team-rank-badge">2nd</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/den.png" alt="Nuggets"><span class="team-name-row">Denver Nuggets</span><span class="drag-handle">☰</span></li>
-                        <li class="team-row-item" data-team="Timberwolves"><span class="team-rank-badge">3rd</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/min.png" alt="Timberwolves"><span class="team-name-row">Minnesota Timberwolves</span><span class="drag-handle">☰</span></li>
-                        <li class="team-row-item" data-team="Clippers"><span class="team-rank-badge">4th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/lac.png" alt="Clippers"><span class="team-name-row">LA Clippers</span><span class="drag-handle">☰</span></li>
-                        <li class="team-row-item" data-team="Mavericks"><span class="team-rank-badge">5th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/dal.png" alt="Mavericks"><span class="team-name-row">Dallas Mavericks</span><span class="drag-handle">☰</span></li>
-                        <li class="team-row-item" data-team="Suns"><span class="team-rank-badge">6th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/phx.png" alt="Suns"><span class="team-name-row">Phoenix Suns</span><span class="drag-handle">☰</span></li>
-                        <li class="team-row-item" data-team="Pelicans"><span class="team-rank-badge">7th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/no.png" alt="Pelicans"><span class="team-name-row">New Orleans Pelicans</span><span class="drag-handle">☰</span></li>
-                        <li class="team-row-item" data-team="Lakers"><span class="team-rank-badge">8th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/lal.png" alt="Lakers"><span class="team-name-row">Los Angeles Lakers</span><span class="drag-handle">☰</span></li>
-                        <li class="team-row-item" data-team="Kings"><span class="team-rank-badge">9th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/sac.png" alt="Kings"><span class="team-name-row">Sacramento Kings</span><span class="drag-handle">☰</span></li>
-                        <li class="team-row-item" data-team="Warriors"><span class="team-rank-badge">10th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/gsw.png" alt="Warriors"><span class="team-name-row">Golden State Warriors</span><span class="drag-handle">☰</span></li>
-                        <li class="team-row-item" data-team="Grizzlies"><span class="team-rank-badge">11th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/mem.png" alt="Grizzlies"><span class="team-name-row">Memphis Grizzlies</span><span class="drag-handle">☰</span></li>
-                        <li class="team-row-item" data-team="Rockets"><span class="team-rank-badge">12th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/hou.png" alt="Rockets"><span class="team-name-row">Houston Rockets</span><span class="drag-handle">☰</span></li>
-                        <li class="team-row-item" data-team="Spurs"><span class="team-rank-badge">13th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/sas.png" alt="Spurs"><span class="team-name-row">San Antonio Spurs</span><span class="drag-handle">☰</span></li>
-                        <li class="team-row-item" data-team="Jazz"><span class="team-rank-badge">14th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/utah.png" alt="Jazz"><span class="team-name-row">Utah Jazz</span><span class="drag-handle">☰</span></li>
-                        <li class="team-row-item" data-team="Trail Blazers"><span class="team-rank-badge">15th</span><img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/por.png" alt="Trail Blazers"><span class="team-name-row">Portland Trail Blazers</span><span class="drag-handle">☰</span></li>
-                    </ul>
-                </div>
-
-                <!-- ÉTAPE 4 : STATISTIQUES -->
-                <div class="wizard-step" data-step="4">
-                    <h2>📊 Statistiques Individuelles</h2>
-                    <p class="subtitle">Sélectionne ton podium (Pick 1, 2, 3) pour chaque catégorie.</p>
-                    <div id="stats-container"></div>
-                </div>
-
-                <!-- ÉTAPE 5 : AWARDS -->
-                <div class="wizard-step" data-step="5">
-                    <h2>🏆 Les Awards de la Saison</h2>
-                    <p class="subtitle">Qui formera le podium pour chaque trophée individuel ?</p>
-                    <div id="awards-container"></div>
-                </div>
-
-                <p id="submit-error" class="form-error" role="alert" hidden></p>
-
-                <!-- NAVIGATION -->
-                <div class="wizard-footer">
-                    <span class="step-indicator">Étape 1 sur 5</span>
-                    <div>
-                        <button type="button" id="prev-btn" class="btn btn-prev" style="display: none; margin-right: 10px;">Précédent</button>
-                        <button type="button" id="next-btn" class="btn btn-next">Suivant</button>
-                    </div>
-                </div>
-
-            </form>
+            <img class="deco-character" src="img/register/character.png" alt="" onerror="this.remove()">
         </div>
-    </div>
 
-    <!-- Config partagée (URL Apps Script), puis logique dédiée à l'onboarding -->
+        <p class="reg-kicker">Saison 2026/2027</p>
+        <h1 class="reg-hero" id="welcome-title">Bienvenue<br>dans airball</h1>
+        <button type="button" class="reg-start" id="start-btn">Commencer ma sélection</button>
+    </section>
+
+    <!-- MESSAGE (inscriptions fermées, inscription confirmée) -->
+    <section class="reg-notice" id="register-notice" hidden></section>
+
+    <!-- ÉTAPES -->
+    <form id="onboarding-form" class="reg-form" hidden novalidate>
+
+        <!-- 1 : IDENTITÉ -->
+        <section class="wizard-step" data-step="1" aria-labelledby="step1-title">
+            <header class="reg-step-head">
+                <h1 class="reg-title" id="step1-title" tabindex="-1">Ton identité</h1>
+                <p class="reg-sub">Choisis ton pseudo et, si tu veux, une photo de profil.</p>
+            </header>
+            <div class="reg-panel reg-panel--narrow">
+                <div class="reg-card reg-card--padded">
+                    <div class="reg-field">
+                        <label for="pseudo">Pseudo</label>
+                        <input type="text" id="pseudo" required placeholder="Ex. : King James" maxlength="24" autocomplete="off">
+                        <p id="pseudo-error" class="reg-error" role="alert" hidden></p>
+                    </div>
+                    <div class="reg-field">
+                        <span class="reg-label">Photo de profil <small>(facultatif)</small></span>
+                        <label class="reg-avatar" for="avatar-file">
+                            <span class="reg-avatar-preview" id="avatar-preview" aria-hidden="true">?</span>
+                            <span class="reg-avatar-text">
+                                <strong id="avatar-name">Choisir une image</strong>
+                                <small>JPG ou PNG, réduite automatiquement</small>
+                            </span>
+                        </label>
+                        <input type="file" id="avatar-file" class="visually-hidden" accept="image/png, image/jpeg">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2 : CONFÉRENCE EST -->
+        <section class="wizard-step" data-step="2" aria-labelledby="step2-title">
+            <header class="reg-step-head">
+                <h1 class="reg-title" id="step2-title" tabindex="-1">Conférence Est</h1>
+                <p class="reg-sub">Fais glisser les équipes pour établir ton classement, de la 1re à la 15e place.</p>
+            </header>
+            <div class="reg-panel reg-panel--teams">
+                <ol id="east-list" class="reg-card reg-teams" aria-label="Ton classement de la Conférence Est"></ol>
+            </div>
+        </section>
+
+        <!-- 3 : CONFÉRENCE OUEST -->
+        <section class="wizard-step" data-step="3" aria-labelledby="step3-title">
+            <header class="reg-step-head">
+                <h1 class="reg-title" id="step3-title" tabindex="-1">Conférence Ouest</h1>
+                <p class="reg-sub">Fais glisser les équipes pour établir ton classement, de la 1re à la 15e place.</p>
+            </header>
+            <div class="reg-panel reg-panel--teams">
+                <ol id="west-list" class="reg-card reg-teams" aria-label="Ton classement de la Conférence Ouest"></ol>
+            </div>
+        </section>
+
+        <!-- 4 : STATISTIQUES -->
+        <section class="wizard-step" data-step="4" aria-labelledby="step4-title">
+            <header class="reg-step-head">
+                <h1 class="reg-title" id="step4-title" tabindex="-1">Statistiques</h1>
+                <p class="reg-sub">Pour chaque catégorie, choisis ton podium. Seul le leader réel en fin de saison rapporte des points.</p>
+            </header>
+            <div class="reg-panel">
+                <div class="pick-filters" data-filters-for="stats-container"></div>
+                <div class="reg-card" id="stats-container"></div>
+            </div>
+        </section>
+
+        <!-- 5 : AWARDS -->
+        <section class="wizard-step" data-step="5" aria-labelledby="step5-title">
+            <header class="reg-step-head">
+                <h1 class="reg-title" id="step5-title" tabindex="-1">Awards</h1>
+                <p class="reg-sub">Qui remportera chaque trophée ? Choisis ton podium pour chacun.</p>
+            </header>
+            <div class="reg-panel">
+                <div class="pick-filters" data-filters-for="awards-container"></div>
+                <div class="reg-card" id="awards-container"></div>
+            </div>
+        </section>
+
+    </form>
+
+
+    <!-- RÉCAPITULATIF (fenêtre ouverte à la fin, avant l'envoi) -->
+    <dialog class="reg-dialog" id="recap-dialog" aria-labelledby="recap-title">
+        <div class="reg-dialog-inner">
+            <header class="reg-dialog-head">
+                <div>
+                    <h2 class="reg-dialog-title" id="recap-title">Récapitulatif</h2>
+                    <p class="reg-dialog-sub">Vérifie tes pronos avant de valider ton inscription.</p>
+                </div>
+                <button type="button" class="reg-dialog-close" id="recap-close" aria-label="Fermer le récapitulatif">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+            </header>
+            <div class="reg-dialog-body">
+                <div class="reg-recap" id="recap"></div>
+            </div>
+            <footer class="reg-dialog-foot">
+                <p id="submit-error" class="reg-error" role="alert" hidden></p>
+                <div class="reg-dialog-actions">
+                    <button type="button" class="reg-step-btn reg-step-btn--back" id="recap-back">Retour</button>
+                    <button type="button" class="reg-step-btn reg-step-btn--next" id="confirm-btn"><span class="reg-next-label">Valider mon inscription</span></button>
+                </div>
+            </footer>
+        </div>
+    </dialog>
+
+    <!-- BARRE D'ÉTAPES -->
+    <nav class="reg-stepper" id="reg-stepper" aria-label="Étapes de l'inscription" hidden>
+        <div class="reg-progress" aria-hidden="true"><div class="reg-progress-fill" id="wizard-progress-fill"></div></div>
+        <button type="button" id="prev-btn" class="reg-step-btn reg-step-btn--back">Retour</button>
+        <p class="reg-step-count" id="step-indicator" aria-live="polite">Étape 1/5</p>
+        <button type="button" id="next-btn" class="reg-step-btn reg-step-btn--next">
+            <span class="reg-next-label">Suivant</span>
+            <svg width="10" height="13" viewBox="0 0 10 13" fill="none" aria-hidden="true"><path d="M0.36 0.48L8.36 6.48L0.36 12.48" stroke="currentColor" stroke-width="1.2"/></svg>
+        </button>
+    </nav>
+
+    <!-- Config partagée (URL Apps Script), API, puis logique de l'inscription -->
     <script src="js/config.js"></script>
     <script src="js/api.js"></script>
     <script src="js/register.js" defer></script>

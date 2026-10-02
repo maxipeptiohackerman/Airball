@@ -4,46 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Airball - Hall of Fame</title>
-    <!-- Import de la police Marianne -->
-    <link href="https://fonts.googleapis.com/css2?family=Marianne:wght@400;500;700&display=swap" rel="stylesheet">
-    <!-- Lien vers le fichier CSS unique dans le dossier css -->
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
     <div class="container">
-        <!-- Le header et la nav vont s'injecter ici automatiquement -->
+        <!-- Fond, menu latéral et barre du haut s'injectent ici (common.js) -->
         <div id="header-container"></div>
 
-        <!-- Contenu du Hall of Fame -->
-        <div class="card">
-            <div class="table-title">
-                Hall of Fame 🏆
-                <span>Les légendes de la ligue</span>
+        <section class="card" aria-labelledby="hof-title">
+            <div class="table-title" id="hof-title">
+                Palmarès
+                <span>Les vainqueurs des saisons précédentes</span>
             </div>
             <div class="table-responsive">
                 <table class="hof-table">
                     <thead>
                         <tr>
-                            <th>SAISON</th>
-                            <th>VAINQUEUR</th>
-                            <th class="text-right">PTS</th>
-                            <th>2ÈME</th>
-                            <th class="text-right">PTS</th>
-                            <th>MAILLOT CHOISI</th>
+                            <th>Saison</th>
+                            <th>Vainqueur</th>
+                            <th class="text-right">Pts</th>
+                            <th>2e</th>
+                            <th class="text-right">Pts</th>
+                            <th>Maillot choisi</th>
                         </tr>
                     </thead>
                     <tbody id="hall-of-fame-body">
-                        <tr>
-                            <td colspan="6" class="text-center" style="padding: 20px; color: var(--text-sub);">Chargement du palmarès...</td>
-                        </tr>
+                        <tr><td colspan="6" class="table-message">Chargement du palmarès…</td></tr>
                     </tbody>
                 </table>
             </div>
-        </div>
+        </section>
     </div>
 
-    <!-- Config partagée, header/countdown communs, puis logique propre à cette page -->
+    <!-- Config partagée, menu/compte à rebours communs, puis logique propre à cette page -->
     <script src="js/config.js"></script>
     <script src="js/common.js"></script>
     <script src="js/palmares.js"></script>

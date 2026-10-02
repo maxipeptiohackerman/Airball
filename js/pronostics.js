@@ -24,7 +24,7 @@ const SCORE_PILLS = [
 ];
 const VALID_TABS = ['classements', 'stats', 'evolution'];
 const STORAGE_KEY = 'airball:lastPlayer';
-const CHART_COLORS = ['#f59e0b', '#2563eb'];
+const CHART_COLORS = ['#ffa136', '#dcff5f'];
 
 const state = {
     data: null, players: [], current: null, opponent: null,
@@ -123,7 +123,7 @@ function conferencePanel(id, title, rows) {
         const tier = tierFor(r.pts);
         return `<tr class="${tier.row}">
             <td class="text-center"><strong>${r.predicted}</strong></td>
-            <td class="team-cell">${teamLogo(r.team)}<span>${esc(r.team)}</span></td>
+            <td class="team-cell"><span class="team-inline">${teamLogo(r.team)}<span>${esc(r.team)}</span></span></td>
             <td class="text-center">${r.real === null ? '—' : r.real}</td>
             <td class="gap-cell">${gapBadge(r.gap)}</td>
             <td class="text-right ${tier.badge}">${r.pts === null ? '-' : fmt(r.pts)}</td>
@@ -156,7 +156,7 @@ function duelConferencePanel(id, title, a, b, realList) {
             ? '<span class="gap-badge gap-exact">=</span>'
             : r.diff >= 5 ? `<span class="gap-badge gap-miss">±${r.diff}</span>` : `<span class="gap-badge">±${r.diff}</span>`;
         return `<tr>
-            <td class="team-cell">${teamLogo(r.team)}<span>${esc(r.team)}</span></td>
+            <td class="team-cell"><span class="team-inline">${teamLogo(r.team)}<span>${esc(r.team)}</span></span></td>
             ${cell(r.a, r.aPts)}${cell(r.b, r.bPts)}
             <td class="text-center">${diffCell}</td>
             <td class="text-center real-rank">${r.real === null ? '—' : r.real}</td>
@@ -350,13 +350,13 @@ function renderEvolution() {
                         reverse: true,
                         min: 1,
                         suggestedMax: state.players.length,
-                        ticks: { stepSize: 1, color: '#6b7280' },
-                        grid: { color: 'rgba(0, 0, 0, 0.06)' }
+                        ticks: { stepSize: 1, color: '#8e8d91' },
+                        grid: { color: 'rgba(255, 255, 255, 0.06)' }
                     },
-                    x: { ticks: { color: '#6b7280' }, grid: { display: false } }
+                    x: { ticks: { color: '#8e8d91' }, grid: { display: false } }
                 },
                 plugins: {
-                    legend: { display: Boolean(b) },
+                    legend: { display: Boolean(b), labels: { color: '#ffffff' } },
                     tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label} : ${ctx.parsed.y}e` } }
                 }
             }

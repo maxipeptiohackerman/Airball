@@ -13,26 +13,26 @@ async function fetchHallOfFame() {
         hallBody.innerHTML = '';
 
         if (!data || data.length === 0) {
-            hallBody.innerHTML = `<tr><td colspan="6" class="text-center" style="padding: 20px; color: var(--text-sub);">Aucun vainqueur enregistré pour le moment.</td></tr>`;
+            hallBody.innerHTML = `<tr><td colspan="6" class="table-message">Aucun vainqueur enregistré pour le moment.</td></tr>`;
             return;
         }
 
         data.forEach(item => {
             const htmlRow = `
                 <tr>
-                    <td><strong>${item.saison || ''}</strong></td>
-                    <td>🏆 ${item.vainqueur || ''}</td>
-                    <td class="text-right">${item.ptsVainqueur || ''}</td>
-                    <td>🥈 ${item.deuxieme || ''}</td>
-                    <td class="text-right">${item.ptsDeuxieme || ''}</td>
-                    <td>👕 ${item.maillot || ''}</td>
+                    <td class="hof-season">${escapeHtml(item.saison || '')}</td>
+                    <td>🏆 ${escapeHtml(item.vainqueur || '')}</td>
+                    <td class="text-right">${escapeHtml(item.ptsVainqueur || '')}</td>
+                    <td>🥈 ${escapeHtml(item.deuxieme || '')}</td>
+                    <td class="text-right hof-sub">${escapeHtml(item.ptsDeuxieme || '')}</td>
+                    <td>👕 ${escapeHtml(item.maillot || '')}</td>
                 </tr>
             `;
             hallBody.innerHTML += htmlRow;
         });
     } catch (error) {
         console.error("Erreur lors du chargement du Hall of Fame:", error);
-        hallBody.innerHTML = `<tr><td colspan="6" class="text-center" style="padding: 20px; color: #cc0000;">Erreur lors du chargement.</td></tr>`;
+        hallBody.innerHTML = `<tr><td colspan="6" class="table-message table-message--error">Le palmarès n’a pas pu être chargé. Recharge la page dans quelques instants.</td></tr>`;
     }
 }
 
