@@ -1,83 +1,54 @@
 // ==========================================
 // STATS NBA & STANDINGS ESPN (page standings.html)
+// Dépend de : common.js (escapeHtml, STAT_KEYS, AWARD_KEYS, CATEGORY_LABELS), api.js (Api, Espn) et teams.js (Teams)
 // ==========================================
+function standingsRow(entry, index) {
+    return `
+        <tr>
+            <td class="col-rank">${index + 1}</td>
+            <td class="col-team">
+                <span class="team-inline">
+                    ${Teams.logoHtml(entry.team.abbreviation)}
+                    ${escapeHtml(entry.team.displayName)}
+                </span>
+            </td>
+            <td class="text-right">${Espn.statDisplay(entry, 'wins', '0')}</td>
+            <td class="text-right">${Espn.statDisplay(entry, 'losses', '0')}</td>
+            <td class="text-right">${Espn.statDisplay(entry, 'winPercent', '.000')}</td>
+        </tr>`;
+}
+
 async function fetchNBAStandings() {
-    const eastTable = document.getElementById('east-standings');
-    const westTable = document.getElementById('west-standings');
-    if (!eastTable || !westTable) return;
+    const tables = { east: document.getElementById('east-standings'), west: document.getElementById('west-standings') };
+    if (!tables.east || !tables.west) return;
 
     try {
-        // Appel direct depuis le navigateur (pas via Apps Script) : ESPN bloque les
-        // requêtes venant de serveurs Google (403), mais n'a jamais bloqué un vrai
-        // navigateur. Voir TODO.md pour le détail.
-        const response = await fetch('https://site.api.espn.com/apis/v2/sports/basketball/nba/standings');
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status} ${response.statusText}`);
-        }
-
-        const rawText = await response.text();
-        let data;
-        try {
-            data = JSON.parse(rawText);
-        } catch (parseError) {
-            console.error("Réponse ESPN non-JSON (aperçu) :", rawText.slice(0, 300));
-            throw new Error("réponse illisible (pas du JSON)");
-        }
-
-        if (!data.children) {
-            console.error("Réponse ESPN reçue mais sans 'children' :", data);
-            throw new Error("format de réponse inattendu (plus de 'children')");
-        }
-
-        eastTable.innerHTML = '';
-        westTable.innerHTML = '';
-
-        data.children.forEach(conference => {
-            const confName = conference.name;
-            const teams = conference.standings.entries;
-
-            let tbody = confName.includes('Eastern') ? eastTable : westTable;
-
-            teams.forEach((entry, index) => {
-                const teamName = entry.team.displayName;
-                const shortName = entry.team.abbreviation.toLowerCase();
-                let logoSlug = shortName === 'uta' ? 'utah' : shortName;
-                const logoUrl = `https://a.espncdn.com/i/teamlogos/nba/500/${logoSlug}.png`;
-
-                const stats = entry.stats;
-                const wins = stats.find(s => s.name === 'wins')?.displayValue || '0';
-                const losses = stats.find(s => s.name === 'losses')?.displayValue || '0';
-                const pct = stats.find(s => s.name === 'winPercent')?.displayValue || '.000';
-
-                const row = `
-                    <tr>
-                        <td class="col-rank">${index + 1}</td>
-                        <td class="col-team">
-                            <span class="team-inline">
-                                <img src="${logoUrl}" class="team-logo-img" alt="" onerror="this.onerror=null; this.src='https://a.espncdn.com/i/teamlogos/nba/500/default.png'">
-                                ${teamName}
-                            </span>
-                        </td>
-                        <td class="text-right">${wins}</td>
-                        <td class="text-right">${losses}</td>
-                        <td class="text-right">${pct}</td>
-                    </tr>
-                `;
-                tbody.innerHTML += row;
+        // On demande explicitement la SAISON RÉGULIÈRE en cours, sinon ESPN renvoie
+        // la présaison ou la saison précédente selon la période de l'année.
+        const standings = await Espn.getStandings({ season: Espn.currentSeason(), seasonType: 2 })
+            .catch(error => {
+                console.warn("Saison régulière indisponible, classement ESPN par défaut :", error);
+                return Espn.getStandings();
             });
+
+        ['east', 'west'].forEach(conf => {
+            const { label, seasonType, entries } = standings[conf];
+            tables[conf].innerHTML = entries.map(standingsRow).join('');
+
+            // Sous-titre de la carte : saison réellement affichée (ex. "Saison régulière 2026-27")
+            const subtitle = tables[conf].closest('.card').querySelector('.table-title span');
+            if (subtitle && label) subtitle.textContent = `${seasonType === 1 ? 'Présaison' : 'Saison régulière'} ${label}`;
         });
     } catch (error) {
-        console.error("Erreur lors de la récupération des classements NBA:", error);
+        console.error("Erreur lors de la récupération des classements NBA :", error);
         const message = `<tr><td colspan="5" class="table-message table-message--error">Le classement n’a pas pu être chargé (${escapeHtml(error.message)}).</td></tr>`;
-        eastTable.innerHTML = message;
-        westTable.innerHTML = message;
+        tables.east.innerHTML = message;
+        tables.west.innerHTML = message;
     }
 }
 
 /**
- * Statistiques & Awards : saisis à la main dans l'onglet "NBA DATA" du Sheet
- * (dépend de : common.js pour STAT_KEYS / AWARD_KEYS / CATEGORY_LABELS).
+ * Statistiques & Awards : saisis à la main dans l'onglet "NBA DATA" du Sheet.
  * Information NBA réelle, sans rapport avec les pronos des joueurs : reste
  * visible même avant la révélation.
  */

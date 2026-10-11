@@ -3,67 +3,41 @@
 // Dépend de : common.js (escapeHtml, renderAvatarHtml) et api.js (Api)
 // ==========================================
 
-// Flèches de tendance (icônes Lucide de la maquette, couleur pilotée par le CSS)
+// Flèches d'évolution (icônes de la maquette, couleur pilotée par le CSS)
 const TREND_ICONS = {
-    up: '<path d="M19 12L12 5L5 12M12 5V19"/>',
-    down: '<path d="M5 12L12 19L19 12M12 19L12 5"/>',
-    same: '<path d="M12 19L19 12L12 5M19 12L5 12"/>'
+    up: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M17 17V7H7M17 7L7 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    down: '<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5.834 5.834l8.333 8.333M14.167 5.834v8.333H5.834" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    same: '<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4.166 10h11.667M10 4.166l5.833 5.833L10 15.833" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 };
 const TREND_LABELS = { up: 'En progression', down: 'En recul', same: 'Stable' };
 
+// "+2 ↗", "−1 ↘" ou "0 →", avec une phrase complète au survol et pour les lecteurs d'écran
 function trendHtml(trend) {
     const places = Math.abs(trend.delta);
     const detail = trend.delta === 0
         ? (trend.since ? `même place que le ${trend.since}` : 'pas encore d’historique')
         : `${trend.delta > 0 ? '+' : '−'}${places} place${places > 1 ? 's' : ''} depuis le ${trend.since}`;
     const label = `${TREND_LABELS[trend.kind]} : ${detail}`;
-    return `<span class="lb-trend lb-trend--${trend.kind}" role="img" aria-label="${label}" title="${label}">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${TREND_ICONS[trend.kind]}</svg>
+    const value = trend.delta > 0 ? `+${places}` : trend.delta < 0 ? `−${places}` : '0';
+    return `<span class="trend trend--${trend.kind}" title="${label}">
+        <span class="visually-hidden">${label}</span>
+        <span class="trend-value" aria-hidden="true">${value}</span>${TREND_ICONS[trend.kind]}
     </span>`;
-}
-
-const keyOf = name => String(name || '').trim().toLowerCase();
-
-/**
- * Lit une date de l'onglet historique, quel que soit son format :
- * "2026-11-08", "2026-11-08T23:00:00.000Z", "08/11/2026" ou "08/11/26" (jour/mois/année).
- * Renvoie null si la date est invalide (ex. "20/20/26").
- */
-function parseWeek(value) {
-    const text = String(value || '').trim();
-    let year, month, day;
-    let m = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (m) {
-        // Date ISO envoyée par Apps Script : on la ramène à midi, heure locale, pour éviter les décalages de fuseau
-        const parsed = new Date(text);
-        if (isNaN(parsed)) return null;
-        year = parsed.getFullYear(); month = parsed.getMonth() + 1; day = parsed.getDate();
-        if (text.length === 10) { year = +m[1]; month = +m[2]; day = +m[3]; }
-    } else if ((m = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/))) {
-        day = +m[1]; month = +m[2]; year = m[3].length === 2 ? 2000 + +m[3] : +m[3];
-    } else {
-        return null;
-    }
-    const date = new Date(year, month - 1, day, 12);
-    // Refuse les dates impossibles (mois 20, 31 février...)
-    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null;
-    return date;
 }
 
 /**
  * Relevés de chaque joueur, du plus récent au plus ancien :
- * { "pseudo en minuscules": [{ date, rank, points }, ...] }
- * Les dates invalides ou dans le futur sont ignorées.
+ * { "identifiant du joueur": [{ date, rank, points }, ...] }
+ * Les dates invalides ou dans le futur sont ignorées (parseWeek : common.js).
  */
 function historyByPlayer(history, now = new Date()) {
     const byPlayer = {};
     (history || []).forEach(item => {
-        if (!item || !item.joueur) return;
+        if (!item || !item.id) return;
         const date = parseWeek(item.semaine);
         const rank = Number(item.classement);
         if (!date || date > now || !rank) return;
-        const key = keyOf(item.joueur);
-        (byPlayer[key] = byPlayer[key] || []).push({ date, rank, points: Number(item.points) });
+        (byPlayer[item.id] = byPlayer[item.id] || []).push({ date, rank, points: Number(item.points) });
     });
     Object.values(byPlayer).forEach(list => list.sort((a, b) => b.date - a.date));
     return byPlayer;
@@ -91,8 +65,49 @@ function trendFor(currentRank, reference) {
     return { kind: delta > 0 ? 'up' : delta < 0 ? 'down' : 'same', delta, since: shortDate(reference.date) };
 }
 
+// Médailles du podium (images de la maquette). Si l'image manque, un insigne de secours s'affiche.
+const MEDALS = {
+    1: { cls: 'gold', img: 'img/home/medal-gold.png', label: '1re place' },
+    2: { cls: 'silver', img: 'img/home/medal-silver.png', label: '2e place' },
+    3: { cls: 'bronze', img: 'img/home/medal-bronze.png', label: '3e place' }
+};
+const medalFallback = rank => `<svg class="medal-fallback" viewBox="0 0 80 80" aria-hidden="true"><path d="M40 6l29 17v34L40 74 11 57V23z" fill="none" stroke="currentColor" stroke-width="3"/><text x="40" y="50" text-anchor="middle" font-size="28" font-weight="700" fill="currentColor">${rank}</text></svg>`;
+
+const fmt = value => (Math.round((Number(value) || 0) * 10) / 10).toLocaleString('fr-FR');
+
+function playerStats(player) {
+    const s = player.scores;
+    return { est: fmt(s.est), ouest: fmt(s.ouest), stats: fmt(s.stats), awards: fmt(s.awards), total: fmt(s.total) };
+}
+
+function podiumCard({ rank, player, trend }) {
+    const medal = MEDALS[rank];
+    const name = escapeHtml(player.pseudo);
+    const st = playerStats(player);
+    return `
+        <article class="podium-card podium-card--${medal.cls}" aria-label="${medal.label} : ${name}, ${st.total} points">
+            <div class="podium-medal">
+                <img src="${medal.img}" alt="" onerror="this.outerHTML=medalFallback(${rank})">
+            </div>
+            <div class="podium-body">
+                <dl class="podium-stats">
+                    <div><dt>Pts Est</dt><dd>${st.est}</dd></div>
+                    <div><dt>Pts Ouest</dt><dd>${st.ouest}</dd></div>
+                    <div><dt>Stats</dt><dd>${st.stats}</dd></div>
+                    <div><dt>Awards</dt><dd>${st.awards}</dd></div>
+                    <div><dt>Total</dt><dd>${st.total}</dd></div>
+                </dl>
+                <div class="podium-player">
+                    <span class="podium-avatar">${renderAvatarHtml(player.avatar, player.pseudo)}</span>
+                    <span class="podium-name">${name}</span>
+                    ${trendHtml(trend)}
+                </div>
+            </div>
+        </article>`;
+}
+
 function showMessage(list, text, isError = false) {
-    list.innerHTML = `<li class="lb-message${isError ? ' lb-message--error' : ''}">${text}</li>`;
+    list.innerHTML = `<tr><td colspan="8" class="rank-message${isError ? ' rank-message--error' : ''}">${text}</td></tr>`;
 }
 
 async function fetchLeaderboard() {
@@ -109,39 +124,58 @@ async function fetchLeaderboard() {
             })
         ]);
 
+        RevealLock.remember(json.revealed, 'home');
+        const card = list.closest('.rank-card');
         if (!json.revealed) {
-            showMessage(list, '🔒 Le classement sera révélé au lancement de la saison (ou avant, si une soirée reveal est organisée !).');
+            RevealLock.show(card, REVEAL_TEXTS.home);
             return;
         }
+        RevealLock.hide(card);
 
-        const validRows = (json.rows || []).filter(row => {
-            const joueur = row[2];
-            return joueur && String(joueur).trim() !== '' && String(joueur).toUpperCase() !== 'JOUEUR';
-        });
-
-        if (validRows.length === 0) {
+        // Réponse au mauvais format = l'ancien script Apps Script est encore en ligne
+        if (!Array.isArray(json.players)) {
+            throw new Error('réponse inattendue du script : nouvelle version à déployer dans Apps Script ?');
+        }
+        if (json.players.length === 0) {
             showMessage(list, 'Aucun joueur inscrit pour le moment.');
             return;
         }
 
-        validRows.sort((a, b) => parseFloat(b[7] || 0) - parseFloat(a[7] || 0));
-
+        // Joueurs déjà triés par total décroissant par le script
         const past = historyByPlayer(history);
-
-        list.innerHTML = validRows.map((row, index) => {
-            const joueur = String(row[2]).trim();
+        const ranked = json.players.map((player, index) => {
             const rank = index + 1;
-            const points = parseFloat(row[7] || 0);
-            const trend = trendFor(rank, referenceFor(past[keyOf(joueur)], rank, points));
+            return { rank, player, trend: trendFor(rank, referenceFor(past[player.id], rank, player.scores.total)) };
+        });
 
-            return `
-                <li class="lb-row">
-                    <span class="lb-rank">${rank}</span>
-                    <span class="lb-avatar">${renderAvatarHtml(row[8], joueur)}</span>
-                    <span class="lb-name">${escapeHtml(joueur)}</span>
-                    ${trendHtml(trend)}
-                </li>`;
-        }).join('');
+        // Podium : 2e à gauche, 1er au centre (plus haut), 3e à droite
+        const podium = document.getElementById('podium');
+        const top3 = ranked.slice(0, 3);
+        podium.innerHTML = [top3[1], top3[0], top3[2]].filter(Boolean).map(podiumCard).join('');
+        podium.hidden = top3.length === 0;
+
+        const rest = ranked.slice(3);
+        list.innerHTML = rest.length
+            ? rest.map(({ rank, player, trend }) => {
+                const st = playerStats(player);
+                return `
+                <tr>
+                    <td class="rank-col-rk">${rank}</td>
+                    <td class="rank-col-player">
+                        <span class="rank-player">
+                            <span class="rank-avatar">${renderAvatarHtml(player.avatar, player.pseudo)}</span>
+                            <span class="rank-name">${escapeHtml(player.pseudo)}</span>
+                        </span>
+                    </td>
+                    <td>${st.est}</td>
+                    <td>${st.ouest}</td>
+                    <td>${st.stats}</td>
+                    <td>${st.awards}</td>
+                    <td>${st.total}</td>
+                    <td>${trendHtml(trend)}</td>
+                </tr>`;
+            }).join('')
+            : `<tr><td colspan="8" class="rank-message">Les autres joueurs apparaîtront ici dès la 4e place.</td></tr>`;
 
     } catch (error) {
         console.error("Erreur de chargement du leaderboard :", error);
@@ -151,6 +185,10 @@ async function fetchLeaderboard() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    fetchLeaderboard();
-});
+// Le script est chargé en bas de page : le tableau existe déjà, on peut décider tout de suite
+(() => {
+    const list = document.getElementById('leaderboard-body');
+    if (list && RevealLock.shouldLockNow('home')) RevealLock.show(list.closest('.rank-card'), REVEAL_TEXTS.home);
+})();
+
+document.addEventListener('DOMContentLoaded', fetchLeaderboard);

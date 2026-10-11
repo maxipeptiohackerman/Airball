@@ -4,68 +4,63 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Airball - Règles du jeu</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=20261012q">
 </head>
-<body>
+<body class="has-hero">
+
+    <!-- Photo de Wembanyama en fond (à droite), comme sur la Home -->
+    <div class="home-hero" aria-hidden="true"><img src="img/home/wemby.webp" alt="" onerror="this.parentElement.remove()"></div>
 
     <div class="container">
         <!-- Fond, menu latéral et barre du haut s'injectent ici (common.js) -->
         <div id="header-container"></div>
 
         <!-- Le lot -->
-        <section class="card lot-card" aria-labelledby="rules-prize">
-            <div class="table-title" id="rules-prize">
-                Le lot
-                <span>Ce que remporte le vainqueur</span>
-            </div>
+        <section class="card card--panel" aria-labelledby="rules-prize">
+            <h2 class="card-head" id="rules-prize">Le lot</h2>
             <div class="lot-body">
-                <div class="lot-visual" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none"><path d="M8 2h1.5a2.5 2.5 0 0 0 5 0H16c0 3 1 5 3 6v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V8c2-1 3-3 3-6Z" stroke="currentColor" stroke-width="0.9" stroke-linejoin="round"/></svg>
-                    <span class="lot-visual-mark">?</span>
+                <div class="lot-main">
+                    <div class="lot-visual" aria-hidden="true">
+                        <svg viewBox="0 0 31 40" fill="none"><path d="M3.25 0h5.17c.38 3.83 2.87 6.79 6.89 6.79S21.82 3.83 22.2 0h5.17v8.33c0 3.35 1.05 5.84 3.25 8.13V40H0V16.46c2.2-2.29 3.25-4.78 3.25-8.13V0Z" transform="translate(.6 .6) scale(.96)" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+                    </div>
+                    <div class="lot-text">
+                        <p class="lot-headline">Le maillot NBA de son choix</p>
+                        <p class="lot-desc">À la fin de la saison, le vainqueur choisit n’importe quel maillot NBA : joueur, équipe, édition. Il lui est offert par tous les autres joueurs.</p>
+                    </div>
                 </div>
-                <div class="lot-text">
-                    <p class="lot-headline">Le maillot NBA de son choix</p>
-                    <p class="lot-desc">À la fin de la saison, le vainqueur choisit n’importe quel maillot NBA : joueur, équipe, édition. Il lui est offert par tous les autres joueurs.</p>
+                <!-- Rempli depuis l'onglet Hall of Fame du Sheet (masqué s'il est vide) -->
+                <div class="lot-history" id="lot-history" hidden>
+                    <p class="lot-history-title">Précédents maillots remportés</p>
+                    <ul class="lot-history-list" id="lot-history-list"></ul>
                 </div>
-            </div>
-            <!-- Rempli depuis l'onglet Hall of Fame du Sheet (masqué s'il est vide) -->
-            <div class="lot-history" id="lot-history" hidden>
-                <p class="lot-history-title">Déjà remportés</p>
-                <ul class="rules-list" id="lot-history-list"></ul>
             </div>
         </section>
 
         <div class="tables-grid">
             <!-- Classements des équipes -->
-            <section class="card" aria-labelledby="rules-teams">
-                <div class="table-title" id="rules-teams">
-                    Classements des équipes
-                    <span>Conférences Est et Ouest, pour chaque équipe</span>
-                </div>
+            <section class="card card--panel" aria-labelledby="rules-teams">
+                <h2 class="card-head" id="rules-teams">Classement des équipes Est &amp; Ouest</h2>
                 <ul class="rules-list">
                     <li class="rules-row">
                         <span class="rules-label">Bonne place</span>
                         <span class="rules-pts pts-2">2 pts</span>
                     </li>
                     <li class="rules-row">
-                        <span class="rules-label">Une place d'écart
+                        <span class="rules-label">Une place d’écart
                             <small>Ex. : pronostiquée 4e, elle finit 3e ou 5e</small>
                         </span>
                         <span class="rules-pts pts-1">1 pt</span>
                     </li>
                     <li class="rules-row">
-                        <span class="rules-label">Deux places d'écart ou plus</span>
+                        <span class="rules-label">Deux places d’écart ou plus</span>
                         <span class="rules-pts pts-0">0 pt</span>
                     </li>
                 </ul>
             </section>
 
             <!-- Statistiques & awards -->
-            <section class="card" aria-labelledby="rules-picks">
-                <div class="table-title" id="rules-picks">
-                    Statistiques &amp; awards
-                    <span>Un podium par catégorie, seul le leader ou le gagnant réel compte</span>
-                </div>
+            <section class="card card--panel" aria-labelledby="rules-picks">
+                <h2 class="card-head" id="rules-picks">Statistiques &amp; awards</h2>
                 <ul class="rules-list">
                     <li class="rules-row">
                         <span class="rules-label">Ton Pick 1 est le leader ou le gagnant</span>
@@ -82,12 +77,23 @@
                 </ul>
             </section>
         </div>
+
+        <!-- Bloc d'inscription (disparaît si les inscriptions sont closes) -->
+        <section class="signup-banner" data-signup aria-labelledby="signup-banner-title">
+            <div class="signup-banner-copy">
+                <p class="signup-banner-kicker">Saison 2026/2027</p>
+                <h2 class="signup-banner-title" id="signup-banner-title">Tu connais le playbook</h2>
+                <p class="signup-banner-text">Plus qu’à entrer sur le terrain&nbsp;: fais tes pronos avant le 20 octobre.</p>
+            </div>
+            <a href="register.html" class="btn-primary">Je prépare mes pronos <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></a>
+        </section>
     </div>
 
-    <!-- Config partagée, menu/compte à rebours communs, API, puis les maillots déjà gagnés -->
-    <script src="js/config.js"></script>
-    <script src="js/common.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/rules.js"></script>
+    <!-- Réglages (config), appels au serveur (api), pages masquées, menu commun, puis logique propre à la page -->
+    <script src="js/config.js?v=20261012q"></script>
+    <script src="js/api.js?v=20261012q"></script>
+    <script src="js/pages-config.js?v=20261012q"></script>
+    <script src="js/common.js?v=20261012q"></script>
+    <script src="js/rules.js?v=20261012q"></script>
 </body>
 </html>

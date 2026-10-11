@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Airball - Le reveal</title>
+    <link rel="stylesheet" href="css/reveal.css?v=20261012q">
+</head>
+<body>
+    <!-- Lecteur de stories du reveal : chapitres en haut, écran au centre, commandes en bas.
+         Les pronos ne sont envoyés par le Google Sheet qu'une fois le reveal lancé (onglet CONFIG). -->
+    <div class="player">
+        <header class="head">
+            <a class="brand" href="index.html">airball</a>
+            <nav class="chapters" id="chapters" aria-label="Chapitres du reveal"></nav>
+            <a class="btn-secondary btn--small quit" href="index.html">Quitter</a>
+        </header>
+        <div class="bars" id="bars" aria-hidden="true"></div>
+
+        <main class="screen" id="screen" aria-live="polite">
+            <div id="slide-host">
+                <div class="slide slide--center"><p class="loading">Chargement du reveal…</p></div>
+            </div>
+            <span class="paused-badge" id="paused-badge" hidden>En pause</span>
+        </main>
+
+        <footer class="foot" id="foot" hidden>
+            <div class="ctrls">
+                <button class="ctrl" id="btn-prev" type="button" aria-label="Écran précédent">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <button class="ctrl" id="btn-pause" type="button" aria-label="Pause"></button>
+                <button class="ctrl" id="btn-next" type="button" aria-label="Écran suivant">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+            </div>
+            <span class="hint">Tap à droite pour avancer, à gauche pour revenir, appui long pour mettre en pause. Au clavier : ← → et espace.</span>
+        </footer>
+    </div>
+
+    <!-- Réglages (config), appels au serveur (api), puis le lecteur du reveal -->
+    <script src="js/config.js?v=20261012q"></script>
+    <script src="js/api.js?v=20261012q"></script>
+    <script src="js/teams.js?v=20261012q"></script>
+    <script src="js/reveal.js?v=20261012q"></script>
+</body>
+</html>

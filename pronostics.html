@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Airball - Pronostics des Joueurs</title>
     
-    <link rel="stylesheet" href="css/style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="css/style.css?v=20261012q">
 </head>
 <body>
 
@@ -44,7 +43,7 @@
                     <div class="profile-avatar-large" id="profile-avatar"></div>
                     <div class="profile-info">
                         <h2 id="profile-name"></h2>
-                        <button type="button" class="link-btn copy-link-btn">🔗 Copier le lien</button>
+                        <button type="button" class="btn-secondary btn--small copy-link-btn">🔗 Copier le lien</button>
                     </div>
                 </div>
                 <div class="profile-stats">
@@ -90,18 +89,21 @@
             <section class="tab-panel" data-panel="evolution" hidden>
                 <div id="evolution-message" class="pronos-message" hidden></div>
                 <div class="chart-wrap" id="chart-wrap" hidden>
-                    <canvas id="playerRankChart"></canvas>
+                    <div class="evo-legend" id="evo-legend"></div>
+                    <div class="evo-chart" id="evo-chart"></div>
                 </div>
             </section>
         </div>
     </div>
 </div>
 
-    <!-- Config, communs, puis logique propre à cette page -->
-    <script src="js/config.js"></script>
-    <script src="js/common.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/scoring.js"></script>
-    <script src="js/pronostics.js"></script>
+    <!-- Réglages (config), appels au serveur (api), pages masquées, menu commun, puis logique propre à la page -->
+    <script src="js/config.js?v=20261012q"></script>
+    <script src="js/api.js?v=20261012q"></script>
+    <script src="js/teams.js?v=20261012q"></script>
+    <script src="js/pages-config.js?v=20261012q"></script>
+    <script src="js/common.js?v=20261012q"></script>
+    <script src="js/scoring.js?v=20261012q"></script>
+    <script src="js/pronostics.js?v=20261012q"></script>
 </body>
 </html>

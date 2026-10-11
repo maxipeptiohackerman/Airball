@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Airball - Inscription</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=20261012q">
     <!-- Glisser-déposer des équipes -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js" defer></script>
 </head>
@@ -13,7 +13,7 @@
     <!-- Fond commun du site (terrain, texture, halos) -->
     <div class="app-bg" aria-hidden="true"></div>
 
-    <a href="index.html" class="reg-exit" aria-label="Quitter l'inscription et revenir au site" title="Quitter">
+    <a href="index.html" class="reg-exit" id="reg-exit" aria-label="Quitter l'inscription et revenir au site" title="Quitter">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </a>
 
@@ -21,6 +21,8 @@
     <section class="reg-welcome" id="reg-welcome" aria-labelledby="welcome-title">
         <!-- Décor (maquette Figma) : masqué sur petit écran. Les images manquantes sont simplement ignorées. -->
         <div class="reg-deco" aria-hidden="true">
+            <img class="deco-photo" src="img/register/ja.webp" alt="" onerror="this.remove()">
+
             <div class="deco-folder deco-folder--1">
                 <img src="img/register/folder.png" alt="" onerror="this.remove()">
                 <span>Ja Morant Gun pics</span>
@@ -30,43 +32,46 @@
                 <span>Kawhi Salary Cap</span>
             </div>
 
-            <div class="deco-popin deco-popin--back2"><div class="deco-popin-bar is-faded"><span>clevelandthisisforyou</span><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="#717171" stroke-width="2" stroke-linecap="round"/></svg></div><div class="deco-popin-view"></div></div>
-            <div class="deco-popin deco-popin--back1"><div class="deco-popin-bar is-faded"><span>clevelandthisisforyou</span><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="#717171" stroke-width="2" stroke-linecap="round"/></svg></div><div class="deco-popin-view"></div></div>
-            <div class="deco-popin deco-popin--front"><div class="deco-popin-bar"><span>clevelandthisisforyou</span><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="#717171" stroke-width="2" stroke-linecap="round"/></svg></div><div class="deco-popin-view"><img src="img/register/popin-left.gif" alt="" onerror="this.remove()"></div></div>
-
-            <div class="deco-popin deco-popin--right"><div class="deco-popin-bar"><span>clevelandthisisforyou</span><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="#717171" stroke-width="2" stroke-linecap="round"/></svg></div><div class="deco-popin-view"><img src="img/register/popin-right.gif" alt="" onerror="this.remove()"></div></div>
-
-            <img class="deco-character" src="img/register/character.png" alt="" onerror="this.remove()">
+            <div class="deco-popin deco-popin--back2"><div class="deco-popin-bar is-faded"><span>new_season</span><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="#717171" stroke-width="2" stroke-linecap="round"/></svg></div><div class="deco-popin-view"></div></div>
+            <div class="deco-popin deco-popin--back1"><div class="deco-popin-bar is-faded"><span>new_season</span><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="#717171" stroke-width="2" stroke-linecap="round"/></svg></div><div class="deco-popin-view"></div></div>
+            <div class="deco-popin deco-popin--front"><div class="deco-popin-bar"><span>new_season</span><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="#717171" stroke-width="2" stroke-linecap="round"/></svg></div><div class="deco-popin-view"><img class="deco-gif" data-src="img/register/popin-left.gif" alt=""></div></div>
         </div>
 
         <p class="reg-kicker">Saison 2026/2027</p>
         <h1 class="reg-hero" id="welcome-title">Bienvenue<br>dans airball</h1>
-        <button type="button" class="reg-start" id="start-btn">Commencer ma sélection</button>
+        <button type="button" class="btn-primary" id="start-btn">
+            Je m’inscris
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
     </section>
 
     <!-- MESSAGE (inscriptions fermées, inscription confirmée) -->
     <section class="reg-notice" id="register-notice" hidden></section>
 
+    <!-- Photos de décor (masquées sur petit écran) : Kevin Garnett à gauche sur l'étape 1,
+         Ray Allen en bas à droite sur les écrans de picks (étapes 4 et 5) -->
+    <img class="step-photo step-photo--identity" src="img/register/garnett.webp" alt="" aria-hidden="true" onerror="this.remove()">
+    <img class="step-photo step-photo--picks" src="img/register/ray-allen.webp" alt="" aria-hidden="true" onerror="this.remove()">
+
     <!-- ÉTAPES -->
     <form id="onboarding-form" class="reg-form" hidden novalidate>
 
         <!-- 1 : IDENTITÉ -->
-        <section class="wizard-step" data-step="1" aria-labelledby="step1-title">
+        <section class="wizard-step wizard-step--identity" data-step="1" aria-labelledby="step1-title">
             <header class="reg-step-head">
                 <h1 class="reg-title" id="step1-title" tabindex="-1">Ton identité</h1>
-                <p class="reg-sub">Choisis ton pseudo et, si tu veux, une photo de profil.</p>
             </header>
             <div class="reg-panel reg-panel--narrow">
-                <div class="reg-card reg-card--padded">
+                <div class="reg-identity">
                     <div class="reg-field">
                         <label for="pseudo">Pseudo</label>
-                        <input type="text" id="pseudo" required placeholder="Ex. : King James" maxlength="24" autocomplete="off">
+                        <input type="text" id="pseudo" required placeholder="ex: king_james" maxlength="24" autocomplete="off">
                         <p id="pseudo-error" class="reg-error" role="alert" hidden></p>
                     </div>
                     <div class="reg-field">
-                        <span class="reg-label">Photo de profil <small>(facultatif)</small></span>
+                        <span class="reg-label">Photo de profil<span class="visually-hidden"> (facultatif)</span></span>
                         <label class="reg-avatar" for="avatar-file">
-                            <span class="reg-avatar-preview" id="avatar-preview" aria-hidden="true">?</span>
+                            <span class="reg-avatar-preview" id="avatar-preview" aria-hidden="true"></span>
                             <span class="reg-avatar-text">
                                 <strong id="avatar-name">Choisir une image</strong>
                                 <small>JPG ou PNG, réduite automatiquement</small>
@@ -100,72 +105,118 @@
             </div>
         </section>
 
-        <!-- 4 : STATISTIQUES -->
-        <section class="wizard-step" data-step="4" aria-labelledby="step4-title">
+        <!-- 4 : STATISTIQUES et 5 : AWARDS — un écran par catégorie, rempli par register.js -->
+        <section class="wizard-step wizard-step--picks" data-step="4" aria-labelledby="step4-title">
             <header class="reg-step-head">
-                <h1 class="reg-title" id="step4-title" tabindex="-1">Statistiques</h1>
-                <p class="reg-sub">Pour chaque catégorie, choisis ton podium. Seul le leader réel en fin de saison rapporte des points.</p>
+                <h1 class="reg-title" id="step4-title" tabindex="-1"></h1>
+                <p class="reg-sub"></p>
             </header>
-            <div class="reg-panel">
-                <div class="pick-filters" data-filters-for="stats-container"></div>
-                <div class="reg-card" id="stats-container"></div>
-            </div>
+            <div class="pick-stage"></div>
         </section>
 
-        <!-- 5 : AWARDS -->
-        <section class="wizard-step" data-step="5" aria-labelledby="step5-title">
+        <section class="wizard-step wizard-step--picks" data-step="5" aria-labelledby="step5-title">
             <header class="reg-step-head">
-                <h1 class="reg-title" id="step5-title" tabindex="-1">Awards</h1>
-                <p class="reg-sub">Qui remportera chaque trophée ? Choisis ton podium pour chacun.</p>
+                <h1 class="reg-title" id="step5-title" tabindex="-1"></h1>
+                <p class="reg-sub"></p>
             </header>
-            <div class="reg-panel">
-                <div class="pick-filters" data-filters-for="awards-container"></div>
-                <div class="reg-card" id="awards-container"></div>
+            <div class="pick-stage"></div>
+        </section>
+
+        <!-- 6 : RÉCAPITULATIF (rempli par register.js) -->
+        <section class="wizard-step wizard-step--recap" data-step="6" aria-labelledby="step6-title">
+            <header class="reg-step-head">
+                <h1 class="reg-title" id="step6-title" tabindex="-1">Récapitulatif</h1>
+                <p class="reg-sub">Vérifie tes pronos avant de valider ton inscription.</p>
+            </header>
+            <div class="recap-card-box">
+                <div class="recap-tabs" id="recap-tabs" role="tablist" aria-label="Parties du récapitulatif">
+                    <button type="button" class="recap-tab" role="tab" id="recap-tab-identity" data-tab="identity" aria-controls="recap-panel-identity">Identité</button>
+                    <button type="button" class="recap-tab" role="tab" id="recap-tab-east" data-tab="east" aria-controls="recap-panel-east">Classement Est</button>
+                    <button type="button" class="recap-tab" role="tab" id="recap-tab-west" data-tab="west" aria-controls="recap-panel-west">Classement Ouest</button>
+                    <button type="button" class="recap-tab" role="tab" id="recap-tab-stats" data-tab="stats" aria-controls="recap-panel-stats">Stats</button>
+                    <button type="button" class="recap-tab" role="tab" id="recap-tab-awards" data-tab="awards" aria-controls="recap-panel-awards">Awards</button>
+                </div>
+                <div class="recap-panels" id="recap-panels">
+                    <div class="recap-panel recap-panel--identity" id="recap-panel-identity" role="tabpanel" aria-labelledby="recap-tab-identity" hidden></div>
+                    <div class="recap-panel recap-panel--east" id="recap-panel-east" role="tabpanel" aria-labelledby="recap-tab-east" hidden></div>
+                    <div class="recap-panel recap-panel--west" id="recap-panel-west" role="tabpanel" aria-labelledby="recap-tab-west" hidden></div>
+                    <div class="recap-panel recap-panel--stats" id="recap-panel-stats" role="tabpanel" aria-labelledby="recap-tab-stats" hidden></div>
+                    <div class="recap-panel recap-panel--awards" id="recap-panel-awards" role="tabpanel" aria-labelledby="recap-tab-awards" hidden></div>
+                </div>
             </div>
         </section>
 
     </form>
 
 
-    <!-- RÉCAPITULATIF (fenêtre ouverte à la fin, avant l'envoi) -->
-    <dialog class="reg-dialog" id="recap-dialog" aria-labelledby="recap-title">
-        <div class="reg-dialog-inner">
-            <header class="reg-dialog-head">
-                <div>
-                    <h2 class="reg-dialog-title" id="recap-title">Récapitulatif</h2>
-                    <p class="reg-dialog-sub">Vérifie tes pronos avant de valider ton inscription.</p>
-                </div>
-                <button type="button" class="reg-dialog-close" id="recap-close" aria-label="Fermer le récapitulatif">
-                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <!-- PANNEAU LATÉRAL : choix d'un joueur pour un pick (étapes 4 et 5) -->
+    <dialog class="pick-panel" id="pick-panel" aria-labelledby="pick-panel-title">
+        <div class="pick-panel-inner">
+            <header class="pick-panel-head">
+                <h2 class="pick-panel-title" id="pick-panel-title">Pick 1</h2>
+                <button type="button" class="btn-secondary btn--small pick-panel-close" id="pick-panel-close">
+                    Fermer
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                 </button>
             </header>
-            <div class="reg-dialog-body">
-                <div class="reg-recap" id="recap"></div>
+            <div class="pick-panel-intro">
+                <p class="pick-panel-lead" id="pick-panel-lead">Sélectionner un joueur</p>
+                <p class="pick-panel-hint" id="pick-panel-hint"></p>
             </div>
-            <footer class="reg-dialog-foot">
-                <p id="submit-error" class="reg-error" role="alert" hidden></p>
-                <div class="reg-dialog-actions">
-                    <button type="button" class="reg-step-btn reg-step-btn--back" id="recap-back">Retour</button>
-                    <button type="button" class="reg-step-btn reg-step-btn--next" id="confirm-btn"><span class="reg-next-label">Valider mon inscription</span></button>
+            <label class="visually-hidden" for="pick-search">Rechercher</label>
+            <input type="search" id="pick-search" class="pick-search" autocomplete="off" enterkeyhint="search">
+            <div class="pick-panel-filters">
+                <span class="pick-panel-label">Filtres</span>
+                <div class="pick-filter-row">
+                    <label class="visually-hidden" for="filter-team">Équipe</label>
+                    <select id="filter-team" class="pick-filter"><option value="">Équipes</option></select>
+                    <label class="visually-hidden" for="filter-pos">Poste</label>
+                    <select id="filter-pos" class="pick-filter"><option value="">Postes</option></select>
+                    <button type="button" class="pick-filters-reset" id="filter-reset" hidden>Réinitialiser</button>
                 </div>
-            </footer>
+            </div>
+            <div class="pick-results-head">
+                <span class="pick-panel-label" id="pick-results-label">Joueurs</span>
+                <span class="pick-panel-label" id="pick-results-count" aria-live="polite"></span>
+            </div>
+            <div class="pick-results" id="pick-results" role="listbox" aria-labelledby="pick-results-label"></div>
+        </div>
+    </dialog>
+
+
+    <!-- CONFIRMATION AVANT DE QUITTER (si une sélection est en cours) -->
+    <dialog class="reg-dialog reg-dialog--small" id="exit-dialog" aria-labelledby="exit-title" aria-describedby="exit-text">
+        <div class="reg-dialog-inner exit-inner">
+            <!-- Vidéo chargée seulement à l'ouverture (version légère du GIF : 45 Ko au lieu de 1,8 Mo) -->
+            <video class="exit-gif" id="exit-gif" muted loop playsinline preload="none" poster="img/register/bye.jpg" aria-hidden="true">
+                <source data-src="img/register/bye.webm" type="video/webm">
+                <source data-src="img/register/bye.mp4" type="video/mp4">
+            </video>
+            <h2 class="reg-dialog-title" id="exit-title">Tu nous quittes déjà ?</h2>
+            <p class="exit-text" id="exit-text">Ta sélection n'est pas enregistrée : si tu quittes maintenant, tes pronos seront perdus.</p>
+            <div class="reg-dialog-actions exit-actions">
+                <a href="index.html" class="btn-secondary" id="exit-confirm">Quitter</a>
+                <button type="button" class="btn-primary" id="exit-cancel" autofocus><span class="reg-next-label">Continuer mon inscription</span></button>
+            </div>
         </div>
     </dialog>
 
     <!-- BARRE D'ÉTAPES -->
     <nav class="reg-stepper" id="reg-stepper" aria-label="Étapes de l'inscription" hidden>
         <div class="reg-progress" aria-hidden="true"><div class="reg-progress-fill" id="wizard-progress-fill"></div></div>
-        <button type="button" id="prev-btn" class="reg-step-btn reg-step-btn--back">Retour</button>
-        <p class="reg-step-count" id="step-indicator" aria-live="polite">Étape 1/5</p>
-        <button type="button" id="next-btn" class="reg-step-btn reg-step-btn--next">
-            <span class="reg-next-label">Suivant</span>
-            <svg width="10" height="13" viewBox="0 0 10 13" fill="none" aria-hidden="true"><path d="M0.36 0.48L8.36 6.48L0.36 12.48" stroke="currentColor" stroke-width="1.2"/></svg>
+        <button type="button" id="prev-btn" class="btn-secondary btn--small">Retour</button>
+        <p class="reg-step-count" id="step-indicator" aria-live="polite">Étape 1/6</p>
+        <button type="button" id="next-btn" class="btn-primary btn--small">
+            <span class="reg-next-label">Valider</span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
     </nav>
 
-    <!-- Config partagée (URL Apps Script), API, puis logique de l'inscription -->
-    <script src="js/config.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/register.js" defer></script>
+    <!-- Réglages (config), appels au serveur (api), pages masquées, menu commun, puis logique propre à la page -->
+    <script src="js/config.js?v=20261012q"></script>
+    <script src="js/api.js?v=20261012q"></script>
+    <script src="js/teams.js?v=20261012q"></script>
+    <script src="js/pages-config.js?v=20261012q"></script>
+    <script src="js/register.js?v=20261012q" defer></script>
 </body>
 </html>

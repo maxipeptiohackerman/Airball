@@ -4,30 +4,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Airball - Classement</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=20261012q">
 </head>
-<body>
+<body class="page-home has-hero">
+
+    <!-- Photo de Wembanyama en fond (à droite), fondue dans le décor -->
+    <div class="home-hero" aria-hidden="true"><img src="img/home/wemby.webp" alt="" onerror="this.parentElement.remove()"></div>
 
     <div class="container">
-        <!-- Fond, menu latéral et barre du haut s'injectent ici (header.html) -->
+        <!-- Fond, menu latéral et barre du haut s'injectent ici (common.js) -->
         <div id="header-container"></div>
 
-        <!-- Carte Leaderboard -->
-        <section class="lb-card" aria-labelledby="lb-title">
-            <div class="lb-card-header">
-                <h2 class="lb-card-title" id="lb-title">Classement</h2>
-                <p class="lb-card-subtitle">Classement général des joueurs</p>
+        <!-- Podium : 2e, 1er, 3e -->
+        <section class="podium" id="podium" aria-label="Podium" hidden></section>
+
+        <!-- Classement (à partir de la 4e place) -->
+        <section class="rank-card" aria-label="Classement général">
+            <div class="rank-scroll">
+                <table class="rank-table">
+                    <thead>
+                        <tr>
+                            <th class="rank-col-rk" scope="col">RK</th>
+                            <th class="rank-col-player" scope="col">Joueur</th>
+                            <th scope="col">Points Est</th>
+                            <th scope="col">Points Ouest</th>
+                            <th scope="col">Points stats</th>
+                            <th scope="col">Points awards</th>
+                            <th scope="col">Total</th>
+                            <th scope="col">Évolution</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body">
+                        <tr><td colspan="8" class="rank-message">Chargement du classement…</td></tr>
+                    </tbody>
+                </table>
             </div>
-            <ol class="lb-list" id="leaderboard-body">
-                <li class="lb-message">Chargement du classement…</li>
-            </ol>
         </section>
     </div>
 
-    <!-- Config partagée, header/countdown communs, API, puis logique propre à cette page -->
-    <script src="js/config.js"></script>
-    <script src="js/common.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/leaderboard.js"></script>
+    <!-- Réglages (config), appels au serveur (api), pages masquées, menu commun, puis logique propre à la page -->
+    <script src="js/config.js?v=20261012q"></script>
+    <script src="js/api.js?v=20261012q"></script>
+    <script src="js/pages-config.js?v=20261012q"></script>
+    <script src="js/common.js?v=20261012q"></script>
+    <script src="js/leaderboard.js?v=20261012q"></script>
 </body>
 </html>

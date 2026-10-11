@@ -1,20 +1,10 @@
 // ==========================================
 // PAGE PRONOSTICS (pronostics.html)
-// Dépend de : config.js, common.js, api.js, scoring.js
+// Dépend de : config.js, common.js, api.js, teams.js, scoring.js
 // Deux modes : fiche d'un joueur, ou duel entre deux joueurs.
 // ==========================================
 
 // CATEGORY_LABELS, STAT_KEYS, AWARD_KEYS sont définis dans common.js (partagés avec standings.js)
-
-// Codes ESPN des logos, par nom court d'équipe (celui utilisé dans le Sheet)
-const TEAM_LOGO_CODES = {
-    Hawks: 'atl', Celtics: 'bos', Nets: 'bkn', Hornets: 'cha', Bulls: 'chi', Cavs: 'cle',
-    Pistons: 'det', Pacers: 'ind', Heat: 'mia', Bucks: 'mil', Knicks: 'nyk', Magic: 'orl',
-    '76ers': 'phi', Raptors: 'tor', Wizards: 'wsh', Mavericks: 'dal', Nuggets: 'den',
-    Warriors: 'gs', Rockets: 'hou', Clippers: 'lac', Lakers: 'lal', Grizzlies: 'mem',
-    Wolves: 'min', Pelicans: 'no', Thunder: 'okc', Suns: 'phx', Blazers: 'por',
-    Kings: 'sac', Spurs: 'sas', Jazz: 'utah'
-};
 
 const SCORE_PILLS = [
     { key: 'est', label: 'Est', tab: 'classements', conf: 'east' },
@@ -24,17 +14,16 @@ const SCORE_PILLS = [
 ];
 const VALID_TABS = ['classements', 'stats', 'evolution'];
 const STORAGE_KEY = 'airball:lastPlayer';
-const CHART_COLORS = ['#ffa136', '#dcff5f'];
 
 const state = {
     data: null, players: [], current: null, opponent: null,
-    tab: 'classements', conf: 'east', chart: null, evolutionToken: 0
+    tab: 'classements', conf: 'east', evoObserver: null, evolutionToken: 0
 };
 
 // ---------- petits utilitaires ----------
 const $ = id => document.getElementById(id);
 const fmt = n => Number(n || 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 });
-const ordinal = n => (n === 1 ? '1er' : n + 'e');
+const ordinal = n => (!n ? '—' : n === 1 ? '1er' : n + 'e');
 const esc = escapeHtml;
 const isDuel = () => Boolean(state.current && state.opponent && state.opponent.id !== state.current.id);
 
@@ -46,11 +35,7 @@ function tierFor(pts) {
     return { row: 'row-tier-2', badge: 'pts-badge pts-tier-2' };
 }
 
-function teamLogo(team) {
-    const code = TEAM_LOGO_CODES[team];
-    if (!code) return '';
-    return `<img src="https://a.espncdn.com/i/teamlogos/nba/500/${code}.png" alt="" class="team-logo">`;
-}
+const teamLogo = team => Teams.logoHtml(team); // logos communs à tout le site (teams.js)
 
 function gapBadge(gap) {
     if (gap === null) return '<span class="gap-badge gap-none">—</span>';
@@ -111,7 +96,7 @@ function renderDuelBanner(a, b) {
     $('duel-banner').innerHTML = `
         <div class="player-profile-card duel-card">
             ${duelSide(a)}
-            <div class="duel-vs">VS<button type="button" class="link-btn copy-link-btn">🔗 Copier le lien</button></div>
+            <div class="duel-vs">VS<button type="button" class="btn-secondary btn--small copy-link-btn">🔗 Copier le lien</button></div>
             ${duelSide(b)}
         </div>
         <div class="duel-chips">${chips.map(chip => `<span class="duel-chip">${chip}</span>`).join('')}</div>`;
@@ -289,78 +274,196 @@ function renderStats() {
 }
 
 // ---------- onglet Évolution ----------
+// Total de points semaine après semaine (style "Tendances").
+// Le total peut baisser : les points dépendent du classement NBA du moment.
+//  Seul : courbe orange = le joueur, courbe grise = le meilleur des AUTRES joueurs à chaque
+//  semaine (le leader du moment, ou le 2e quand le joueur est lui-même en tête).
+//  Duel : orange = joueur A, citron = joueur B.
+const EVO_COLORS = { a: '#f87822', b: '#dcff5f', rival: '#6b6b73', rest: '#4a4a52', grid: '#3a3a42', ink: '#8e8d91' };
+
+// Relevés valides (dates lisibles, pas dans le futur), par date croissante :
+// [{ date, key, players: { "identifiant": { name, rank, points } } }]
+function evolutionSnapshots(history) {
+    const byDate = {};
+    const now = new Date();
+    (history || []).forEach(item => {
+        if (!item || !item.id) return;
+        const date = parseWeek(item.semaine);
+        const points = Number(item.points);
+        if (!date || date > now || isNaN(points)) return;
+        const key = date.toISOString().slice(0, 10);
+        const snap = byDate[key] || (byDate[key] = { date, key, players: {} });
+        snap.players[item.id] = { name: String(item.joueur || '').trim(), rank: Number(item.classement) || null, points };
+    });
+    return Object.values(byDate).sort((x, y) => x.date - y.date);
+}
+
+function buildEvolutionSeries(snapshots, a, b) {
+    const keyA = a.id;
+    const keyB = b ? b.id : null;
+    const weeks = snapshots.filter(s => s.players[keyA] || (keyB && s.players[keyB]));
+    return weeks.map(s => {
+        const week = { date: s.date, a: s.players[keyA] || null, b: null, rival: null };
+        if (keyB) {
+            week.b = s.players[keyB] || null;
+        } else {
+            // Meilleur score parmi les autres joueurs cette semaine-là
+            Object.entries(s.players).forEach(([key, p]) => {
+                if (key !== keyA && (!week.rival || p.points > week.rival.points)) week.rival = p;
+            });
+        }
+        return week;
+    });
+}
+
+const shortDay = d => d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+
+function drawEvolution(box, weeks, a, b) {
+    const W = Math.max(300, box.clientWidth);
+    const compact = W < 520;
+    const gutter = compact ? 40 : 52, left = 12, right = W - gutter;
+    const top = { y0: 28, y1: compact ? 260 : 340 };
+    const H = top.y1 + 30;
+    const n = weeks.length;
+    const xAt = i => (n === 1 ? (left + right) / 2 : left + 10 + i * ((right - left - 20) / (n - 1)));
+
+    const values = weeks.flatMap(w => [w.a && w.a.points, w.b && w.b.points, w.rival && w.rival.points].filter(v => v != null));
+    // Graduations rondes (pas de 1, 2, 5, 10, 20…) : 0, 10, 20, 30 plutôt que 6,3 ou 18,8
+    const rawStep = Math.max(...values, 1) / 4;
+    const pow = Math.pow(10, Math.floor(Math.log10(rawStep)));
+    const tickStep = [1, 2, 5, 10].map(m => m * pow).find(v => v >= rawStep);
+    const maxTop = Math.ceil(Math.max(...values, 1) / tickStep) * tickStep;
+    const ticks = Array.from({ length: Math.round(maxTop / tickStep) + 1 }, (_, i) => i * tickStep);
+    const yTop = v => top.y1 - (v / maxTop) * (top.y1 - top.y0);
+
+    const grid = ys => ys.map(v => `
+        <line x1="${left}" x2="${right}" y1="${yTop(v)}" y2="${yTop(v)}" stroke="${EVO_COLORS.grid}" stroke-dasharray="1 4"/>
+        <text x="${right + 10}" y="${yTop(v) + 4}" class="evo-tick">${fmt(v)}</text>`).join('');
+
+    const path = (pick, color, width) => {
+        let d = '', open = false;
+        weeks.forEach((w, i) => {
+            const v = pick(w);
+            if (v == null) { open = false; return; }
+            d += `${open ? 'L' : 'M'}${xAt(i).toFixed(1)},${yTop(v).toFixed(1)} `;
+            open = true;
+        });
+        return d ? `<path d="${d}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linejoin="round" stroke-linecap="round"/>` : '';
+    };
+
+    box.innerHTML = `
+        <svg class="evo-svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" tabindex="0" role="img"
+             aria-label="Évolution du total de points de ${esc(a.pseudo)}${b ? ' et de ' + esc(b.pseudo) : ''}. Flèches gauche et droite pour parcourir les semaines.">
+            <text x="${left}" y="14" class="evo-title">Total de points</text>
+            ${grid(ticks)}
+            ${b ? path(w => w.b && w.b.points, EVO_COLORS.b, 2.5) : path(w => w.rival && w.rival.points, EVO_COLORS.rival, 2)}
+            ${path(w => w.a && w.a.points, EVO_COLORS.a, 2.5)}
+
+            <text x="${xAt(0)}" y="${H - 8}" class="evo-tick" text-anchor="${n === 1 ? 'middle' : 'start'}">${shortDay(weeks[0].date)}</text>
+            ${n > 1 ? `<text x="${xAt(n - 1)}" y="${H - 8}" class="evo-tick" text-anchor="end">${shortDay(weeks[n - 1].date)}</text>` : ''}
+
+            <g class="evo-cursor">
+                <line class="evo-cursor-line" y1="${top.y0 - 6}" y2="${top.y1}" stroke="#c0bec3" stroke-width="1"/>
+                <circle class="evo-dot-b" r="4.5" fill="${b ? EVO_COLORS.b : EVO_COLORS.rival}"/>
+                <circle class="evo-dot-a" r="7" fill="#17171b" stroke="${EVO_COLORS.a}" stroke-width="2.5"/>
+            </g>
+        </svg>
+        <div class="evo-tip" aria-live="polite"></div>`;
+
+    const svg = box.querySelector('svg');
+    const tip = box.querySelector('.evo-tip');
+    const line = svg.querySelector('.evo-cursor-line');
+    const dotA = svg.querySelector('.evo-dot-a');
+    const dotB = svg.querySelector('.evo-dot-b');
+
+    const select = i => {
+        const w = weeks[i];
+        const x = xAt(i);
+        line.setAttribute('x1', x); line.setAttribute('x2', x);
+        const placeDot = (dot, p) => {
+            dot.style.display = p ? '' : 'none';
+            if (p) { dot.setAttribute('cx', x); dot.setAttribute('cy', yTop(p.points)); }
+        };
+        placeDot(dotA, w.a);
+        placeDot(dotB, b ? w.b : w.rival);
+
+        const lineA = w.a ? `<b style="color:${EVO_COLORS.a}">${esc(a.pseudo)} : ${fmt(w.a.points)} pts · ${ordinal(w.a.rank)}</b>` : '';
+        let lineB = '';
+        if (b && w.b) {
+            lineB = `<span style="color:${EVO_COLORS.b}">${esc(b.pseudo)} : ${fmt(w.b.points)} pts · ${ordinal(w.b.rank)}</span>`;
+            if (w.a) {
+                const gap = w.a.points - w.b.points;
+                lineB += `<span>${gap === 0 ? 'À égalité' : `${esc(gap > 0 ? a.pseudo : b.pseudo)} devant de ${fmt(Math.abs(gap))} pt${Math.abs(gap) > 1 ? 's' : ''}`}</span>`;
+            }
+        }
+        if (!b && w.rival) {
+            const role = w.a && w.a.rank === 1 ? '2e' : 'Leader';
+            lineB = `<span>${role} : ${fmt(w.rival.points)} pts (${esc(w.rival.name)})</span>`;
+        }
+        tip.innerHTML = `<span class="evo-tip-date">Semaine du ${shortDay(w.date)}</span>${lineA}${lineB}`;
+        const tipW = tip.offsetWidth;
+        tip.style.left = `${Math.min(Math.max(0, x - tipW / 2), W - tipW)}px`;
+        svg.dataset.sel = i;
+    };
+
+    const nearest = clientX => {
+        const rect = svg.getBoundingClientRect();
+        const px = (clientX - rect.left) * (W / rect.width);
+        let best = 0;
+        weeks.forEach((_, i) => { if (Math.abs(xAt(i) - px) < Math.abs(xAt(best) - px)) best = i; });
+        return best;
+    };
+    svg.addEventListener('pointermove', e => select(nearest(e.clientX)));
+    svg.addEventListener('pointerdown', e => select(nearest(e.clientX)));
+    svg.addEventListener('keydown', e => {
+        const cur = Number(svg.dataset.sel);
+        if (e.key === 'ArrowLeft' && cur > 0) { select(cur - 1); e.preventDefault(); }
+        if (e.key === 'ArrowRight' && cur < n - 1) { select(cur + 1); e.preventDefault(); }
+    });
+
+    select(n - 1); // dernière semaine sélectionnée par défaut
+}
+
 function renderEvolution() {
     const a = state.current;
     const b = isDuel() ? state.opponent : null;
     const token = ++state.evolutionToken;
     const message = $('evolution-message');
     const wrap = $('chart-wrap');
+    const legend = $('evo-legend');
+    const box = $('evo-chart');
 
     message.hidden = false;
     message.textContent = 'Chargement de l\'historique...';
     wrap.hidden = true;
-    if (state.chart) { state.chart.destroy(); state.chart = null; }
+    if (state.evoObserver) { state.evoObserver.disconnect(); state.evoObserver = null; }
 
     Api.getHistory().then(history => {
         if (token !== state.evolutionToken) return; // l'utilisateur a changé entre-temps
 
-        const dateOf = item => String(item.semaine || '').split('T')[0];
-        const nameOf = item => String(item.joueur).trim().toLowerCase();
-        const wanted = [a, b].filter(Boolean);
-        const rows = (history || []).filter(item => wanted.some(p => p.pseudo.toLowerCase() === nameOf(item)));
-
-        if (rows.length === 0) {
-            message.textContent = 'Le graphique apparaîtra après la première semaine de jeu.';
-            return;
-        }
-        if (typeof Chart === 'undefined') {
-            message.textContent = 'Le graphique est indisponible pour le moment.';
+        const weeks = buildEvolutionSeries(evolutionSnapshots(history), a, b);
+        if (!weeks.some(w => w.a)) {
+            message.textContent = 'Le graphique apparaîtra après le premier relevé hebdomadaire.';
             return;
         }
 
-        const labels = [...new Set(rows.map(dateOf))];
-        const datasets = wanted.map((player, i) => {
-            const byDate = {};
-            rows.filter(item => nameOf(item) === player.pseudo.toLowerCase()).forEach(item => { byDate[dateOf(item)] = item.classement; });
-            return {
-                label: player.pseudo,
-                data: labels.map(label => (label in byDate ? byDate[label] : null)),
-                borderColor: CHART_COLORS[i],
-                backgroundColor: CHART_COLORS[i] + '1f',
-                borderWidth: 3,
-                pointBackgroundColor: CHART_COLORS[i],
-                pointRadius: 5,
-                fill: !b,
-                spanGaps: true,
-                tension: 0.2
-            };
-        }).filter(dataset => dataset.data.some(value => value !== null));
+        legend.innerHTML = `
+            <span><i style="background:${EVO_COLORS.a}"></i>${esc(a.pseudo)}</span>
+            ${b ? `<span><i style="background:${EVO_COLORS.b}"></i>${esc(b.pseudo)}</span>`
+                : `<span><i style="background:${EVO_COLORS.rival}"></i>Meilleur adversaire (leader, ou 2e si ${esc(a.pseudo)} est en tête)</span>`}`;
 
         message.hidden = true;
         wrap.hidden = false;
+        drawEvolution(box, weeks, a, b);
 
-        state.chart = new Chart($('playerRankChart'), {
-            type: 'line',
-            data: { labels, datasets },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        reverse: true,
-                        min: 1,
-                        suggestedMax: state.players.length,
-                        ticks: { stepSize: 1, color: '#8e8d91' },
-                        grid: { color: 'rgba(255, 255, 255, 0.06)' }
-                    },
-                    x: { ticks: { color: '#8e8d91' }, grid: { display: false } }
-                },
-                plugins: {
-                    legend: { display: Boolean(b), labels: { color: '#ffffff' } },
-                    tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label} : ${ctx.parsed.y}e` } }
-                }
-            }
+        // Redessine à la bonne largeur (rotation d'écran, menu réduit…)
+        let lastWidth = box.clientWidth;
+        state.evoObserver = new ResizeObserver(() => {
+            if (Math.abs(box.clientWidth - lastWidth) < 4) return;
+            lastWidth = box.clientWidth;
+            drawEvolution(box, weeks, a, b);
         });
+        state.evoObserver.observe(box);
     }).catch(error => {
         console.error('Erreur historique :', error);
         if (token === state.evolutionToken) message.textContent = 'Impossible de charger l\'historique.';
@@ -514,11 +617,14 @@ async function initPronostics() {
     try {
         const data = await Api.getPronos();
 
+        RevealLock.remember(data.revealed, 'pronos');
+        const card = document.querySelector('.pronostics-card');
         if (!data.revealed) {
             select.innerHTML = '<option value="">🔒 Pronostics non révélés</option>';
-            showMessage('🔒 Les pronostics seront révélés au lancement de la saison (ou avant, lors d\'une soirée reveal !).');
+            RevealLock.show(card, REVEAL_TEXTS.pronostics);
             return;
         }
+        RevealLock.hide(card);
 
         // Réponse au mauvais format = l'ancien script Apps Script est encore en ligne
         if (!Array.isArray(data.players) || !data.real) {
@@ -553,5 +659,11 @@ async function initPronostics() {
         showMessage('Impossible de charger les pronostics.', error.message);
     }
 }
+
+// Avant la saison : fausse popin affichée tout de suite (script chargé en bas de page)
+(() => {
+    const card = document.querySelector('.pronostics-card');
+    if (card && RevealLock.shouldLockNow('pronos')) RevealLock.show(card, REVEAL_TEXTS.pronostics);
+})();
 
 document.addEventListener('DOMContentLoaded', initPronostics);

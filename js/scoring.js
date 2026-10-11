@@ -37,10 +37,6 @@ const Scoring = (() => {
         return { picks: picks || [], hits, pts };
     }
 
-    function sumPoints(rows) {
-        return rows.reduce((sum, row) => sum + (row.pts || 0), 0);
-    }
-
     // Rang "à égalité" : 2 joueurs à 12 pts sont tous les deux 1er.
     function rankOf(players, player, key) {
         const value = player.scores[key] || 0;
@@ -90,7 +86,8 @@ const Scoring = (() => {
         };
     }
 
-    return { rankPoints, conferenceRows, pickRow, sumPoints, rankOf, duelConferenceRows, duelSummary, norm, PICK_POINTS };
+    return { conferenceRows, pickRow, rankOf, duelConferenceRows, duelSummary, norm };
 })();
 
+// Permet de tester ces règles avec Node.js, sans navigateur
 if (typeof module !== 'undefined') module.exports = Scoring;

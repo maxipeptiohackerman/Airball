@@ -2,14 +2,16 @@
  * AIRBALL - Parcours d'inscription (register.html)
  * Écran d'accueil, puis 5 étapes : identité, Est, Ouest, stats, awards,
  * et enfin une fenêtre de récapitulatif avant l'envoi.
- * L'envoi vers le Sheet (format du payload, vérification) est inchangé.
+ * Dépend de : config.js, api.js (Api), teams.js (Teams), pages-config.js (PageConfig)
  */
 
 // ==========================================
 // ÉTAT ET ÉLÉMENTS
 // ==========================================
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 6; // 1 identité, 2 Est, 3 Ouest, 4 stats, 5 awards, 6 récapitulatif
+const RECAP_STEP = 6;
 let currentStep = 0; // 0 = écran d'accueil
+let currentSub = 0;  // étapes 4 et 5 : catégorie en cours (un écran par catégorie)
 let nbaPlayers = [];
 let nbaCoaches = [];
 
@@ -20,8 +22,6 @@ const steps = document.querySelectorAll('.wizard-step');
 const prevBtn = document.getElementById('prev-btn');
 const nextBtn = document.getElementById('next-btn');
 const nextLabel = nextBtn.querySelector('.reg-next-label');
-const recapDialog = document.getElementById('recap-dialog');
-const confirmBtn = document.getElementById('confirm-btn');
 
 const esc = value => String(value === null || value === undefined ? '' : value).replace(/[&<>"']/g, c => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -40,34 +40,23 @@ const CONFIRM_DELAY_MS = 1500;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 // ==========================================
-// ÉQUIPES (data-team = nom utilisé pour l'envoi vers le Sheet)
+// ÉQUIPES (js/teams.js ; data-team = nom utilisé dans le Sheet)
 // ==========================================
-const EAST_TEAMS = [
-    ['Celtics', 'Boston Celtics', 'bos'], ['Bucks', 'Milwaukee Bucks', 'mil'], ['Knicks', 'New York Knicks', 'nyk'],
-    ['Cavaliers', 'Cleveland Cavaliers', 'cle'], ['Magic', 'Orlando Magic', 'orl'], ['Pacers', 'Indiana Pacers', 'ind'],
-    ['76ers', 'Philadelphia 76ers', 'phi'], ['Heat', 'Miami Heat', 'mia'], ['Bulls', 'Chicago Bulls', 'chi'],
-    ['Hawks', 'Atlanta Hawks', 'atl'], ['Nets', 'Brooklyn Nets', 'bkn'], ['Raptors', 'Toronto Raptors', 'tor'],
-    ['Hornets', 'Charlotte Hornets', 'cha'], ['Wizards', 'Washington Wizards', 'wsh'], ['Pistons', 'Detroit Pistons', 'det']
-];
-const WEST_TEAMS = [
-    ['Thunder', 'Oklahoma City Thunder', 'okc'], ['Nuggets', 'Denver Nuggets', 'den'], ['Timberwolves', 'Minnesota Timberwolves', 'min'],
-    ['Clippers', 'LA Clippers', 'lac'], ['Mavericks', 'Dallas Mavericks', 'dal'], ['Suns', 'Phoenix Suns', 'phx'],
-    ['Pelicans', 'New Orleans Pelicans', 'no'], ['Lakers', 'Los Angeles Lakers', 'lal'], ['Kings', 'Sacramento Kings', 'sac'],
-    ['Warriors', 'Golden State Warriors', 'gsw'], ['Grizzlies', 'Memphis Grizzlies', 'mem'], ['Rockets', 'Houston Rockets', 'hou'],
-    ['Spurs', 'San Antonio Spurs', 'sas'], ['Jazz', 'Utah Jazz', 'utah'], ['Trail Blazers', 'Portland Trail Blazers', 'por']
-];
-const TEAM_NAMES = {};
-[...EAST_TEAMS, ...WEST_TEAMS].forEach(([key, name]) => { TEAM_NAMES[key] = name; });
+// Ordre de départ des listes à classer (l'ordre d'envoi vers le Sheet, lui, est celui de TEAMS)
+const START_ORDER = {
+    east: ['Celtics', 'Bucks', 'Knicks', 'Cavs', 'Magic', 'Pacers', '76ers', 'Heat', 'Bulls', 'Hawks', 'Nets', 'Raptors', 'Hornets', 'Wizards', 'Pistons'],
+    west: ['Thunder', 'Nuggets', 'Wolves', 'Clippers', 'Mavericks', 'Suns', 'Pelicans', 'Lakers', 'Kings', 'Warriors', 'Grizzlies', 'Rockets', 'Spurs', 'Jazz', 'Blazers']
+};
 
 const DRAG_ICON = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 3.33H14M2 8H14M2 12.67H14" stroke="currentColor" stroke-width="1.33" stroke-linecap="round"/></svg>';
 
-function buildTeamList(listId, teams) {
+function buildTeamList(listId, keys) {
     const list = document.getElementById(listId);
-    list.innerHTML = teams.map(([key, name, logo], i) => `
-        <li class="team-row-item" data-team="${esc(key)}">
+    list.innerHTML = keys.map(Teams.find).map((team, i) => `
+        <li class="team-row-item" data-team="${esc(team.key)}">
             <span class="team-rank">${i + 1}</span>
-            <img class="team-logo-row" src="https://a.espncdn.com/i/teamlogos/nba/500/${logo}.png" alt="" onerror="this.onerror=null; this.style.visibility='hidden'">
-            <span class="team-name-row">${esc(name)}</span>
+            ${Teams.logoHtml(team.key)}
+            <span class="team-name-row">${esc(team.name)}</span>
             <span class="drag-handle" aria-hidden="true">${DRAG_ICON}</span>
         </li>`).join('');
 }
@@ -79,27 +68,31 @@ function updateRanks(listId) {
 }
 
 // ==========================================
-// STATS & AWARDS (podiums)
+// STATS & AWARDS : un écran par catégorie, 3 cartes (Pick 1 au centre)
+// Un clic sur une carte ouvre le panneau latéral de sélection.
 // ==========================================
 const STATS_CATEGORIES = [
-    { id: 'pts', title: 'Points', hint: 'Meilleur marqueur' },
-    { id: 'reb', title: 'Rebonds', hint: 'Meilleur rebondeur' },
-    { id: 'ast', title: 'Passes', hint: 'Meilleur passeur' },
-    { id: 'stl', title: 'Interceptions', hint: 'Meilleur intercepteur' },
-    { id: 'blk', title: 'Contres', hint: 'Meilleur contreur' }
+    { id: 'pts', short: 'Points', title: 'Meilleurs marqueurs', hint: 'Le joueur qui finira la saison avec le plus de points par match.' },
+    { id: 'reb', short: 'Rebonds', title: 'Meilleurs rebondeurs', hint: 'Le joueur qui finira la saison avec le plus de rebonds par match.' },
+    { id: 'ast', short: 'Passes', title: 'Meilleurs passeurs', hint: 'Le joueur qui finira la saison avec le plus de passes décisives par match.' },
+    { id: 'stl', short: 'Interceptions', title: 'Meilleurs intercepteurs', hint: 'Le joueur qui finira la saison avec le plus d’interceptions par match.' },
+    { id: 'blk', short: 'Contres', title: 'Meilleurs contreurs', hint: 'Le joueur qui finira la saison avec le plus de contres par match.' }
 ];
 const AWARDS_CATEGORIES = [
-    { id: 'mvp', title: 'MVP', hint: 'Most Valuable Player' },
-    { id: 'coy', title: 'COY', hint: 'Coach of the Year' },
-    { id: 'roy', title: 'ROY', hint: 'Rookie of the Year' },
-    { id: 'mip', title: 'MIP', hint: 'Most Improved Player' },
-    { id: 'dpoy', title: 'DPOY', hint: 'Defensive Player of the Year' },
-    { id: 'sixth', title: '6th Man', hint: 'Sixth Man of the Year' }
+    { id: 'mvp', short: 'MVP', title: 'MVP', hint: 'Most Valuable Player : le meilleur joueur de la saison régulière.' },
+    { id: 'coy', short: 'COY', title: 'Coach de l’année', hint: 'Coach of the Year : le coach qui a le plus impressionné.', kind: 'coach' },
+    { id: 'roy', short: 'ROY', title: 'Rookie de l’année', hint: 'Rookie of the Year : le meilleur joueur de première année.', kind: 'rookie' },
+    { id: 'mip', short: 'MIP', title: 'Meilleure progression', hint: 'Most Improved Player : le joueur qui a le plus progressé.' },
+    { id: 'dpoy', short: 'DPOY', title: 'Défenseur de l’année', hint: 'Defensive Player of the Year : le meilleur défenseur.' },
+    { id: 'sixth', short: '6th Man', title: '6e homme de l’année', hint: 'Sixth Man of the Year : le meilleur joueur sorti du banc.' }
 ];
 const STEP_CATEGORIES = { 4: STATS_CATEGORIES, 5: AWARDS_CATEGORIES };
+const ALL_CATEGORIES = [...STATS_CATEGORIES, ...AWARDS_CATEGORIES];
 
-// Filtres actifs par étape (équipe, poste), partagés par tous les champs de l'étape
-const filters = { 4: { team: '', pos: '' }, 5: { team: '', pos: '' } };
+// Choix du joueur : picks.pts = [{ name, team }, null, null] (index 0 = Pick 1)
+const picks = {};
+ALL_CATEGORIES.forEach(cat => { picks[cat.id] = [null, null, null]; });
+const pickNames = catId => picks[catId].map(p => (p ? p.name : ''));
 
 // Postes : "G" (meneur/arrière), "F" (ailier), "C" (pivot). Accepte aussi PG, SG, SF, PF, "G-F"...
 const POSITION_GROUPS = [
@@ -114,188 +107,182 @@ function matchesPosition(player, group) {
     return codes.some(code => wanted.includes(code));
 }
 
-const hasPositions = () => nbaPlayers.some(p => p.pos);
 const rookies = () => nbaPlayers.filter(p => p.rookie === true || p.rookie === 'true');
 
-// Liste dans laquelle cherche un champ : coachs pour le COY, rookies pour le ROY (si connus)
-function sourceFor(catId) {
-    if (catId === 'coy') return nbaCoaches;
-    if (catId === 'roy' && rookies().length) return rookies();
+// Liste proposée : coachs pour le COY, rookies pour le ROY (si connus)
+function sourceFor(cat) {
+    if (cat.kind === 'coach') return nbaCoaches;
+    if (cat.kind === 'rookie' && rookies().length) return rookies();
     return nbaPlayers;
 }
 
-function categoryHTML(cat) {
-    const placeholder = cat.id === 'coy' ? 'Rechercher un coach' : cat.id === 'roy' ? 'Rechercher un rookie' : 'Rechercher un joueur';
-    return `
-        <div class="pick-row">
-            <div class="pick-cat">
-                <span class="pick-cat-title">${esc(cat.title)}</span>
-                <span class="pick-cat-hint">${esc(cat.hint)}</span>
-            </div>
-            <div class="pick-slots">
-                ${[1, 2, 3].map(n => `
-                    <div class="pick-slot">
-                        <label class="pick-label" for="search-${cat.id}-${n}">Pick ${n}</label>
-                        <div class="player-search-container">
-                            <input type="text" class="player-search-input" id="search-${cat.id}-${n}" placeholder="${placeholder}"
-                                data-category="${cat.id}" data-pick="${n}" autocomplete="off" role="combobox"
-                                aria-expanded="false" aria-controls="results-${cat.id}-${n}">
-                            <div class="search-results-dropdown" id="results-${cat.id}-${n}" role="listbox" hidden></div>
-                        </div>
-                        <input type="hidden" id="input-${cat.id}-${n}" value="">
-                    </div>`).join('')}
-            </div>
-        </div>`;
+// Maillot de la maquette (img : jersey.svg), coloré aux couleurs de l'équipe
+function jerseyIcon(team, className = 'pick-card-jersey') {
+    const found = Teams.find(team);
+    const [body, trim] = found ? found.colors : ['#8e8d91', '#ffffff'];
+    return `<svg class="${className}" viewBox="0 0 31 40" fill="none" aria-hidden="true">
+        <path d="M3.25 0h5.17c.38 3.83 2.87 6.79 6.89 6.79S21.82 3.83 22.2 0h5.17v8.33c0 3.35 1.05 5.84 3.25 8.13V40H0V16.46c2.2-2.29 3.25-4.78 3.25-8.13V0Z" fill="${body}"/>
+        <path d="M7.66 0c.38 4.31 3.35 7.66 7.65 7.66S22.58 4.31 22.97 0M4.12 0v8.23c0 3.92-1.34 7.18-4.12 9.67M26.6 0v8.23c0 3.92 1.34 7.18 4.02 9.57" stroke="${trim}"/>
+    </svg>`;
 }
 
-// Barre de filtres d'une étape (le filtre de poste n'apparaît que si players.json contient les postes)
-function buildFilterBar(step) {
-    const bar = document.querySelector(`[data-filters-for="${step === 4 ? 'stats-container' : 'awards-container'}"]`);
-    const teams = [...new Set([...nbaPlayers, ...nbaCoaches].map(p => p.team).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr'));
-    bar.innerHTML = `
-        <span class="pick-filters-label">Filtrer</span>
-        <label class="visually-hidden" for="filter-team-${step}">Équipe</label>
-        <select id="filter-team-${step}" class="pick-filter" data-filter="team">
-            <option value="">Toutes les équipes</option>
-            ${teams.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('')}
-        </select>
-        ${hasPositions() ? `
-        <label class="visually-hidden" for="filter-pos-${step}">Poste</label>
-        <select id="filter-pos-${step}" class="pick-filter" data-filter="pos">
-            <option value="">Tous les postes</option>
-            ${POSITION_GROUPS.map(g => `<option value="${g.value}">${g.label}</option>`).join('')}
-        </select>` : ''}
-        <button type="button" class="pick-filters-reset" hidden>Effacer</button>`;
+// Icône « ajouter » de la maquette (carré pointillé avec un +), en couleur du texte
+const ADD_ICON = '<svg class="pick-card-add" viewBox="0 0 16 16" fill="none" aria-hidden="true" stroke="currentColor" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"><path d="M3.33 2A1.33 1.33 0 0 0 2 3.33M12.67 2A1.33 1.33 0 0 1 14 3.33M14 12.67A1.33 1.33 0 0 1 12.67 14M3.33 14A1.33 1.33 0 0 1 2 12.67M6 2h.67M6 14h.67M9.33 2H10M9.33 14H10M2 6v.67M14 6v.67M2 9.33V10M14 9.33V10M5.33 8h5.34M8 5.33v5.34"/></svg>';
 
-    const reset = bar.querySelector('.pick-filters-reset');
-    const sync = () => { reset.hidden = !(filters[step].team || filters[step].pos); };
-    bar.querySelectorAll('.pick-filter').forEach(select => {
-        select.addEventListener('change', () => { filters[step][select.dataset.filter] = select.value; sync(); });
-    });
-    reset.addEventListener('click', () => {
-        filters[step] = { team: '', pos: '' };
-        bar.querySelectorAll('.pick-filter').forEach(select => { select.value = ''; });
-        sync();
-    });
+// Trapèze façon parquet en perspective, derrière les cartes
+const STAGE_FLOOR = '<svg class="pick-floor" viewBox="0 0 1136 378" preserveAspectRatio="none" aria-hidden="true"><polygon points="148,0.5 986,0.5 1135.5,377.5 0.5,377.5" vector-effect="non-scaling-stroke"/></svg>';
+
+const ORDINALS = ['premier', 'deuxième', 'troisième'];
+
+// Écran de la catégorie en cours : titre, sous-titre et 3 cartes
+function renderCategory(step, sub) {
+    const cat = STEP_CATEGORIES[step][sub];
+    const section = steps[step - 1];
+    section.querySelector('.reg-title').textContent = cat.title;
+    section.querySelector('.reg-sub').textContent = cat.hint;
+    const what = cat.kind === 'coach' ? 'coach' : 'joueur';
+
+    section.querySelector('.pick-stage').innerHTML = STAGE_FLOOR + [1, 2, 3].map(n => {
+        const pick = picks[cat.id][n - 1];
+        return pick
+            ? `<button type="button" class="pick-card pick-card--${n} is-filled" data-pick="${n}" aria-label="Pick ${n} : ${esc(pick.name)}${pick.team ? ', ' + esc(pick.team) : ''}. Changer de ${what}">
+                <span class="pick-card-title">Pick ${n}</span>
+                ${jerseyIcon(pick.team)}
+                <span class="pick-card-name">${esc(pick.name)}</span>
+                <span class="pick-card-team">${esc(pick.team || '')}</span>
+            </button>`
+            : `<button type="button" class="pick-card pick-card--${n}" data-pick="${n}" aria-label="Pick ${n} : choisir un ${what}">
+                <span class="pick-card-title">Pick ${n}</span>
+                ${ADD_ICON}
+                <span class="pick-card-empty">Ajouter</span>
+            </button>`;
+    }).join('');
 }
 
-function buildPodiumSections() {
-    document.getElementById('stats-container').innerHTML = STATS_CATEGORIES.map(categoryHTML).join('');
-    document.getElementById('awards-container').innerHTML = AWARDS_CATEGORIES.map(categoryHTML).join('');
-    setupSearchListeners();
-}
+// ---------- panneau latéral de sélection ----------
+const panel = document.getElementById('pick-panel');
+const panelState = { cat: null, pick: 1, team: '', pos: '' };
 
-const stepOfCategory = catId => (STATS_CATEGORIES.some(c => c.id === catId) ? 4 : 5);
+function panelResults() {
+    const cat = panelState.cat;
+    const query = document.getElementById('pick-search').value.toLowerCase().trim();
+    const taken = pickNames(cat.id).filter((name, i) => name && i !== panelState.pick - 1).map(n => n.toLowerCase());
 
-// Résultats d'un champ : nom ou équipe contenant le texte tapé, filtres de l'étape appliqués
-function searchResults(catId, pickNum, query) {
-    const { team, pos } = filters[stepOfCategory(catId)];
-    const taken = [1, 2, 3].filter(i => String(i) !== String(pickNum))
-        .map(i => document.getElementById(`input-${catId}-${i}`).value.toLowerCase())
-        .filter(Boolean);
-
-    return sourceFor(catId).filter(item => {
+    return sourceFor(cat).filter(item => {
         const name = item.name.toLowerCase();
         if (taken.includes(name)) return false;
-        if (team && item.team !== team) return false;
-        if (pos && catId !== 'coy' && !matchesPosition(item, pos)) return false;
-        if (!query) return true;
-        return name.includes(query) || String(item.team || '').toLowerCase().includes(query);
+        if (panelState.team && item.team !== panelState.team) return false;
+        if (panelState.pos && cat.kind !== 'coach' && !matchesPosition(item, panelState.pos)) return false;
+        return !query || name.includes(query) || String(item.team || '').toLowerCase().includes(query);
     }).sort((a, b) => {
         // Rookies : dans l'ordre de la draft quand le numéro est connu
-        if (catId === 'roy' && (a.draft || b.draft)) return (Number(a.draft) || 999) - (Number(b.draft) || 999);
+        if (cat.kind === 'rookie' && (a.draft || b.draft)) return (Number(a.draft) || 999) - (Number(b.draft) || 999);
         return a.name.localeCompare(b.name, 'fr');
     });
 }
 
-// Un filtre est actif : on peut parcourir la liste sans rien taper
-function hasActiveFilter(catId) {
-    const { team, pos } = filters[stepOfCategory(catId)];
-    return Boolean(team || (pos && catId !== 'coy'));
+function renderPanelResults() {
+    const results = panelResults();
+    const current = pickNames(panelState.cat.id)[panelState.pick - 1];
+    document.getElementById('pick-results-count').textContent = `${results.length} résultat${results.length > 1 ? 's' : ''}`;
+    document.getElementById('pick-results').innerHTML = results.length
+        ? results.map(item => `
+            <button type="button" class="pick-result${item.name === current ? ' is-current' : ''}" role="option" aria-selected="${item.name === current}" data-name="${esc(item.name)}" data-team="${esc(item.team || '')}">
+                ${jerseyIcon(item.team, 'pick-result-jersey')}
+                <span class="pick-result-text">
+                    <span class="pick-result-name">${esc(item.name)}</span>
+                    <span class="pick-result-meta">${esc([item.draft ? `#${item.draft}` : '', item.team, item.pos].filter(Boolean).join(' · '))}</span>
+                </span>
+            </button>`).join('')
+        : '<p class="pick-results-empty">Aucun résultat avec ces critères.</p>';
+    document.getElementById('filter-reset').hidden = !(panelState.team || panelState.pos || document.getElementById('pick-search').value);
 }
 
+// Listes des filtres (le filtre de poste n'apparaît que si players.json contient les postes)
+function buildPanelFilters() {
+    const teams = [...new Set([...nbaPlayers, ...nbaCoaches].map(p => p.team).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr'));
+    document.getElementById('filter-team').innerHTML = '<option value="">Équipes</option>' +
+        teams.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
+    document.getElementById('filter-pos').innerHTML = '<option value="">Postes</option>' +
+        POSITION_GROUPS.map(g => `<option value="${g.value}">${g.label}</option>`).join('');
+}
 
-function setupSearchListeners() {
-    document.querySelectorAll('.player-search-input').forEach(input => {
-        const dropdown = input.nextElementSibling;
-        const catId = input.dataset.category;
-        const pickNum = input.dataset.pick;
-        const hidden = document.getElementById(`input-${catId}-${pickNum}`);
+function openPanel(cat, pickNum) {
+    panelState.cat = cat;
+    panelState.pick = pickNum;
+    const isCoach = cat.kind === 'coach';
+    document.getElementById('pick-panel-title').textContent = `Pick ${pickNum}`;
+    document.getElementById('pick-panel-lead').textContent = isCoach ? 'Sélectionner un coach' : cat.kind === 'rookie' ? 'Sélectionner un rookie' : 'Sélectionner un joueur';
+    document.getElementById('pick-panel-hint').textContent = `Choisis ton ${ORDINALS[pickNum - 1]} pick dans la liste.`;
+    document.getElementById('pick-results-label').textContent = isCoach ? 'Coachs' : cat.kind === 'rookie' ? 'Rookies' : 'Joueurs';
+    const search = document.getElementById('pick-search');
+    search.value = '';
+    search.placeholder = isCoach ? 'Rechercher un coach ou une équipe' : 'Rechercher un joueur ou une équipe';
+    document.getElementById('filter-pos').hidden = isCoach || !nbaPlayers.some(p => p.pos);
+    renderPanelResults();
 
-        const close = () => { dropdown.hidden = true; input.setAttribute('aria-expanded', 'false'); };
+    if (typeof panel.showModal === 'function') panel.showModal(); else panel.setAttribute('open', '');
+    document.getElementById('pick-results').scrollTop = 0;
+    search.focus();
+}
 
-        const open = () => {
-            // Une seule liste ouverte à la fois
-            document.querySelectorAll('.search-results-dropdown').forEach(d => { if (d !== dropdown) d.hidden = true; });
-            const query = input.value.toLowerCase().trim();
-            if (!query && !hasActiveFilter(catId)) { close(); return; }
-            const results = searchResults(catId, pickNum, query).slice(0, 40);
+function closePanel() {
+    if (!panel.open) return;
+    panel.classList.add('is-closing');
+    // Laisse le panneau glisser vers la droite avant de le fermer
+    setTimeout(() => {
+        panel.classList.remove('is-closing');
+        if (typeof panel.close === 'function') panel.close(); else panel.removeAttribute('open');
+        const card = steps[currentStep - 1] && steps[currentStep - 1].querySelector(`.pick-card[data-pick="${panelState.pick}"]`);
+        if (card) card.focus();
+    }, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 180);
+}
 
-            dropdown.innerHTML = results.length
-                ? results.map(item => `
-                    <button type="button" class="search-result-item" role="option" data-name="${esc(item.name)}" data-team="${esc(item.team || '')}">
-                        <span class="result-name">${esc(item.name)}</span>
-                        <span class="result-team">${esc([item.draft ? `#${item.draft}` : '', item.team, item.pos].filter(Boolean).join(' · '))}</span>
-                    </button>`).join('')
-                : '<div class="search-result-empty">Aucun résultat avec ces critères</div>';
-            dropdown.hidden = false;
-            input.setAttribute('aria-expanded', 'true');
-
-            // Pas assez de place sous le champ (bas de la zone qui défile) : la liste s'ouvre vers le haut
-            dropdown.classList.remove('drop-up');
-            const panel = input.closest('.reg-panel');
-            if (panel && dropdown.getBoundingClientRect().bottom > panel.getBoundingClientRect().bottom) {
-                dropdown.classList.add('drop-up');
-            }
-        };
-
-        input.addEventListener('input', () => {
-            // Le texte tapé n'est plus un choix validé tant qu'on n'a pas cliqué un résultat
-            hidden.value = '';
-            input.classList.remove('is-picked');
-            refreshNextState();
-            open();
+function setupPicks() {
+    // Cartes : ouvrent le panneau (délégation, les cartes sont redessinées à chaque choix)
+    [4, 5].forEach(step => {
+        steps[step - 1].querySelector('.pick-stage').addEventListener('click', e => {
+            const card = e.target.closest('.pick-card');
+            if (card) openPanel(STEP_CATEGORIES[step][currentSub], Number(card.dataset.pick));
         });
-        // Avec un filtre actif, un simple clic dans un champ vide affiche la liste filtrée
-        input.addEventListener('focus', () => {
-            document.querySelectorAll('.search-results-dropdown').forEach(d => { if (d !== dropdown) d.hidden = true; });
-            if (!hidden.value) open();
-        });
-
-        dropdown.addEventListener('click', e => {
-            const item = e.target.closest('.search-result-item');
-            if (!item) return;
-            input.value = item.dataset.name;
-            hidden.value = item.dataset.name;
-            input.classList.add('is-picked');
-            input.title = item.dataset.team ? `${item.dataset.name} (${item.dataset.team})` : item.dataset.name;
-            close();
-            clearStepError();
-            refreshNextState();
-        });
-
-        input.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
     });
 
-    document.addEventListener('click', e => {
-        if (!e.target.closest('.player-search-container')) {
-            document.querySelectorAll('.search-results-dropdown').forEach(d => { d.hidden = true; });
-            document.querySelectorAll('.player-search-input').forEach(i => i.setAttribute('aria-expanded', 'false'));
-        }
+    document.getElementById('pick-search').addEventListener('input', renderPanelResults);
+    document.getElementById('filter-team').addEventListener('change', e => { panelState.team = e.target.value; renderPanelResults(); });
+    document.getElementById('filter-pos').addEventListener('change', e => { panelState.pos = e.target.value; renderPanelResults(); });
+    document.getElementById('filter-reset').addEventListener('click', () => {
+        panelState.team = ''; panelState.pos = '';
+        document.getElementById('filter-team').value = '';
+        document.getElementById('filter-pos').value = '';
+        document.getElementById('pick-search').value = '';
+        renderPanelResults();
+        document.getElementById('pick-search').focus();
     });
+
+    document.getElementById('pick-results').addEventListener('click', e => {
+        const item = e.target.closest('.pick-result');
+        if (!item) return;
+        picks[panelState.cat.id][panelState.pick - 1] = { name: item.dataset.name, team: item.dataset.team };
+        renderCategory(currentStep, currentSub);
+        clearStepError();
+        refreshNextState();
+        closePanel();
+    });
+
+    document.getElementById('pick-panel-close').addEventListener('click', closePanel);
+    panel.addEventListener('click', e => { if (e.target === panel) closePanel(); }); // clic sur le fond assombri
+    // Touche Échap : ferme le panneau (même quand le champ de recherche, qui l'intercepte, a le focus)
+    panel.addEventListener('cancel', e => { e.preventDefault(); closePanel(); });
+    panel.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); closePanel(); } });
 }
 
 async function loadData() {
     try {
         const [playersRes, coachesRes] = await Promise.all([fetch('players.json'), fetch('coaches.json')]);
         if (!playersRes.ok || !coachesRes.ok) throw new Error('Erreur de chargement des données');
-        // Une même équipe peut être écrite de deux façons dans le fichier : on harmonise
-        const TEAM_ALIASES = { 'LA Clippers': 'Los Angeles Clippers' };
-        const clean = item => ({ ...item, team: TEAM_ALIASES[item.team] || item.team });
-        nbaPlayers = (await playersRes.json()).map(clean);
-        nbaCoaches = (await coachesRes.json()).map(clean);
-        buildFilterBar(4);
-        buildFilterBar(5);
+        nbaPlayers = await playersRes.json();
+        nbaCoaches = await coachesRes.json();
+        buildPanelFilters();
     } catch (error) {
         console.error('Erreur :', error);
     }
@@ -394,7 +381,7 @@ function setupAvatarPreview() {
     const name = document.getElementById('avatar-name');
     fileInput.addEventListener('change', () => {
         const file = fileInput.files && fileInput.files[0];
-        if (!file) { preview.innerHTML = '?'; name.textContent = 'Choisir une image'; return; }
+        if (!file) { preview.innerHTML = ''; name.textContent = 'Choisir une image'; return; }
         const url = URL.createObjectURL(file);
         preview.innerHTML = `<img src="${url}" alt="">`;
         name.textContent = file.name;
@@ -404,24 +391,29 @@ function setupAvatarPreview() {
 // ==========================================
 // NAVIGATION ENTRE LES ÉTAPES
 // ==========================================
-function setBusy(busy, label, button = nextBtn) {
-    button.disabled = busy;
-    button.classList.toggle('is-busy', busy);
-    const text = button.querySelector('.reg-next-label');
-    if (busy) text.textContent = label;
-    else if (button === nextBtn) updateNextLabel();
-    else text.textContent = 'Valider mon inscription';
+function setBusy(busy, label) {
+    nextBtn.disabled = busy;
+    nextBtn.classList.toggle('is-busy', busy);
+    if (busy) nextLabel.textContent = label;
+    else updateNextLabel();
 }
+
+// Icône du bouton : chevron pour avancer, coche pour valider l'inscription
+const ICON_NEXT = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const ICON_CHECK = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 14.67A6.67 6.67 0 1 0 8 1.33a6.67 6.67 0 0 0 0 13.34Z" stroke="currentColor" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/><path d="M10.67 6 7 9.67 5.33 8" stroke="currentColor" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 function updateNextLabel() {
-    nextLabel.textContent = currentStep === TOTAL_STEPS ? 'Voir le récapitulatif' : 'Suivant';
+    const onRecap = currentStep === RECAP_STEP;
+    nextLabel.textContent = 'Valider';
+    nextBtn.querySelector('svg').outerHTML = onRecap ? ICON_CHECK : ICON_NEXT;
+    nextBtn.setAttribute('aria-label', onRecap ? 'Valider mon inscription' : 'Valider cette étape');
 }
 
-// Il manque quelque chose dans l'étape en cours ? (le bouton Suivant reste alors grisé)
+// Il manque quelque chose dans l'écran en cours ? (le bouton Valider reste alors grisé)
 function stepIsComplete(step) {
     if (step === 1) return normalizePseudo(document.getElementById('pseudo').value).length > 0;
     const cats = STEP_CATEGORIES[step];
-    if (cats) return cats.every(cat => [1, 2, 3].every(n => document.getElementById(`input-${cat.id}-${n}`).value));
+    if (cats) return pickNames(cats[currentSub].id).every(Boolean);
     return true;
 }
 
@@ -432,20 +424,16 @@ function refreshNextState() {
     nextBtn.setAttribute('aria-disabled', String(!complete));
 }
 
+// Message sous le titre de l'étape en cours
 function showStepError(message) {
-    const box = document.getElementById('submit-error');
-    // Fenêtre de récapitulatif ouverte : message dans la fenêtre, sinon sous le titre de l'étape
-    let target = box;
-    if (!recapDialog.open) {
-        const head = steps[currentStep - 1].querySelector('.reg-step-head');
-        target = head.querySelector('.reg-error') || head.appendChild(Object.assign(document.createElement('p'), { className: 'reg-error reg-error--center', role: 'alert' }));
-    }
+    const head = steps[currentStep - 1].querySelector('.reg-step-head');
+    const target = head.querySelector('.reg-error') || head.appendChild(Object.assign(document.createElement('p'), { className: 'reg-error reg-error--center', role: 'alert' }));
     target.textContent = message;
     target.hidden = !message;
 }
 
 function clearStepError() {
-    document.querySelectorAll('.reg-step-head .reg-error, #submit-error').forEach(el => { el.hidden = true; });
+    document.querySelectorAll('.reg-step-head .reg-error').forEach(el => { el.hidden = true; });
 }
 
 function validateCurrentStep() {
@@ -455,25 +443,25 @@ function validateCurrentStep() {
     }
     const cats = STEP_CATEGORIES[currentStep];
     if (cats) {
-        for (const cat of cats) {
-            const picks = [1, 2, 3].map(n => document.getElementById(`input-${cat.id}-${n}`).value.trim());
-            const missing = picks.findIndex(p => !p);
-            if (missing !== -1) {
-                showStepError(`Il te manque le Pick ${missing + 1} en ${cat.title}. Tape un nom puis choisis-le dans la liste.`);
-                document.getElementById(`search-${cat.id}-${missing + 1}`).focus();
-                return false;
-            }
-            if (new Set(picks.map(p => p.toLowerCase())).size !== 3) {
-                showStepError(`Tu as choisi plusieurs fois la même personne en ${cat.title}.`);
-                return false;
-            }
+        const missing = pickNames(cats[currentSub].id).findIndex(name => !name);
+        if (missing !== -1) {
+            showStepError(`Il te manque le Pick ${missing + 1}. Clique sur sa carte pour le choisir.`);
+            steps[currentStep - 1].querySelector(`.pick-card[data-pick="${missing + 1}"]`).focus();
+            return false;
         }
     }
     return true;
 }
 
-function goTo(step) {
+// Barre de progression : les étapes 4 et 5 avancent catégorie par catégorie
+function progressRatio(step, sub) {
+    const cats = STEP_CATEGORIES[step];
+    return (step - 1 + (cats ? (sub + 1) / cats.length : 1)) / TOTAL_STEPS;
+}
+
+function goTo(step, sub = 0) {
     currentStep = step;
+    currentSub = sub;
     clearStepError();
 
     const onWelcome = step === 0;
@@ -485,7 +473,10 @@ function goTo(step) {
     steps.forEach(s => { s.hidden = Number(s.dataset.step) !== step; });
     if (!onWelcome) {
         document.getElementById('step-indicator').textContent = `Étape ${step}/${TOTAL_STEPS}`;
-        document.getElementById('wizard-progress-fill').style.width = `${(step / TOTAL_STEPS) * 100}%`;
+        document.getElementById('wizard-progress-fill').style.width = `${progressRatio(step, sub) * 100}%`;
+        document.body.dataset.step = step;
+        if (STEP_CATEGORIES[step]) renderCategory(step, sub);
+        if (step === RECAP_STEP) { editingFromRecap = false; renderRecap(); }
         updateNextLabel();
         refreshNextState();
         const panel = steps[step - 1].querySelector('.reg-panel');
@@ -502,78 +493,108 @@ function teamOrder(listId) {
     return Array.from(document.querySelectorAll(`#${listId} .team-row-item`)).map(li => li.dataset.team);
 }
 
-function buildRecap() {
+// Le récapitulatif est la 6e étape : un onglet par partie, et un bouton « Modifier »
+// qui ramène sur l'écran concerné. Après une modification, « Valider » revient ici directement.
+let editingFromRecap = false;
+let recapTab = 'identity';
+const RECAP_TABS = ['identity', 'east', 'west', 'stats', 'awards'];
+const EDIT_ICON_SEP = { 6: 'Playoffs', 10: 'Play-in' }; // séparateurs après la 6e et la 10e place
+
+function editButton(step, sub, label) {
+    return `<button type="button" class="btn-secondary btn--small" data-goto="${step}" data-sub="${sub || 0}"${label ? ` aria-label="${esc(label)}"` : ''}>Modifier</button>`;
+}
+
+function recapIdentity() {
     const pseudo = normalizePseudo(document.getElementById('pseudo').value);
     const avatar = document.querySelector('#avatar-preview img');
-    const editBtn = step => `<button type="button" class="reg-edit" data-goto="${step}">Modifier</button>`;
-    const teamsCard = (title, listId, step) => `
-        <section class="reg-card recap-card">
-            <header class="recap-head"><h2>${title}</h2>${editBtn(step)}</header>
-            <ol class="recap-teams">${teamOrder(listId).map(key => `<li>${esc(TEAM_NAMES[key] || key)}</li>`).join('')}</ol>
-        </section>`;
-    const picksCard = (title, cats, step) => `
-        <section class="reg-card recap-card">
-            <header class="recap-head"><h2>${title}</h2>${editBtn(step)}</header>
-            <ul class="recap-picks">${cats.map(cat => `
-                <li><span class="recap-cat">${esc(cat.title)}</span>
-                    <span class="recap-names">${[1, 2, 3].map(n => esc(document.getElementById(`input-${cat.id}-${n}`).value)).join(' · ')}</span></li>`).join('')}
-            </ul>
-        </section>`;
-
-    document.getElementById('recap').innerHTML = `
-        <section class="reg-card recap-card recap-card--wide">
-            <header class="recap-head"><h2>Identité</h2>${editBtn(1)}</header>
-            <div class="recap-identity">
-                <span class="reg-avatar-preview">${avatar ? `<img src="${avatar.src}" alt="">` : esc(pseudo.charAt(0).toUpperCase())}</span>
-                <strong>${esc(pseudo)}</strong>
-            </div>
-        </section>
-        ${teamsCard('Conférence Est', 'east-list', 2)}
-        ${teamsCard('Conférence Ouest', 'west-list', 3)}
-        ${picksCard('Statistiques', STATS_CATEGORIES, 4)}
-        ${picksCard('Awards', AWARDS_CATEGORIES, 5)}`;
+    return `<div class="recap-identity">
+            <span class="recap-avatar">${avatar ? `<img src="${avatar.src}" alt="">` : esc(pseudo.charAt(0).toUpperCase())}</span>
+            <strong class="recap-pseudo">${esc(pseudo)}</strong>
+        </div>
+        <div class="recap-foot">${editButton(1, 0, 'Modifier ton identité')}</div>`;
 }
 
-function openRecap() {
-    buildRecap();
-    document.getElementById('submit-error').hidden = true;
-    if (typeof recapDialog.showModal === 'function') recapDialog.showModal();
-    else recapDialog.setAttribute('open', '');
-    recapDialog.querySelector('.reg-dialog-body').scrollTop = 0;
+function recapTeams(listId, step, confLabel) {
+    const rows = teamOrder(listId).map((key, i) => {
+        const team = Teams.find(key);
+        const sep = EDIT_ICON_SEP[i + 1];
+        return `<li class="recap-team"><span class="recap-team-rank">${i + 1}</span>${Teams.logoHtml(key, 'team-logo recap-team-logo')}<span>${esc(team.name)}</span></li>`
+            + (sep ? `<li class="recap-sep recap-sep--${sep === 'Playoffs' ? 'playoffs' : 'playin'}" aria-hidden="true"><span>${sep}</span></li>` : '');
+    }).join('');
+    return `<ol class="recap-team-list">${rows}</ol>
+        <div class="recap-foot">${editButton(step, 0, `Modifier ton classement de la ${confLabel}`)}</div>`;
 }
 
-function closeRecap() {
-    if (confirmBtn.classList.contains('is-busy')) return; // pas pendant l'envoi
-    if (typeof recapDialog.close === 'function') recapDialog.close();
-    else recapDialog.removeAttribute('open');
+function recapPicks(cats, step) {
+    return `<ul class="recap-pick-rows">${cats.map((cat, sub) => `
+        <li class="recap-pick-row">
+            <span class="recap-pick-cat">${esc(cat.title)}</span>
+            ${picks[cat.id].map((pick, i) => `
+                <span class="recap-chip">
+                    <span class="recap-chip-rank">${i + 1}</span>
+                    ${pick ? jerseyIcon(pick.team, 'recap-chip-jersey') : ''}
+                    <span class="recap-chip-name">${esc(pick ? pick.name : '—')}</span>
+                </span>`).join('')}
+            ${editButton(step, sub, `Modifier : ${cat.title}`)}
+        </li>`).join('')}
+    </ul>`;
 }
 
-document.getElementById('recap').addEventListener('click', e => {
+function renderRecap() {
+    const panels = {
+        identity: recapIdentity(),
+        east: recapTeams('east-list', 2, 'Conférence Est'),
+        west: recapTeams('west-list', 3, 'Conférence Ouest'),
+        stats: recapPicks(STATS_CATEGORIES, 4),
+        awards: recapPicks(AWARDS_CATEGORIES, 5)
+    };
+    RECAP_TABS.forEach(tab => { document.getElementById(`recap-panel-${tab}`).innerHTML = panels[tab]; });
+    setRecapTab(recapTab);
+}
+
+function setRecapTab(tab) {
+    recapTab = tab;
+    document.querySelectorAll('.recap-tab').forEach(btn => {
+        const active = btn.dataset.tab === tab;
+        btn.classList.toggle('is-active', active);
+        btn.setAttribute('aria-selected', String(active));
+        btn.tabIndex = active ? 0 : -1;
+    });
+    RECAP_TABS.forEach(t => { document.getElementById(`recap-panel-${t}`).hidden = t !== tab; });
+}
+
+document.getElementById('recap-tabs').addEventListener('click', e => {
+    const btn = e.target.closest('.recap-tab');
+    if (btn) setRecapTab(btn.dataset.tab);
+});
+// Flèches gauche / droite pour passer d'un onglet à l'autre
+document.getElementById('recap-tabs').addEventListener('keydown', e => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const i = RECAP_TABS.indexOf(recapTab) + (e.key === 'ArrowRight' ? 1 : -1);
+    const next = RECAP_TABS[(i + RECAP_TABS.length) % RECAP_TABS.length];
+    setRecapTab(next);
+    document.querySelector(`.recap-tab[data-tab="${next}"]`).focus();
+    e.preventDefault();
+});
+document.getElementById('recap-panels').addEventListener('click', e => {
     const btn = e.target.closest('[data-goto]');
     if (!btn) return;
-    closeRecap();
-    goTo(Number(btn.dataset.goto));
+    editingFromRecap = true;
+    goTo(Number(btn.dataset.goto), Number(btn.dataset.sub) || 0);
 });
-document.getElementById('recap-close').addEventListener('click', closeRecap);
-document.getElementById('recap-back').addEventListener('click', closeRecap);
-// Clic sur le fond sombre autour de la fenêtre : fermeture
-recapDialog.addEventListener('click', e => { if (e.target === recapDialog) closeRecap(); });
-// Échap pendant l'envoi : ignoré
-recapDialog.addEventListener('cancel', e => { if (confirmBtn.classList.contains('is-busy')) e.preventDefault(); });
-confirmBtn.addEventListener('click', () => { if (!confirmBtn.disabled) submitOnboardingForm(); });
 
 
 // ==========================================
 // MESSAGES (fermé / confirmé)
 // ==========================================
 function showNotice(title, text, linkLabel) {
-    if (recapDialog.open) { confirmBtn.classList.remove('is-busy'); closeRecap(); }
+    nextBtn.classList.remove('is-busy');
     welcome.hidden = true;
     form.hidden = true;
     stepper.hidden = true;
     document.body.classList.remove('reg--steps');
     const notice = document.getElementById('register-notice');
-    notice.innerHTML = `<h1 class="reg-hero reg-hero--small"></h1><p class="reg-notice-text"></p><a class="reg-start" href="index.html"></a>`;
+    notice.innerHTML = `<h1 class="reg-hero reg-hero--small"></h1><p class="reg-notice-text"></p><a class="btn-primary" href="index.html"></a>`;
     notice.querySelector('h1').textContent = title;
     notice.querySelector('p').textContent = text;
     notice.querySelector('a').textContent = linkLabel;
@@ -592,7 +613,7 @@ function showClosedNotice(duringFilling) {
 }
 
 // ==========================================
-// ENVOI (format identique à l'ancienne version)
+// ENVOI (format attendu par doPost dans Apps Script)
 // ==========================================
 async function submitOnboardingForm() {
     const pseudo = normalizePseudo(document.getElementById('pseudo').value);
@@ -600,14 +621,9 @@ async function submitOnboardingForm() {
     const fileInput = document.getElementById('avatar-file');
     let avatarBase64 = '';
     if (fileInput.files && fileInput.files[0]) {
-        setBusy(true, "Traitement de l'image…", confirmBtn);
+        setBusy(true, "Traitement de l'image…");
         avatarBase64 = await resizeAndConvertImage(fileInput.files[0]);
     }
-
-    const eastSheetHeaders = ['Hawks', 'Celtics', 'Nets', 'Hornets', 'Bulls', 'Cavs', 'Pistons', 'Pacers', 'Heat', 'Bucks', 'Knicks', 'Magic', '76ers', 'Raptors', 'Wizards'];
-    const eastMap = { Cavs: 'Cavaliers' };
-    const westSheetHeaders = ['Mavericks', 'Nuggets', 'Warriors', 'Rockets', 'Clippers', 'Lakers', 'Grizzlies', 'Wolves', 'Pelicans', 'Thunder', 'Suns', 'Blazers', 'Kings', 'Spurs', 'Jazz'];
-    const westMap = { Wolves: 'Timberwolves', Blazers: 'Trail Blazers' };
 
     const east = teamOrder('east-list');
     const west = teamOrder('west-list');
@@ -616,18 +632,19 @@ async function submitOnboardingForm() {
     const payload = {
         pseudo,
         avatarBase64,
-        east: eastSheetHeaders.map(h => rankOf(east, eastMap[h] || h)),
-        west: westSheetHeaders.map(h => rankOf(west, westMap[h] || h)),
+        // Rang de chaque équipe, dans l'ordre des colonnes du Sheet
+        east: Teams.conference('east').map(team => rankOf(east, team.key)),
+        west: Teams.conference('west').map(team => rankOf(west, team.key)),
         stats: {},
         awards: {}
     };
-    const picksOf = id => [1, 2, 3].map(n => document.getElementById(`input-${id}-${n}`).value || '');
+    const picksOf = pickNames;
     STATS_CATEGORIES.forEach(cat => { payload.stats[cat.id] = picksOf(cat.id); });
     AWARDS_CATEGORIES.forEach(cat => { payload.awards[cat.id] = picksOf(cat.id); });
     payload.id = registrationId;
 
     showStepError('');
-    setBusy(true, 'Inscription en cours…', confirmBtn);
+    setBusy(true, 'Inscription en cours…');
 
     try {
         await Api.postRegistration(payload);
@@ -637,14 +654,14 @@ async function submitOnboardingForm() {
     }
 
     const outcome = await confirmRegistration(pseudo);
-    setBusy(false, '', confirmBtn);
+    setBusy(false);
 
     if (outcome === 'registered') {
+        registrationDone = true;
         showNotice('Tu es inscrit !', "Tes pronostics sont bien enregistrés. Ils resteront secrets jusqu'à la révélation.", "Retour à l'accueil");
     } else if (outcome === 'closed') {
         showClosedNotice(true);
     } else if (outcome === 'taken') {
-        closeRecap();
         goTo(1);
         showPseudoError("Ce pseudo vient d'être pris par quelqu'un d'autre, choisis-en un autre.");
     } else {
@@ -676,12 +693,61 @@ async function confirmRegistration(pseudo) {
     return 'unknown';
 }
 
+
+// ==========================================
+// QUITTER : confirmation si une sélection est en cours
+// ==========================================
+const exitDialog = document.getElementById('exit-dialog');
+const exitGif = document.getElementById('exit-gif');
+let registrationDone = false;
+
+function openExitDialog() {
+    // La vidéo n'est téléchargée qu'à la première ouverture
+    const sources = exitGif.querySelectorAll('source[data-src]');
+    if (sources.length) {
+        sources.forEach(source => { source.src = source.dataset.src; source.removeAttribute('data-src'); });
+        exitGif.load();
+    }
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) exitGif.play().catch(() => {});
+    if (typeof exitDialog.showModal === 'function') exitDialog.showModal();
+    else exitDialog.setAttribute('open', '');
+}
+
+function closeExitDialog() {
+    exitGif.pause();
+    if (typeof exitDialog.close === 'function') exitDialog.close();
+    else exitDialog.removeAttribute('open');
+}
+
+document.getElementById('reg-exit').addEventListener('click', e => {
+    // Accueil, message final ou inscription envoyée : on part directement
+    if (currentStep === 0 || registrationDone || form.hidden) return;
+    e.preventDefault();
+    openExitDialog();
+});
+document.getElementById('exit-cancel').addEventListener('click', closeExitDialog);
+exitDialog.addEventListener('click', e => { if (e.target === exitDialog) closeExitDialog(); });
+exitDialog.addEventListener('close', () => exitGif.pause());
+
+
+// ==========================================
+// DÉCOR DE L'ACCUEIL : GIF chargés seulement si le décor est visible (grand écran)
+// ==========================================
+function loadDecoVideos() {
+    if (!window.matchMedia('(min-width: 1101px)').matches) return; // décor masqué : rien à télécharger
+    // GIF d'origine (qualité intacte), chargés seulement sur grand écran
+    document.querySelectorAll('.deco-gif[data-src]').forEach(img => {
+        img.src = img.dataset.src;
+        img.removeAttribute('data-src');
+    });
+}
+
 // ==========================================
 // DÉMARRAGE
 // ==========================================
-buildTeamList('east-list', EAST_TEAMS);
-buildTeamList('west-list', WEST_TEAMS);
-buildPodiumSections();
+buildTeamList('east-list', START_ORDER.east);
+buildTeamList('west-list', START_ORDER.west);
+setupPicks();
 setupAvatarPreview();
 loadData();
 
@@ -694,6 +760,8 @@ const isTouchScreen = window.matchMedia('(pointer: coarse)').matches;
     if (window.Sortable) new Sortable(document.getElementById(id), options);
 });
 
+loadDecoVideos();
+window.matchMedia('(min-width: 1101px)').addEventListener('change', loadDecoVideos);
 document.getElementById('start-btn').addEventListener('click', () => goTo(1));
 
 document.getElementById('pseudo').addEventListener('input', () => { clearPseudoError(); refreshNextState(); });
@@ -703,11 +771,27 @@ nextBtn.addEventListener('click', async () => {
     if (nextBtn.disabled) return;
     if (!validateCurrentStep()) return;
     if (currentStep === 1 && !(await checkPseudoStep())) return;
-    if (currentStep < TOTAL_STEPS) goTo(currentStep + 1);
-    else openRecap();
+    if (currentStep === RECAP_STEP) { submitOnboardingForm(); return; }
+    const cats = STEP_CATEGORIES[currentStep];
+    if (editingFromRecap) goTo(RECAP_STEP);                      // modification terminée : retour au récap
+    else if (cats && currentSub < cats.length - 1) goTo(currentStep, currentSub + 1);
+    else goTo(currentStep + 1);
 });
 
-prevBtn.addEventListener('click', () => goTo(Math.max(0, currentStep - 1)));
+prevBtn.addEventListener('click', () => {
+    if (STEP_CATEGORIES[currentStep] && currentSub > 0) goTo(currentStep, currentSub - 1);
+    else if (STEP_CATEGORIES[currentStep - 1]) goTo(currentStep - 1, STEP_CATEGORIES[currentStep - 1].length - 1);
+    else goTo(Math.max(0, currentStep - 1));
+});
+
+// Inscription en maintenance ou masquée depuis l'onglet CONFIG du Sheet (sauf en mode aperçu)
+if (typeof PageConfig !== 'undefined' && !PageConfig.isPreview()) {
+    PageConfig.watch(pages => {
+        if (PageConfig.statusOf(pages, 'inscription') !== 'online' && currentStep === 0) {
+            showNotice('Inscriptions en maintenance', "On peaufine le formulaire d'inscription. Reviens dans quelques instants !", "Retour à l'accueil");
+        }
+    });
+}
 
 // Dès l'ouverture : si les inscriptions sont fermées, on le dit avant que le joueur remplisse 5 étapes
 Api.getRegistrationStatus()
