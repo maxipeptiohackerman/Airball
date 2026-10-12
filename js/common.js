@@ -1,5 +1,5 @@
 // Version du site (visible dans la console du navigateur) : sert à vérifier que la bonne version est en ligne
-const AIRBALL_VERSION = '20261012q';
+const AIRBALL_VERSION = '20261012v';
 console.info('Airball version', AIRBALL_VERSION);
 
 // ==========================================

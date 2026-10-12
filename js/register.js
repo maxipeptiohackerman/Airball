@@ -375,13 +375,16 @@ function resizeAndConvertImage(file, maxWidth = 300, maxHeight = 300) {
     });
 }
 
+// Aperçu vide : un « + » dans un cercle (la photo est facultative)
+const ICON_ADD_PHOTO = '<svg class="reg-avatar-add" viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9.25" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+
 function setupAvatarPreview() {
     const fileInput = document.getElementById('avatar-file');
     const preview = document.getElementById('avatar-preview');
     const name = document.getElementById('avatar-name');
     fileInput.addEventListener('change', () => {
         const file = fileInput.files && fileInput.files[0];
-        if (!file) { preview.innerHTML = ''; name.textContent = 'Choisir une image'; return; }
+        if (!file) { preview.innerHTML = ICON_ADD_PHOTO; name.textContent = 'Choisir une image'; return; }
         const url = URL.createObjectURL(file);
         preview.innerHTML = `<img src="${url}" alt="">`;
         name.textContent = file.name;
@@ -500,8 +503,11 @@ let recapTab = 'identity';
 const RECAP_TABS = ['identity', 'east', 'west', 'stats', 'awards'];
 const EDIT_ICON_SEP = { 6: 'Playoffs', 10: 'Play-in' }; // séparateurs après la 6e et la 10e place
 
-function editButton(step, sub, label) {
-    return `<button type="button" class="btn-secondary btn--small" data-goto="${step}" data-sub="${sub || 0}"${label ? ` aria-label="${esc(label)}"` : ''}>Modifier</button>`;
+// Bouton « Modifier » : une icône crayon (le libellé complet est lu par les lecteurs d'écran et s'affiche au survol)
+const ICON_EDIT = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true"><path d="M4 20h4L18.5 9.5a2.83 2.83 0 0 0-4-4L4 16v4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="m13.5 6.5 4 4" stroke="currentColor" stroke-width="1.6"/></svg>';
+
+function editButton(step, sub, label, extraClass = '') {
+    return `<button type="button" class="recap-edit${extraClass ? ' ' + extraClass : ''}" data-goto="${step}" data-sub="${sub || 0}" aria-label="${esc(label)}" title="${esc(label)}">${ICON_EDIT}</button>`;
 }
 
 function recapIdentity() {
@@ -511,7 +517,7 @@ function recapIdentity() {
             <span class="recap-avatar">${avatar ? `<img src="${avatar.src}" alt="">` : esc(pseudo.charAt(0).toUpperCase())}</span>
             <strong class="recap-pseudo">${esc(pseudo)}</strong>
         </div>
-        <div class="recap-foot">${editButton(1, 0, 'Modifier ton identité')}</div>`;
+        ${editButton(1, 0, 'Modifier ton identité', 'recap-edit--float')}`;
 }
 
 function recapTeams(listId, step, confLabel) {
@@ -522,7 +528,7 @@ function recapTeams(listId, step, confLabel) {
             + (sep ? `<li class="recap-sep recap-sep--${sep === 'Playoffs' ? 'playoffs' : 'playin'}" aria-hidden="true"><span>${sep}</span></li>` : '');
     }).join('');
     return `<ol class="recap-team-list">${rows}</ol>
-        <div class="recap-foot">${editButton(step, 0, `Modifier ton classement de la ${confLabel}`)}</div>`;
+        ${editButton(step, 0, `Modifier ton classement de la ${confLabel}`, 'recap-edit--float')}`;
 }
 
 function recapPicks(cats, step) {

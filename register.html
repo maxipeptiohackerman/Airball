@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Airball - Inscription</title>
-    <link rel="stylesheet" href="css/style.css?v=20261012q">
+    <link rel="stylesheet" href="css/style.css?v=20261012v">
     <!-- Glisser-déposer des équipes -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js" defer></script>
 </head>
@@ -69,9 +69,9 @@
                         <p id="pseudo-error" class="reg-error" role="alert" hidden></p>
                     </div>
                     <div class="reg-field">
-                        <span class="reg-label">Photo de profil<span class="visually-hidden"> (facultatif)</span></span>
+                        <span class="reg-label">Photo de profil <span class="reg-optional">(facultatif)</span></span>
                         <label class="reg-avatar" for="avatar-file">
-                            <span class="reg-avatar-preview" id="avatar-preview" aria-hidden="true"></span>
+                            <span class="reg-avatar-preview" id="avatar-preview" aria-hidden="true"><svg class="reg-avatar-add" viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9.25" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
                             <span class="reg-avatar-text">
                                 <strong id="avatar-name">Choisir une image</strong>
                                 <small>JPG ou PNG, réduite automatiquement</small>
@@ -192,7 +192,7 @@
                 <source data-src="img/register/bye.webm" type="video/webm">
                 <source data-src="img/register/bye.mp4" type="video/mp4">
             </video>
-            <h2 class="reg-dialog-title" id="exit-title">Tu nous quittes déjà ?</h2>
+            <h2 class="reg-dialog-title" id="exit-title">Tu nous quittes déjà&nbsp;?</h2>
             <p class="exit-text" id="exit-text">Ta sélection n'est pas enregistrée : si tu quittes maintenant, tes pronos seront perdus.</p>
             <div class="reg-dialog-actions exit-actions">
                 <a href="index.html" class="btn-secondary" id="exit-confirm">Quitter</a>
@@ -213,10 +213,10 @@
     </nav>
 
     <!-- Réglages (config), appels au serveur (api), pages masquées, menu commun, puis logique propre à la page -->
-    <script src="js/config.js?v=20261012q"></script>
-    <script src="js/api.js?v=20261012q"></script>
-    <script src="js/teams.js?v=20261012q"></script>
-    <script src="js/pages-config.js?v=20261012q"></script>
-    <script src="js/register.js?v=20261012q" defer></script>
+    <script src="js/config.js?v=20261012v"></script>
+    <script src="js/api.js?v=20261012v"></script>
+    <script src="js/teams.js?v=20261012v"></script>
+    <script src="js/pages-config.js?v=20261012v"></script>
+    <script src="js/register.js?v=20261012v" defer></script>
 </body>
 </html>

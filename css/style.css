@@ -1355,6 +1355,9 @@ body.reg--steps .reg-form {
     font-weight: 600;
     color: var(--bg-nav-active);
 }
+.reg-optional { color: #8e8d91; }
+.reg-avatar-add { width: 26px; height: 26px; color: #a3a1a7; transition: color 0.15s; }
+.reg-avatar:hover .reg-avatar-add { color: #e8e7e4; }
 .reg-avatar-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .reg-avatar-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .reg-avatar-text strong { font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1370,6 +1373,7 @@ body.reg--steps .reg-form {
 .reg-identity input[type="text"]::placeholder { color: #838186; }
 .reg-identity input[aria-invalid="true"] { border-color: var(--trend-down); }
 .reg-identity .reg-avatar { background-color: #2f2d35; border-color: #5d5d68; }
+.reg-identity .reg-avatar-preview:has(.reg-avatar-add) { background-color: #3c3b42; }
 .reg-identity .reg-avatar:hover { border-color: var(--text-secondary); }
 .step-photo { position: fixed; height: auto; pointer-events: none; }
 .step-photo--identity {
@@ -1539,7 +1543,7 @@ body.reg--steps .reg-form {
 .pick-card-empty { font-size: 14px; }
 .pick-card-jersey { width: 31px; height: 40px; overflow: hidden; margin-bottom: 14px; flex-shrink: 0; }
 .pick-card-name { max-width: 100%; font-size: 14px; font-weight: 500; line-height: 1.2; color: #e8e7e4; text-align: center; overflow-wrap: anywhere; }
-.pick-card-team { margin-top: -6px; font-size: 10px; color: #8e8d91; text-align: center; }
+.pick-card-team { margin-top: -4px; font-size: 13px; line-height: 1.25; color: #a3a1a7; text-align: center; }
 
 /* Écrans moins hauts : le parquet et les cartes se resserrent */
 @media (max-height: 820px) {
@@ -1688,9 +1692,28 @@ body.reg--steps .reg-form {
 .recap-tab.is-active { color: #ffffff; border-bottom-color: #dcfe5f; }
 .recap-tab:focus-visible { outline: 2px solid var(--accent-lime); outline-offset: -2px; }
 .recap-panels { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.recap-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 16px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #3c3c43 transparent; }
+.recap-panel { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 16px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #3c3c43 transparent; }
 .recap-panel[hidden] { display: none; }
-.recap-foot { margin-top: auto; padding-top: 12px; display: flex; justify-content: flex-end; }
+/* Bouton crayon « Modifier » */
+.recap-edit {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #2f2d35;
+    border: 1px solid #5d5d68;
+    border-radius: 8px;
+    color: #e8e7e4;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+.recap-edit:hover { background-color: #3c3b42; border-color: #8e8d91; color: #ffffff; }
+.recap-edit:focus-visible { outline: 2px solid var(--accent-lime); outline-offset: 2px; }
+/* Identité et classements : crayon flottant en haut à droite, sur la partie vide des lignes */
+.recap-edit--float { position: absolute; top: 12px; right: 16px; z-index: 1; }
 
 /* Identité */
 .recap-identity { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
@@ -1713,37 +1736,35 @@ body.reg--steps .reg-form {
 .recap-pseudo { font-size: 20px; font-weight: 600; color: #e8e7e4; }
 
 /* Classements : même présentation que les étapes 2 et 3 (sans les poignées de glisser-déposer) */
-.recap-panel--east, .recap-panel--west { overflow: hidden; }
+.recap-panel.recap-panel--east, .recap-panel.recap-panel--west { overflow: hidden; padding: 0; }
+/* Le classement occupe toute la fenêtre sous les onglets */
 .recap-team-list {
     flex: 1;
     min-height: 0;
     margin: 0;
-    padding: 0;
+    padding: 4px 0;
     list-style: none;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     background: linear-gradient(141.9deg, #15151a 8.65%, #1b1b20 93.44%);
-    border: 1px solid var(--border-card);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-card);
 }
 .recap-team {
     flex: 1 1 0;
     min-height: 0;
     max-height: 60px;
-    padding: 0 24px;
+    padding: 0 32px;
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 18px;
     border-bottom: 1px solid var(--border-card);
-    font-size: clamp(12px, 2.1vh, 16px); /* le texte rapetisse sur les écrans peu hauts : les 15 équipes tiennent toujours */
+    font-size: clamp(13px, 2.2vh, 17px); /* le texte rapetisse sur les écrans peu hauts : les 15 équipes tiennent toujours */
     font-weight: 500;
     color: var(--text-primary);
 }
 .recap-team:last-child, .recap-team:has(+ .recap-sep) { border-bottom: none; }
 .recap-team-rank { flex-shrink: 0; width: 18px; font-size: inherit; font-weight: 500; color: var(--reg-rank); font-variant-numeric: tabular-nums; }
-.recap-team-logo { width: clamp(14px, 2.8vh, 24px); height: clamp(14px, 2.8vh, 24px); }
+.recap-team-logo { width: clamp(16px, 3vh, 26px); height: clamp(16px, 3vh, 26px); }
 /* Séparateurs Playoffs / Play-in : pointillés et libellé, comme sur l'étape 2 */
 .recap-sep {
     --sep-color: var(--reg-playoffs);
@@ -1770,7 +1791,7 @@ body.reg--steps .reg-form {
     flex: 1 1 0;
     min-height: 56px;
     display: grid;
-    grid-template-columns: 170px repeat(3, minmax(0, 1fr)) auto;
+    grid-template-columns: 170px repeat(3, minmax(0, 1fr)) 40px;
     align-items: center;
     gap: 16px;
     border-bottom: 1px solid #2d2c32;
@@ -1803,7 +1824,6 @@ body.reg--steps .reg-form {
     .wizard-step--recap .reg-sub { display: none; }
     .recap-tab { height: 40px; }
     .recap-panel { padding: 10px 12px; }
-    .recap-foot { padding-top: 8px; }
     .recap-pick-row { min-height: 40px; gap: 12px; }
     .recap-chip { height: 36px; font-size: 13px; }
     .recap-chip-jersey { width: 15px; height: 19px; }
@@ -1910,22 +1930,25 @@ body.reg--steps .reg-form {
     .pick-panel-filters { margin-top: 20px; }
     .pick-results-head { margin-top: 24px; }
     .pick-filter { font-size: 16px; } /* évite le zoom automatique d'iOS */
-    .exit-actions { flex-direction: column-reverse; }
-    .reg-dialog-actions .btn-primary, .reg-dialog-actions .btn-secondary { flex: 1; }
+    /* Boutons empilés : pleine largeur, hauteur normale (flex: 1 les écrasait en colonne) */
+    .exit-inner { padding: 20px 16px; }
+    .exit-actions { flex-direction: column-reverse; gap: 8px; margin-top: 8px; }
+    .exit-actions .btn-primary, .exit-actions .btn-secondary { flex: none; width: 100%; }
     .wizard-step--recap { gap: 20px; padding-top: 24px; padding-bottom: 16px; }
     .recap-tabs { display: flex; overflow-x: auto; scrollbar-width: none; }
     .recap-tab { flex: 0 0 auto; padding: 0 14px; }
     .recap-pick-row { flex: none; max-height: none; grid-template-columns: 1fr; gap: 6px; padding: 14px 0; }
     .recap-chip { height: 40px; }
-    .recap-pick-cat { grid-column: 1 / -1; display: flex; justify-content: space-between; }
-    .recap-pick-row > .btn-secondary { grid-column: 1 / -1; justify-self: end; }
+    .recap-pick-cat { grid-column: 1 / -1; min-height: 36px; padding-right: 48px; display: flex; align-items: center; }
+    .recap-pick-row { position: relative; }
+    .recap-pick-row > .recap-edit { position: absolute; top: 14px; right: 0; width: 36px; height: 36px; }
     .recap-chip { padding: 0 8px; }
 
     .reg-stepper { padding: 0 12px; padding-bottom: env(safe-area-inset-bottom, 0px); }
     .reg-stepper .btn--small { height: 40px; padding: 0 16px; }
     .reg-stepper #next-btn { min-width: 0; }
     .reg-step-count { font-size: 15px; }
-    .reg-next-label { max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .reg-stepper .reg-next-label { max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1942,14 +1965,14 @@ body.reg--steps .reg-form {
     top: 0;
     right: 0;
     width: 396px;
-    height: 900px;
+    height: min(900px, 100%); /* jamais plus haute que la page : pas de scroll créé par la photo */
     z-index: -1;
     pointer-events: none;
     overflow: hidden;
 }
 /* L'image exportée correspond à la partie visible de la maquette (396 × 900, bord droit),
    avec son opacité, son dégradé sombre et sa transparence : rien à ajouter. */
-.home-hero img { width: 100%; height: 100%; display: block; object-fit: fill; }
+.home-hero img { width: 100%; height: 900px; display: block; object-fit: fill; }
 body.has-hero { position: relative; overflow-x: hidden; }
 
 .has-hero .container:has(> #header-container) > * { position: relative; }
@@ -2332,4 +2355,41 @@ body.registration-closed [data-signup] { display: none !important; }
     .signup-banner { flex-direction: column; align-items: flex-start; padding: 24px 20px; }
     .signup-banner-title { font-size: 22px; }
     .signup-banner .btn-primary { width: 100%; }
+}
+
+/* ==========================================
+   RÈGLES : tout le contenu tient dans l'écran (ordinateur)
+   ========================================== */
+@media (min-width: 1101px) {
+    .rules-page .container:has(> #header-container) { padding-top: 28px; padding-bottom: 24px; gap: 24px; }
+    .rules-page .lot-body { padding: 16px 24px; gap: 16px 64px; }
+    .rules-page .lot-history { gap: 8px; }
+    .rules-page .lot-history-title { margin: 0; }
+    .rules-page .lot-history-list { gap: 10px; }
+    .rules-page .lot-thumb { width: 36px; height: 36px; }
+    .rules-page .lot-history-item { gap: 14px; }
+    .rules-page .lot-history-name { font-size: 15px; }
+    .rules-page .lot-history-meta { font-size: 13px; }
+    .rules-page .rules-row { min-height: 54px; padding: 10px 24px; }
+    .rules-page .rules-label { gap: 2px; }
+    .rules-page .signup-banner { padding: 20px 32px; }
+    .rules-page .signup-banner-copy { gap: 4px; }
+    /* Les deux tableaux du barème à la même hauteur */
+    .rules-page .tables-grid { align-items: stretch; }
+    .rules-page .tables-grid > .card { display: flex; flex-direction: column; }
+    .rules-page .tables-grid .rules-list { flex: 1; display: flex; flex-direction: column; }
+    .rules-page .tables-grid .rules-row { flex: 1; }
+}
+/* Écrans peu hauts (portable 13-14") : encore un cran plus serré */
+@media (min-width: 1101px) and (max-height: 800px) {
+    .rules-page .container:has(> #header-container) { padding-top: 20px; padding-bottom: 16px; gap: 18px; }
+    .rules-page .lot-body { padding: 12px 24px; }
+    .rules-page .lot-visual { width: 64px; height: 64px; }
+    .rules-page .lot-visual svg { width: 30px; height: 38px; }
+    .rules-page .lot-history-list { gap: 8px; }
+    .rules-page .lot-thumb { width: 32px; height: 32px; }
+    .rules-page .card-head { padding: 10px 24px; }
+    .rules-page .rules-row { min-height: 46px; padding: 8px 24px; }
+    .rules-page .signup-banner { padding: 16px 32px; }
+    .rules-page .signup-banner-text { line-height: 1.4; }
 }

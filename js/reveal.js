@@ -543,25 +543,77 @@ function showState(kicker, title, text, withGif) {
         </div></div>`;
 }
 
+// ==========================================
+// DONNÉES DE DÉMONSTRATION (uniquement quand le site tourne sur ton ordinateur)
+// Pour travailler le reveal sans le lancer : de faux joueurs aux pronos tirés au hasard (toujours les mêmes).
+// ==========================================
+const isLocalSite = () => window.location.protocol === 'file:'
+    || ['localhost', '127.0.0.1', '[::1]', ''].includes(window.location.hostname)
+    || window.location.hostname.endsWith('.local');
+
+function demoRevealData() {
+    let seed = 7;
+    const rand = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    const shuffle = list => list.map(v => [v, rand()]).sort((a, b) => a[1] - b[1]).map(([v]) => v);
+    const POOL = {
+        pts: ['Shai Gilgeous-Alexander', 'Luka Dončić', 'Giannis Antetokounmpo', 'Anthony Edwards', 'Nikola Jokić'],
+        reb: ['Nikola Jokić', 'Victor Wembanyama', 'Domantas Sabonis', 'Karl-Anthony Towns', 'Jalen Duren'],
+        ast: ['Nikola Jokić', 'Trae Young', 'Cade Cunningham', 'Tyrese Haliburton', 'Luka Dončić'],
+        stl: ['Dyson Daniels', 'Shai Gilgeous-Alexander', 'Amen Thompson', 'Alex Caruso', 'Cason Wallace'],
+        blk: ['Victor Wembanyama', 'Chet Holmgren', 'Evan Mobley', 'Walker Kessler', 'Jaren Jackson Jr.'],
+        mvp: ['Nikola Jokić', 'Shai Gilgeous-Alexander', 'Luka Dončić', 'Giannis Antetokounmpo', 'Victor Wembanyama'],
+        coy: ['Mark Daigneault', 'Kenny Atkinson', 'JJ Redick', 'J.B. Bickerstaff', 'Ime Udoka'],
+        roy: ['AJ Dybantsa', 'Darryn Peterson', 'Cameron Boozer', 'Caleb Wilson', 'Keaton Wagler'],
+        mip: ['Jalen Duren', 'Amen Thompson', 'Scottie Barnes', 'Dyson Daniels', 'Kon Knueppel'],
+        dpoy: ['Victor Wembanyama', 'Evan Mobley', 'Amen Thompson', 'Dyson Daniels', 'Chet Holmgren'],
+        sixth: ['Payton Pritchard', 'Malik Monk', 'Naz Reid', 'Jordan Clarkson', 'Ty Jerome']
+    };
+    const ranks = keys => Object.fromEntries(keys.map((team, i) => [team, i + 1]));
+    const pseudos = ['King James', 'Wemby Fan', 'Max', 'Léa', 'Tom', 'Erwan', 'Sarah'];
+    const players = pseudos.map(pseudo => ({
+        pseudo, avatar: '',
+        // Classements proches d'un ordre « logique », avec des écarts pour créer des hot takes
+        east: ranks(shuffle(CONF_TEAMS.east).sort(() => rand() - 0.6)),
+        west: ranks(shuffle(CONF_TEAMS.west).sort(() => rand() - 0.6)),
+        stats: Object.fromEntries(['pts', 'reb', 'ast', 'stl', 'blk'].map(k => [k, shuffle(POOL[k]).slice(0, 3)])),
+        awards: Object.fromEntries(['mvp', 'coy', 'roy', 'mip', 'dpoy', 'sixth'].map(k => [k, shuffle(POOL[k]).slice(0, 3)]))
+    }));
+    return { revealed: true, demo: true, players };
+}
+
+function showDemoBadge() {
+    const badge = Object.assign(document.createElement('p'), { className: 'demo-badge', textContent: 'Version locale : données de démonstration' });
+    const ctrls = document.querySelector('#foot .ctrls');
+    if (ctrls) ctrls.after(badge); else document.body.appendChild(badge);
+}
+
 async function initReveal() {
     if (typeof Api === 'undefined') {
         showState('Erreur', 'Reveal indisponible', 'Les fichiers js/config.js et js/api.js ne sont pas chargés.');
         return;
     }
     const key = new URLSearchParams(window.location.search).get('cle') || '';
+    const local = isLocalSite();
 
     try {
-        const [config, data, lastSeason] = await Promise.all([
+        const [config, realData, lastSeason] = await Promise.all([
             Api.getConfig().catch(() => null),
-            Api.getReveal(key),
+            // En local, si le Sheet ne répond pas, on passe aux données de démonstration
+            local ? Api.getReveal(key).catch(() => null) : Api.getReveal(key),
             fetchLastSeason()
         ]);
 
         const hidden = config && config.pages && /^masqu/i.test(String(config.pages.reveal || ''));
-        const local = ['localhost', '127.0.0.1', '[::1]', ''].includes(window.location.hostname);
         if (hidden && !key && !local) {
             showState('Reveal', 'Page indisponible', 'Le reveal revient très vite. Repasse dans un moment.');
             return;
+        }
+
+        // Sur ton ordinateur, tant que le reveal n'est pas lancé : faux pronos pour travailler la page
+        let data = realData;
+        if (local && (!data || !data.revealed)) {
+            data = demoRevealData();
+            showDemoBadge();
         }
 
         if (!data || !data.revealed) {

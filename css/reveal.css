@@ -131,6 +131,13 @@ button { font: inherit; color: inherit; }
     pointer-events: none;
 }
 
+/* Reveal ouvert en local sans reveal lancé : données inventées */
+.demo-badge {
+    margin: 0 auto 0 0; padding: 6px 14px; border-radius: 999px;
+    background: #f87822; color: #17171b;
+    font-size: 12px; font-weight: 600; white-space: nowrap;
+}
+
 /* ---------- commandes ---------- */
 .foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .ctrls { display: flex; gap: 8px; }

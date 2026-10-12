@@ -507,9 +507,10 @@ function enregistrerHistoriqueHebdo() {
 }
 
 /**
- * À LANCER UNE SEULE FOIS depuis l'éditeur (menu déroulant -> Exécuter), AVANT de modifier un pseudo :
+ * À LANCER depuis l'éditeur (menu déroulant -> Exécuter), APRÈS attribuerIdentifiants() et AVANT de modifier un pseudo :
  * remplit la colonne F (identifiant) des relevés déjà enregistrés, d'après le pseudo.
- * Sans danger si relancée : les identifiants déjà présents ne sont jamais modifiés.
+ * Remplace aussi les identifiants provisoires "row2", "row3"... (joueur qui n'avait pas encore d'ID en colonne BN).
+ * Sans danger si relancée : les vrais identifiants déjà présents ne sont jamais modifiés.
  */
 function completerIdentifiantsHistorique() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -524,8 +525,13 @@ function completerIdentifiantsHistorique() {
   var ids = idRange.getValues();
   var filled = 0;
   for (var i = 0; i < n; i++) {
-    if (cleanText(pseudos[i][0]) && !cleanText(ids[i][0])) {
-      ids[i][0] = idForPseudo(idsByPseudo, pseudos[i][0]);
+    if (!cleanText(pseudos[i][0])) continue;
+    var current = cleanText(ids[i][0]);
+    var id = idForPseudo(idsByPseudo, pseudos[i][0]);
+    var provisional = /^row\d+$/.test(current);
+    var definitive = /^p[0-9a-f]{8}$/.test(id); // vrai ID de la colonne BN
+    if (!current || (provisional && definitive && id !== current)) {
+      ids[i][0] = id;
       filled++;
     }
   }
