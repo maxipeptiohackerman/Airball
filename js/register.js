@@ -50,6 +50,10 @@ const START_ORDER = {
 
 const DRAG_ICON = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 3.33H14M2 8H14M2 12.67H14" stroke="currentColor" stroke-width="1.33" stroke-linecap="round"/></svg>';
 
+// Flèches haut / bas (en plus du glisser-déposer)
+const ICON_UP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>';
+const ICON_DOWN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+
 function buildTeamList(listId, keys) {
     const list = document.getElementById(listId);
     list.innerHTML = keys.map(Teams.find).map((team, i) => `
@@ -57,14 +61,41 @@ function buildTeamList(listId, keys) {
             <span class="team-rank">${i + 1}</span>
             ${Teams.logoHtml(team.key)}
             <span class="team-name-row">${esc(team.name)}</span>
+            <span class="move-btns">
+                <button type="button" class="move-btn" data-move="-1" aria-label="Monter ${esc(team.name)}">${ICON_UP}</button>
+                <button type="button" class="move-btn" data-move="1" aria-label="Descendre ${esc(team.name)}">${ICON_DOWN}</button>
+            </span>
             <span class="drag-handle" aria-hidden="true">${DRAG_ICON}</span>
         </li>`).join('');
 }
 
 function updateRanks(listId) {
-    document.querySelectorAll(`#${listId} .team-row-item`).forEach((item, index) => {
+    const items = document.querySelectorAll(`#${listId} .team-row-item`);
+    items.forEach((item, index) => {
         item.querySelector('.team-rank').textContent = index + 1;
+        // Pas de flèche haut pour la 1re place, ni de flèche bas pour la dernière
+        item.querySelector('[data-move="-1"]').disabled = index === 0;
+        item.querySelector('[data-move="1"]').disabled = index === items.length - 1;
     });
+}
+
+// Clic sur une flèche : l'équipe monte ou descend d'une place et sa ligne s'allume un instant
+function moveTeam(button) {
+    const item = button.closest('.team-row-item');
+    const list = item.parentElement;
+    const dir = Number(button.dataset.move);
+    const target = dir < 0 ? item.previousElementSibling : item.nextElementSibling;
+    if (!target) return;
+    if (dir < 0) list.insertBefore(item, target); else list.insertBefore(target, item);
+    updateRanks(list.id);
+    item.classList.remove('is-moved');
+    void item.offsetWidth; // relance l'animation si on clique plusieurs fois de suite
+    item.classList.add('is-moved');
+    clearTimeout(item._movedTimer);
+    item._movedTimer = setTimeout(() => item.classList.remove('is-moved'), 900);
+    // Le focus reste sur la flèche : on peut enchaîner au clavier
+    const again = item.querySelector(`[data-move="${dir}"]`);
+    (again.disabled ? item.querySelector(`[data-move="${-dir}"]`) : again).focus();
 }
 
 // ==========================================
@@ -116,14 +147,9 @@ function sourceFor(cat) {
     return nbaPlayers;
 }
 
-// Maillot de la maquette (img : jersey.svg), coloré aux couleurs de l'équipe
-function jerseyIcon(team, className = 'pick-card-jersey') {
-    const found = Teams.find(team);
-    const [body, trim] = found ? found.colors : ['#8e8d91', '#ffffff'];
-    return `<svg class="${className}" viewBox="0 0 31 40" fill="none" aria-hidden="true">
-        <path d="M3.25 0h5.17c.38 3.83 2.87 6.79 6.89 6.79S21.82 3.83 22.2 0h5.17v8.33c0 3.35 1.05 5.84 3.25 8.13V40H0V16.46c2.2-2.29 3.25-4.78 3.25-8.13V0Z" fill="${body}"/>
-        <path d="M7.66 0c.38 4.31 3.35 7.66 7.65 7.66S22.58 4.31 22.97 0M4.12 0v8.23c0 3.92-1.34 7.18-4.12 9.67M26.6 0v8.23c0 3.92 1.34 7.18 4.02 9.57" stroke="${trim}"/>
-    </svg>`;
+// Maillot illustré aux couleurs de l'équipe (js/jersey.js) ; grand format avec numéro sur les cartes
+function jerseyIcon(team, className = 'pick-card-jersey', number = '') {
+    return Jersey.svg(team, { className, number, mini: className !== 'pick-card-jersey' });
 }
 
 // Icône « ajouter » de la maquette (carré pointillé avec un +), en couleur du texte
@@ -147,7 +173,7 @@ function renderCategory(step, sub) {
         return pick
             ? `<button type="button" class="pick-card pick-card--${n} is-filled" data-pick="${n}" aria-label="Pick ${n} : ${esc(pick.name)}${pick.team ? ', ' + esc(pick.team) : ''}. Changer de ${what}">
                 <span class="pick-card-title">Pick ${n}</span>
-                ${jerseyIcon(pick.team)}
+                ${jerseyIcon(pick.team, 'pick-card-jersey', pick.num || n)}
                 <span class="pick-card-name">${esc(pick.name)}</span>
                 <span class="pick-card-team">${esc(pick.team || '')}</span>
             </button>`
@@ -165,7 +191,7 @@ const panelState = { cat: null, pick: 1, team: '', pos: '' };
 
 function panelResults() {
     const cat = panelState.cat;
-    const query = document.getElementById('pick-search').value.toLowerCase().trim();
+    const query = fold(document.getElementById('pick-search').value);
     const taken = pickNames(cat.id).filter((name, i) => name && i !== panelState.pick - 1).map(n => n.toLowerCase());
 
     return sourceFor(cat).filter(item => {
@@ -173,12 +199,33 @@ function panelResults() {
         if (taken.includes(name)) return false;
         if (panelState.team && item.team !== panelState.team) return false;
         if (panelState.pos && cat.kind !== 'coach' && !matchesPosition(item, panelState.pos)) return false;
-        return !query || name.includes(query) || String(item.team || '').toLowerCase().includes(query);
+        return !query || fold(item.name).includes(query) || fold(item.team).includes(query);
     }).sort((a, b) => {
         // Rookies : dans l'ordre de la draft quand le numéro est connu
         if (cat.kind === 'rookie' && (a.draft || b.draft)) return (Number(a.draft) || 999) - (Number(b.draft) || 999);
+        // Filtre par équipe : titulaires d'abord, puis le banc (champ "depth" de players.json)
+        if (panelState.team && (a.depth || b.depth)) return (Number(a.depth) || 99) - (Number(b.depth) || 99) || a.name.localeCompare(b.name, 'fr');
+        // Sinon : les têtes d'affiche en premier, dans l'ordre de leur rang ("star": 1, 2, 3...),
+        // puis tous les autres par ordre alphabétique
+        if (cat.kind !== 'coach' && (isStar(a) || isStar(b))) return starRank(a) - starRank(b) || a.name.localeCompare(b.name, 'fr');
         return a.name.localeCompare(b.name, 'fr');
     });
+}
+
+// Recherche insensible aux accents et aux majuscules : "jokic" trouve "Jokić"
+const fold = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+// "star": 1 (premier de la liste), 2, 3... ; "star": true = tête d'affiche sans rang, placée après les rangs
+const isStar = item => item.star === true || item.star === 'true' || Number(item.star) > 0;
+const starRank = item => !isStar(item) ? Infinity : Number(item.star) > 0 ? Number(item.star) : 999;
+
+// Titres de section de la liste : « Têtes d'affiche » puis « Tous les joueurs »
+// (vue par défaut seulement : sans recherche ni filtre d'équipe)
+function resultsGroupTitle(item, previous) {
+    const cat = panelState.cat;
+    if (cat.kind === 'coach' || cat.kind === 'rookie' || panelState.team || document.getElementById('pick-search').value.trim()) return '';
+    if (!previous && isStar(item)) return 'Têtes d’affiche';
+    if (!isStar(item) && (!previous || isStar(previous))) return previous ? 'Tous les joueurs' : '';
+    return '';
 }
 
 function renderPanelResults() {
@@ -186,8 +233,8 @@ function renderPanelResults() {
     const current = pickNames(panelState.cat.id)[panelState.pick - 1];
     document.getElementById('pick-results-count').textContent = `${results.length} résultat${results.length > 1 ? 's' : ''}`;
     document.getElementById('pick-results').innerHTML = results.length
-        ? results.map(item => `
-            <button type="button" class="pick-result${item.name === current ? ' is-current' : ''}" role="option" aria-selected="${item.name === current}" data-name="${esc(item.name)}" data-team="${esc(item.team || '')}">
+        ? results.map((item, i) => `${(title => title ? `<p class="pick-results-group" role="presentation">${title}</p>` : '')(resultsGroupTitle(item, results[i - 1]))}
+            <button type="button" class="pick-result${item.name === current ? ' is-current' : ''}" role="option" aria-selected="${item.name === current}" data-name="${esc(item.name)}" data-team="${esc(item.team || '')}" data-num="${esc(item.num || '')}">
                 ${jerseyIcon(item.team, 'pick-result-jersey')}
                 <span class="pick-result-text">
                     <span class="pick-result-name">${esc(item.name)}</span>
@@ -262,7 +309,7 @@ function setupPicks() {
     document.getElementById('pick-results').addEventListener('click', e => {
         const item = e.target.closest('.pick-result');
         if (!item) return;
-        picks[panelState.cat.id][panelState.pick - 1] = { name: item.dataset.name, team: item.dataset.team };
+        picks[panelState.cat.id][panelState.pick - 1] = { name: item.dataset.name, team: item.dataset.team, num: item.dataset.num || '' };
         renderCategory(currentStep, currentSub);
         clearStepError();
         refreshNextState();
@@ -761,7 +808,11 @@ loadData();
 // sinon un doigt qui fait défiler la liste la réordonnerait par erreur.
 const isTouchScreen = window.matchMedia('(pointer: coarse)').matches;
 ['east-list', 'west-list'].forEach(id => {
-    const options = { animation: 150, ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen', onEnd: () => updateRanks(id) };
+    const options = { animation: 150, ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen', onEnd: () => updateRanks(id),
+        filter: '.move-btn', preventOnFilter: false }; // un clic sur une flèche ne lance pas de glisser-déposer
+    const list = document.getElementById(id);
+    updateRanks(id);
+    list.addEventListener('click', e => { const btn = e.target.closest('.move-btn'); if (btn) moveTeam(btn); });
     if (isTouchScreen) options.handle = '.drag-handle';
     if (window.Sortable) new Sortable(document.getElementById(id), options);
 });

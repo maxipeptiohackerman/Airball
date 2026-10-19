@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Airball - Pronostics des Joueurs</title>
     
-    <link rel="stylesheet" href="css/style.css?v=20261012v">
+    <link rel="stylesheet" href="css/style.css?v=20261019g">
 </head>
 <body>
 
@@ -13,21 +13,48 @@
     <!-- Le header et la nav vont s'injecter ici automatiquement -->
     <div id="header-container"></div>
 
-    <div class="card pronostics-card">
+    <div id="pronos-wrap">
+    <!-- LISTE DES JOUEURS : clic sur une card = ses pronos ; « Comparer » sur deux cards = comparatif -->
+    <section class="card card--panel players-card" id="players-view" aria-labelledby="players-title" hidden>
+        <header class="players-head">
+            <h2 class="players-title" id="players-title">Liste des joueurs</h2>
+            <p class="players-sub" id="players-sub">Clique sur un joueur pour voir ses pronos, ou sélectionne-en deux pour les comparer.</p>
+        </header>
+        <div class="players-grid" id="players-grid"></div>
+        <div class="players-foot">
+            <p class="players-hint" id="players-hint" aria-live="polite"></p>
+            <button type="button" class="btn-primary" id="compare-go" disabled>Comparer
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+        </div>
+    </section>
 
-        <!-- Sélection du joueur et du joueur à comparer -->
-        <div class="player-selector" id="player-selector">
-            <div class="selector-group">
-                <label for="player-select">Joueur :</label>
-                <select id="player-select" disabled>
+    <!-- FICHE D'UN JOUEUR (ou duel) -->
+    <div class="pronos-detail" id="pronos-detail" hidden>
+        <div class="pronos-topbar">
+            <button type="button" class="btn-back" id="pronos-back">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                Retour
+            </button>
+            <div class="pronos-pickers">
+            <!-- Menu du joueur affiché : photo + pseudo (le vrai menu déroulant est posé par-dessus) -->
+            <label class="player-picker">
+                <span class="player-picker-avatar" id="picker-avatar" aria-hidden="true"></span>
+                <span class="player-picker-name" id="picker-name" aria-hidden="true"></span>
+                <svg class="player-picker-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                <select id="player-select" aria-label="Joueur affiché" disabled>
                     <option value="">Chargement...</option>
                 </select>
-            </div>
-            <div class="selector-group">
-                <label for="compare-select">⚖️ Comparer avec :</label>
-                <select id="compare-select" disabled>
+            </label>
+            <span class="picker-vs" id="picker-vs" hidden>vs</span>
+            <label class="player-picker" id="rival-picker" hidden>
+                <span class="player-picker-avatar" id="rival-avatar" aria-hidden="true"></span>
+                <span class="player-picker-name" id="rival-name" aria-hidden="true"></span>
+                <svg class="player-picker-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                <select id="rival-select" aria-label="Joueur comparé" disabled>
                     <option value="">Personne</option>
                 </select>
+            </label>
             </div>
         </div>
 
@@ -35,57 +62,59 @@
         <div id="pronos-message" class="pronos-message">Chargement des pronostics...</div>
 
         <!-- Contenu, affiché une fois un joueur choisi -->
-        <div id="pronos-content" hidden>
-
-            <!-- Carte du joueur -->
-            <div class="player-profile-card" id="profile-card">
-                <div class="profile-left">
-                    <div class="profile-avatar-large" id="profile-avatar"></div>
-                    <div class="profile-info">
-                        <h2 id="profile-name"></h2>
-                        <button type="button" class="btn-secondary btn--small copy-link-btn">🔗 Copier le lien</button>
-                    </div>
-                </div>
-                <div class="profile-stats">
-                    <div class="stat-box">
-                        <div class="stat-value highlight" id="profile-rank">-</div>
-                        <div class="stat-label">Classement</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-value" id="profile-total-pts">-</div>
-                        <div class="stat-label">Points totaux</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Bandeau de duel (visible uniquement quand on compare deux joueurs) -->
-            <div id="duel-banner" hidden></div>
-
-            <!-- Points par catégorie (cliquables : ouvrent l'onglet correspondant) -->
-            <div class="score-pills" id="score-pills"></div>
-
+        <div class="card pronostics-card prono-sheet" id="pronos-content" hidden>
             <!-- Onglets -->
-            <div class="tabs" role="tablist">
-                <button type="button" class="tab-btn" role="tab" data-tab="classements">Classements</button>
+            <div class="tabs sheet-tabs" role="tablist">
+                <button type="button" class="tab-btn" role="tab" data-tab="resume">Résumé</button>
+                <button type="button" class="tab-btn" role="tab" data-tab="est">Est</button>
+                <button type="button" class="tab-btn" role="tab" data-tab="ouest">Ouest</button>
                 <button type="button" class="tab-btn" role="tab" data-tab="stats">Stats &amp; Awards</button>
                 <button type="button" class="tab-btn" role="tab" data-tab="evolution">Évolution</button>
             </div>
 
-            <!-- Onglet 1 : classements Est / Ouest -->
-            <section class="tab-panel" data-panel="classements" hidden>
-                <div class="conf-switch" role="group" aria-label="Conférence">
-                    <button type="button" data-conf="east">Est</button>
-                    <button type="button" data-conf="west">Ouest</button>
+            <!-- Résumé : carte du joueur (ou duel), points par catégorie, comparaison -->
+            <section class="tab-panel" data-panel="resume" hidden>
+                <div class="player-profile-card" id="profile-card">
+                    <div class="profile-left">
+                        <div class="profile-avatar-large" id="profile-avatar"></div>
+                        <div class="profile-info">
+                            <h2 id="profile-name"></h2>
+                            <button type="button" class="btn-secondary btn--small copy-link-btn">🔗 Copier le lien</button>
+                        </div>
+                    </div>
+                    <div class="profile-stats">
+                        <div class="stat-box">
+                            <div class="stat-value highlight" id="profile-rank">-</div>
+                            <div class="stat-label">Classement</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value" id="profile-total-pts">-</div>
+                            <div class="stat-label">Points totaux</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="tables-grid conf-grid" id="conf-grid"></div>
+                <div id="duel-banner" hidden></div>
+                <div class="score-pills" id="score-pills"></div>
+                <div class="player-selector" id="compare-row">
+                    <div class="selector-group">
+                        <label for="compare-select">Comparer avec :</label>
+                        <select id="compare-select" disabled>
+                            <option value="">Personne</option>
+                        </select>
+                    </div>
+                </div>
             </section>
 
-            <!-- Onglet 2 : stats et trophées -->
+            <!-- Est / Ouest -->
+            <section class="tab-panel" data-panel="est" hidden><div id="conf-east"></div></section>
+            <section class="tab-panel" data-panel="ouest" hidden><div id="conf-west"></div></section>
+
+            <!-- Stats et trophées -->
             <section class="tab-panel" data-panel="stats" hidden>
                 <div id="stats-panel"></div>
             </section>
 
-            <!-- Onglet 3 : évolution du classement -->
+            <!-- Évolution du classement -->
             <section class="tab-panel" data-panel="evolution" hidden>
                 <div id="evolution-message" class="pronos-message" hidden></div>
                 <div class="chart-wrap" id="chart-wrap" hidden>
@@ -95,15 +124,18 @@
             </section>
         </div>
     </div>
+    </div>
 </div>
 
     <!-- Réglages (config), appels au serveur (api), pages masquées, menu commun, puis logique propre à la page -->
-    <script src="js/config.js?v=20261012v"></script>
-    <script src="js/api.js?v=20261012v"></script>
-    <script src="js/teams.js?v=20261012v"></script>
-    <script src="js/pages-config.js?v=20261012v"></script>
-    <script src="js/common.js?v=20261012v"></script>
-    <script src="js/scoring.js?v=20261012v"></script>
-    <script src="js/pronostics.js?v=20261012v"></script>
+    <script src="js/config.js?v=20261019g"></script>
+    <script src="js/api.js?v=20261019g"></script>
+    <script src="js/demo.js?v=20261019g"></script>
+    <script src="js/teams.js?v=20261019g"></script>
+    <script src="js/pages-config.js?v=20261019g"></script>
+    <script src="js/common.js?v=20261019g"></script>
+    <script src="js/scoring.js?v=20261019g"></script>
+    <script src="js/jersey.js?v=20261019g"></script>
+    <script src="js/pronostics.js?v=20261019g"></script>
 </body>
 </html>

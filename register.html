@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Airball - Inscription</title>
-    <link rel="stylesheet" href="css/style.css?v=20261012v">
+    <link rel="stylesheet" href="css/style.css?v=20261019g">
     <!-- Glisser-déposer des équipes -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js" defer></script>
 </head>
@@ -32,9 +32,10 @@
                 <span>Kawhi Salary Cap</span>
             </div>
 
-            <div class="deco-popin deco-popin--back2"><div class="deco-popin-bar is-faded"><span>new_season</span><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="#717171" stroke-width="2" stroke-linecap="round"/></svg></div><div class="deco-popin-view"></div></div>
-            <div class="deco-popin deco-popin--back1"><div class="deco-popin-bar is-faded"><span>new_season</span><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="#717171" stroke-width="2" stroke-linecap="round"/></svg></div><div class="deco-popin-view"></div></div>
-            <div class="deco-popin deco-popin--front"><div class="deco-popin-bar"><span>new_season</span><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="#717171" stroke-width="2" stroke-linecap="round"/></svg></div><div class="deco-popin-view"><img class="deco-gif" data-src="img/register/popin-left.gif" alt=""></div></div>
+            <div class="deco-popin deco-popin--back2"><div class="deco-popin-bar is-faded"><span>BUCKS_ON_TOP?</span><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="#717171" stroke-width="2" stroke-linecap="round"/></svg></div><div class="deco-popin-view"></div></div>
+            <div class="deco-popin deco-popin--back1"><div class="deco-popin-bar is-faded"><span>BUCKS_ON_TOP?</span><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="#717171" stroke-width="2" stroke-linecap="round"/></svg></div><div class="deco-popin-view"></div></div>
+            <div class="deco-popin deco-popin--front"><div class="deco-popin-bar"><span>BUCKS_ON_TOP?</span><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="#717171" stroke-width="2" stroke-linecap="round"/></svg></div><div class="deco-popin-view"><img class="deco-gif" data-src="img/register/bucks.gif" alt=""></div></div>
+            <div class="deco-popin deco-popin--right"><div class="deco-popin-bar"><span>HAPPY_NEW_SEASON</span><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="#717171" stroke-width="2" stroke-linecap="round"/></svg></div><div class="deco-popin-view"><img class="deco-gif" data-src="img/register/happy-new-season.gif" alt=""></div></div>
         </div>
 
         <p class="reg-kicker">Saison 2026/2027</p>
@@ -87,7 +88,7 @@
         <section class="wizard-step" data-step="2" aria-labelledby="step2-title">
             <header class="reg-step-head">
                 <h1 class="reg-title" id="step2-title" tabindex="-1">Conférence Est</h1>
-                <p class="reg-sub">Fais glisser les équipes pour établir ton classement, de la 1re à la 15e place.</p>
+                <p class="reg-sub">Fais glisser les équipes ou utilise les flèches pour établir ton classement, de la 1re à la 15e place.</p>
             </header>
             <div class="reg-panel reg-panel--teams">
                 <ol id="east-list" class="reg-card reg-teams" aria-label="Ton classement de la Conférence Est"></ol>
@@ -98,7 +99,7 @@
         <section class="wizard-step" data-step="3" aria-labelledby="step3-title">
             <header class="reg-step-head">
                 <h1 class="reg-title" id="step3-title" tabindex="-1">Conférence Ouest</h1>
-                <p class="reg-sub">Fais glisser les équipes pour établir ton classement, de la 1re à la 15e place.</p>
+                <p class="reg-sub">Fais glisser les équipes ou utilise les flèches pour établir ton classement, de la 1re à la 15e place.</p>
             </header>
             <div class="reg-panel reg-panel--teams">
                 <ol id="west-list" class="reg-card reg-teams" aria-label="Ton classement de la Conférence Ouest"></ol>
@@ -187,16 +188,18 @@
     <!-- CONFIRMATION AVANT DE QUITTER (si une sélection est en cours) -->
     <dialog class="reg-dialog reg-dialog--small" id="exit-dialog" aria-labelledby="exit-title" aria-describedby="exit-text">
         <div class="reg-dialog-inner exit-inner">
-            <!-- Vidéo chargée seulement à l'ouverture (version légère du GIF : 45 Ko au lieu de 1,8 Mo) -->
+            <h2 class="exit-head" id="exit-title">Tu nous quittes déjà&nbsp;?</h2>
+            <div class="exit-body">
+    <!-- Vidéo chargée seulement à l'ouverture (version légère du GIF : 45 Ko au lieu de 1,8 Mo) -->
             <video class="exit-gif" id="exit-gif" muted loop playsinline preload="none" poster="img/register/bye.jpg" aria-hidden="true">
                 <source data-src="img/register/bye.webm" type="video/webm">
                 <source data-src="img/register/bye.mp4" type="video/mp4">
             </video>
-            <h2 class="reg-dialog-title" id="exit-title">Tu nous quittes déjà&nbsp;?</h2>
-            <p class="exit-text" id="exit-text">Ta sélection n'est pas enregistrée : si tu quittes maintenant, tes pronos seront perdus.</p>
-            <div class="reg-dialog-actions exit-actions">
-                <a href="index.html" class="btn-secondary" id="exit-confirm">Quitter</a>
-                <button type="button" class="btn-primary" id="exit-cancel" autofocus><span class="reg-next-label">Continuer mon inscription</span></button>
+                <p class="exit-text" id="exit-text">Ta sélection n'est pas enregistrée : si tu quittes maintenant, tes pronos seront perdus.</p>
+                <div class="reg-dialog-actions exit-actions">
+                    <a href="index.html" class="btn-secondary" id="exit-confirm">Quitter</a>
+                    <button type="button" class="btn-primary" id="exit-cancel" autofocus><span class="reg-next-label">Continuer mon inscription</span></button>
+                </div>
             </div>
         </div>
     </dialog>
@@ -213,10 +216,11 @@
     </nav>
 
     <!-- Réglages (config), appels au serveur (api), pages masquées, menu commun, puis logique propre à la page -->
-    <script src="js/config.js?v=20261012v"></script>
-    <script src="js/api.js?v=20261012v"></script>
-    <script src="js/teams.js?v=20261012v"></script>
-    <script src="js/pages-config.js?v=20261012v"></script>
-    <script src="js/register.js?v=20261012v" defer></script>
+    <script src="js/config.js?v=20261019g"></script>
+    <script src="js/api.js?v=20261019g"></script>
+    <script src="js/teams.js?v=20261019g"></script>
+    <script src="js/pages-config.js?v=20261019g"></script>
+    <script src="js/jersey.js?v=20261019g" defer></script>
+    <script src="js/register.js?v=20261019g" defer></script>
 </body>
 </html>

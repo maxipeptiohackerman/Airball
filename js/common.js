@@ -1,5 +1,5 @@
 // Version du site (visible dans la console du navigateur) : sert à vérifier que la bonne version est en ligne
-const AIRBALL_VERSION = '20261012v';
+const AIRBALL_VERSION = '20261018p';
 console.info('Airball version', AIRBALL_VERSION);
 
 // ==========================================
@@ -360,7 +360,8 @@ function escapeHtml(value) {
  */
 function renderAvatarHtml(avatarUrl, playerName) {
     const url = avatarUrl ? String(avatarUrl).trim() : '';
-    if (url.startsWith('http') || url.startsWith('data:image')) {
+    // Photo en ligne, image encodée, ou photo du site (img/..., utilisée par le mode démo)
+    if (url.startsWith('http') || url.startsWith('data:image') || /^img\/[\w\/.-]+\.(jpe?g|png|webp|gif)$/i.test(url)) {
         return `<img src="${escapeHtml(url)}" alt="${escapeHtml(playerName)}">`;
     }
     return escapeHtml(String(playerName).charAt(0).toUpperCase());

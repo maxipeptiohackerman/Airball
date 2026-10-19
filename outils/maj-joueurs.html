@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Mise à jour des joueurs</title>
+<style>
+    body { margin: 0; padding: 32px 20px; background: #121216; color: #e8e7e4; font: 15px/1.5 system-ui, sans-serif; }
+    main { max-width: 820px; margin: 0 auto; }
+    h1 { font-size: 24px; margin: 0 0 8px; }
+    h2 { font-size: 16px; margin: 24px 0 8px; }
+    p, li { color: #a3a1a7; }
+    code { color: #e8e7e4; }
+    fieldset { margin: 20px 0; padding: 14px 18px; border: 1px solid #2e2d33; border-radius: 8px; }
+    legend { padding: 0 6px; color: #e8e7e4; font-weight: 600; }
+    label.opt { display: flex; gap: 10px; align-items: baseline; padding: 4px 0; color: #e8e7e4; cursor: pointer; }
+    label.opt small { color: #8e8d91; }
+    button, label.file { display: inline-flex; align-items: center; height: 40px; padding: 0 18px; border: none; border-radius: 6px; background: #dcfe5f; color: #17171b; font: 600 14px system-ui, sans-serif; cursor: pointer; }
+    button:disabled { opacity: .4; cursor: default; }
+    button.secondary, label.file { background: #2f2d35; color: #e8e7e4; border: 1px solid #5d5d68; }
+    .actions { display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
+    .stats { display: flex; gap: 28px; flex-wrap: wrap; margin: 16px 0; }
+    .stats strong { display: block; font-size: 24px; color: #e8e7e4; }
+    .stats span { font-size: 12px; color: #8e8d91; }
+    details { margin: 8px 0; padding: 10px 14px; background: #1b1b20; border: 1px solid #2e2d33; border-radius: 8px; }
+    summary { cursor: pointer; color: #e8e7e4; }
+    details ul { margin: 8px 0 0; padding-left: 20px; font-size: 14px; }
+    #log { margin-top: 16px; padding: 12px 16px; background: #0e0e11; border: 1px solid #2e2d33; border-radius: 8px; white-space: pre-wrap; font: 12px/1.6 ui-monospace, monospace; color: #8e8d91; max-height: 220px; overflow: auto; }
+    .err { color: #ff7a7a; }
+</style>
+</head>
+<body>
+<main>
+    <h1>Mise à jour des joueurs</h1>
+    <p>Outil pour l'organisateur (aucun lien dans le site). Il lit les effectifs actuels des 30 équipes sur ESPN et met à jour
+       <code>players.json</code> (et <code>coaches.json</code>). Rien n'est modifié sur le site : tu télécharges les fichiers,
+       tu les relis, puis tu remplaces ceux du site.</p>
+    <p>À lancer avant l'ouverture des inscriptions, puis quand tu veux (transferts, signatures).</p>
+
+    <fieldset>
+        <legend>Que faut-il mettre à jour ?</legend>
+        <label class="opt"><input type="checkbox" id="opt-num" checked> Numéros de maillot <small>champ "num"</small></label>
+        <label class="opt"><input type="checkbox" id="opt-pos" checked> Postes <small>G, F, C : filtre de la liste de sélection</small></label>
+        <label class="opt"><input type="checkbox" id="opt-team" checked> Équipes <small>joueurs transférés</small></label>
+        <label class="opt"><input type="checkbox" id="opt-depth" checked> Ordre des effectifs <small>champ "depth" : 1 = titulaire, 2 = premier remplaçant… (liste triée quand on filtre une équipe)</small></label>
+        <label class="opt"><input type="checkbox" id="opt-coach" checked> Coachs <small>coaches.json</small></label>
+        <label class="opt"><input type="checkbox" id="opt-add"> Ajouter les joueurs présents sur ESPN mais absents du fichier <small>nouvelles signatures</small></label>
+        <label class="opt"><input type="checkbox" id="opt-remove"> Retirer les joueurs qui ne sont plus dans aucun effectif <small>agents libres, retraités</small></label>
+    </fieldset>
+
+    <div class="actions">
+        <button id="run" type="button">1. Analyser</button>
+        <button id="dl-players" type="button" class="secondary" disabled>2. Télécharger players.json</button>
+        <button id="dl-coaches" type="button" class="secondary" disabled>Télécharger coaches.json</button>
+        <label class="file" id="file-label" hidden>Choisir players.json et coaches.json <input type="file" id="file" accept=".json,application/json" multiple hidden></label>
+    </div>
+
+    <div class="stats" id="stats" hidden></div>
+    <div id="report"></div>
+    <div id="log">Coche ce que tu veux mettre à jour, puis clique sur « Analyser ».</div>
+
+    <h2>Si ESPN ne répond pas (« requête bloquée »)</h2>
+    <p>Désactive ton bloqueur de publicité (uBlock, AdBlock, protection de Brave ou Safari) pour cette page, recharge et relance. Ou essaie un autre navigateur.</p>
+</main>
+
+<script src="../js/teams.js"></script>
+<script>
+const ROSTER_URL = code => `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/${code}/roster`;
+const DEPTH_URL = code => `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/${code}/depthcharts`;
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const log = (text, cls = '') => { $('log').insertAdjacentHTML('beforeend', `\n<span class="${cls}">${esc(text)}</span>`); $('log').scrollTop = $('log').scrollHeight; };
+
+// "Luka Dončić" = "Luka Doncic", "P.J. Washington Jr." = "PJ Washington", "Ernest Udeh, Jr." = "Ernest Udeh"
+const norm = name => String(name || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+    .replace(/[.'’,]/g, '').replace(/\b(jr|sr|ii|iii|iv|v)\b/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+
+// Nom de famille pour le tri alphabétique ("Shai Gilgeous-Alexander" -> "gilgeous-alexander shai")
+const sortKey = name => { const parts = norm(name).split(' '); return parts.slice(1).join(' ') + ' ' + parts[0]; };
+
+let original = null, originalCoaches = null, players = null, coaches = null;
+
+async function readJson(path) {
+    const response = await fetch(path, { cache: 'no-store' });
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    return response.json();
+}
+
+// Page ouverte directement depuis le disque : le navigateur bloque la lecture, on demande les fichiers
+function askFiles() {
+    log("Le navigateur bloque la lecture automatique des fichiers : choisis players.json (et coaches.json) avec le bouton.", 'err');
+    $('file-label').hidden = false;
+    return new Promise(resolve => {
+        $('file').addEventListener('change', async ev => {
+            const out = {};
+            for (const file of ev.target.files) out[file.name.replace(/\s*\(\d+\)/, '')] = JSON.parse(await file.text());
+            resolve(out);
+        }, { once: true });
+    });
+}
+
+async function loadFiles() {
+    try {
+        return { 'players.json': await readJson('../players.json'), 'coaches.json': await readJson('../coaches.json') };
+    } catch (e) {
+        return askFiles();
+    }
+}
+
+async function fetchRoster(team) {
+    let response;
+    try { response = await fetch(ROSTER_URL(team.logo)); }
+    catch (e) { throw new Error('requête bloquée'); }
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    const data = await response.json();
+    const athletes = (data.athletes || []).flatMap(a => Array.isArray(a.items) ? a.items : [a]);
+    return {
+        athletes: athletes.map(a => ({
+            name: a.fullName || a.displayName,
+            num: String(a.jersey || '').trim(),
+            pos: a.position ? (a.position.abbreviation || '') : '',
+            rookie: a.experience && a.experience.years === 0
+        })),
+        coach: (data.coach || [])[0]
+    };
+}
+
+// Ordre de l'effectif : pour chaque joueur, sa meilleure place dans les postes (meneur, arrière...)
+// 1 = titulaire à un poste, 2 = premier remplaçant, etc. En cas d'échec, l'équipe garde l'ordre actuel.
+async function fetchDepth(team) {
+    try {
+        const response = await fetch(DEPTH_URL(team.logo));
+        if (!response.ok) return {};
+        const data = await response.json();
+        const depth = {};
+        (data.depthchart || []).forEach(chart => Object.values(chart.positions || {}).forEach(pos =>
+            (pos.athletes || []).forEach((a, i) => {
+                const k = norm(a.displayName || a.fullName);
+                if (k && (!depth[k] || i + 1 < depth[k])) depth[k] = i + 1;
+            })));
+        return depth;
+    } catch (e) {
+        return {};
+    }
+}
+
+// Champs dans un ordre stable : name, team, pos, num, puis le reste (rookie, draft...)
+function ordered(p) {
+    const out = { name: p.name, team: p.team };
+    if (p.pos) out.pos = p.pos;
+    if (p.num) out.num = p.num;
+    if (p.depth) out.depth = p.depth;
+    Object.keys(p).forEach(k => { if (!(k in out) && p[k] !== undefined && p[k] !== '') out[k] = p[k]; });
+    return out;
+}
+
+function section(title, lines) {
+    if (!lines.length) return '';
+    return `<details${lines.length <= 12 ? ' open' : ''}><summary>${esc(title)} (${lines.length})</summary><ul>${lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul></details>`;
+}
+
+$('run').addEventListener('click', async () => {
+    const opt = { num: $('opt-num').checked, pos: $('opt-pos').checked, team: $('opt-team').checked, depth: $('opt-depth').checked, coach: $('opt-coach').checked, add: $('opt-add').checked, remove: $('opt-remove').checked };
+    $('run').disabled = true;
+    $('report').innerHTML = '';
+    $('stats').hidden = true;
+    $('log').textContent = 'Lecture des fichiers…';
+
+    const files = await loadFiles();
+    original = files['players.json'];
+    originalCoaches = files['coaches.json'] || null;
+    if (!Array.isArray(original)) { log('players.json introuvable ou illisible.', 'err'); $('run').disabled = false; return; }
+    log(`${original.length} joueurs dans players.json.`);
+
+    // 1. Effectifs ESPN
+    const espn = {};          // nom normalisé -> { name, num, pos, rookie, team }
+    const espnCoaches = {};   // nom d'équipe -> nom du coach
+    let ok = 0;
+    await Promise.all(TEAMS.map(async team => {
+        try {
+            const [roster, depth] = await Promise.all([fetchRoster(team), opt.depth ? fetchDepth(team) : {}]);
+            if (opt.depth && !Object.keys(depth).length) log(`(ordre de l'effectif indisponible : ${team.name})`);
+            roster.athletes.forEach(a => { espn[norm(a.name)] = Object.assign(a, { team: team.name, depth: depth[norm(a.name)] || 0 }); });
+            if (roster.coach) espnCoaches[team.name] = `${roster.coach.firstName} ${roster.coach.lastName}`.trim();
+            ok++;
+        } catch (e) {
+            log(`✗ ${team.name} : ${e.message}`, 'err');
+        }
+    }));
+    log(`${ok}/30 effectifs récupérés.`);
+    if (ok < 30) {
+        log("Il manque des équipes : relance avant de télécharger, sinon des joueurs seraient considérés comme absents.", 'err');
+        if (opt.remove) { opt.remove = false; log("Par sécurité, l'option « Retirer » est ignorée pour cette analyse.", 'err'); }
+    }
+
+    // 2. Comparaison
+    const changes = { team: [], num: [], pos: [], added: [], removed: [], notFound: [], coach: [] };
+    const seen = new Set();
+    players = [];
+    original.forEach(p => {
+        const k = norm(p.name);
+        const e = espn[k];
+        if (!e) {
+            if (opt.remove) changes.removed.push(`${p.name} (${p.team})`);
+            else { changes.notFound.push(`${p.name} (${p.team})`); players.push(ordered(p)); }
+            return;
+        }
+        seen.add(k);
+        const next = Object.assign({}, p);
+        if (e.team !== p.team) {
+            if (opt.team) { next.team = e.team; changes.team.push(`${p.name} : ${p.team} → ${e.team}`); }
+            else changes.team.push(`${p.name} : ${p.team} → ${e.team} (non appliqué)`);
+        }
+        if (opt.num && e.num && e.num !== p.num) { changes.num.push(`${p.name} : ${p.num ? '#' + p.num + ' → ' : ''}#${e.num}`); next.num = e.num; }
+        if (opt.pos && e.pos && e.pos !== p.pos) { changes.pos.push(`${p.name} : ${p.pos || '—'} → ${e.pos}`); next.pos = e.pos; }
+        if (opt.depth) { if (e.depth) next.depth = e.depth; else delete next.depth; }
+        players.push(ordered(next));
+    });
+
+    if (opt.add) {
+        Object.entries(espn).forEach(([k, e]) => {
+            if (seen.has(k)) return;
+            const p = { name: e.name, team: e.team, pos: opt.pos ? e.pos : '', num: opt.num ? e.num : '' };
+            if (e.rookie) p.rookie = true;
+            if (opt.depth && e.depth) p.depth = e.depth;
+            players.push(ordered(p));
+            changes.added.push(`${e.name} (${e.team})${e.rookie ? ' — rookie' : ''}`);
+        });
+        players.sort((a, b) => sortKey(a.name).localeCompare(sortKey(b.name)));
+    }
+
+    // 3. Coachs
+    coaches = null;
+    if (opt.coach && Array.isArray(originalCoaches)) {
+        coaches = originalCoaches.map(c => {
+            const name = espnCoaches[c.team];
+            if (name && norm(name) !== norm(c.name)) { changes.coach.push(`${c.team} : ${c.name} → ${name}`); return { name, team: c.team }; }
+            return c;
+        });
+    }
+
+    // 4. Rapport
+    const nums = players.filter(p => p.num).length;
+    $('stats').innerHTML = [
+        [players.length, 'joueurs au total'],
+        [nums, 'avec un numéro'],
+        [players.filter(p => p.depth).length, 'dans un ordre d’effectif'],
+        [changes.team.length, 'transferts'],
+        [changes.added.length, 'ajoutés'],
+        [changes.removed.length, 'retirés'],
+        [changes.coach.length, 'coachs changés']
+    ].map(([n, l]) => `<div><strong>${n}</strong><span>${l}</span></div>`).join('');
+    $('stats').hidden = false;
+    $('report').innerHTML =
+        section('Transferts', changes.team) +
+        section('Coachs', changes.coach) +
+        section('Joueurs ajoutés', changes.added) +
+        section('Joueurs retirés', changes.removed) +
+        section('Numéros ajoutés ou changés', changes.num) +
+        section('Postes ajoutés ou changés', changes.pos) +
+        section("Introuvables sur ESPN (gardés tels quels : nom écrit autrement, agent libre…)", changes.notFound);
+
+    $('dl-players').disabled = false;
+    $('dl-coaches').disabled = !coaches;
+    $('run').disabled = false;
+    log('Analyse terminée. Relis le rapport, puis télécharge les fichiers.');
+});
+
+// Même présentation que les fichiers d'origine : une entrée par ligne
+function download(name, list) {
+    const line = o => '  ' + JSON.stringify(o).replace(/":/g, '": ').replace(/,"/g, ', "');
+    const text = '[\n' + list.map(line).join(',\n') + '\n]\n';
+    const link = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([text], { type: 'application/json' })), download: name });
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+$('dl-players').addEventListener('click', () => players && download('players.json', players));
+$('dl-coaches').addEventListener('click', () => coaches && download('coaches.json', coaches));
+</script>
+</body>
+</html>

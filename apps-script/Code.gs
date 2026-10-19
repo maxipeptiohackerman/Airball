@@ -269,7 +269,7 @@ function readLeaderboard(ss) {
   var players = [];
   rows.forEach(function (row) {
     var pseudo = cleanText(row[2]);
-    if (!pseudo || pseudo.toUpperCase() === "JOUEUR") return;
+    if (!pseudo || pseudo.toUpperCase() === "JOUEUR" || isSheetError(pseudo)) return;
     players.push({
       id: idForPseudo(idsByPseudo, pseudo),
       pseudo: pseudo,
@@ -296,6 +296,11 @@ function getLeaderboard(ss, revealed) {
 // ------------------------------------------------------------
 //  PRONOS (tous les joueurs d'un coup)
 // ------------------------------------------------------------
+/** Erreur de formule renvoyée par le Sheet (#N/A, #REF!, #VALUE!...) : ligne sans joueur, à ignorer. */
+function isSheetError(value) {
+  return /^#(N\/A|REF!|VALUE!|DIV\/0!|NAME\?|NUM!|NULL!|ERROR!)/.test(cleanText(value));
+}
+
 function cleanText(value) {
   return String(value === null || value === undefined ? "" : value).trim();
 }
@@ -490,6 +495,8 @@ function firstEmptyRowInColumn(sheet, col, startRow) {
 }
 
 function enregistrerHistoriqueHebdo() {
+  // Avant le début de la saison, tout le monde est à 0 : rien à enregistrer
+  if (!isSeasonStarted()) return;
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheetHist = ss.getSheetByName("HISTORIQUE");
   if (!sheetHist) return;

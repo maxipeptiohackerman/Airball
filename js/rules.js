@@ -1,7 +1,7 @@
 // ==========================================
 // RÈGLES DU JEU (page rules.html)
 // Affiche les 3 derniers maillots remportés, à partir de l'onglet Hall of Fame.
-// Photo d'un maillot : img/maillots/<nom-du-maillot>.webp (ex. "Ivica Zubac" -> ivica-zubac.webp).
+// Maillot : img/maillots/<nom-du-maillot>.svg (ex. "Ivica Zubac" -> ivica-zubac.svg), ou une photo en .webp.
 // Sans photo (maillot pas encore choisi, "TBA"...), une silhouette de maillot s'affiche.
 // Dépend de : common.js (escapeHtml) et api.js (Api)
 // ==========================================
@@ -18,11 +18,12 @@ function seasonLabel(value) {
     return `${m[1]}-${m[2].length === 2 ? m[1].slice(0, 2) + m[2] : m[2]}`;
 }
 
-// Photo du maillot ; la silhouette ne s'affiche que s'il n'y a pas de photo
+// Maillot illustré (img/maillots/<nom>.svg), à défaut une photo (.webp), à défaut une silhouette
 function jerseyThumb(name) {
     const slug = jerseySlug(name);
     if (!slug || slug === 'tba') return `<span class="lot-thumb-empty">${JERSEY_PLACEHOLDER}</span>`;
-    return `<img src="img/maillots/${slug}.webp" alt="" loading="lazy" onerror="this.nextElementSibling.hidden = false; this.remove();">`
+    return `<img class="lot-thumb-svg" src="img/maillots/${slug}.svg" alt="" loading="lazy"`
+        + ` onerror="if (!this.dataset.photo) { this.dataset.photo = 1; this.classList.remove('lot-thumb-svg'); this.src = 'img/maillots/${slug}.webp'; } else { this.nextElementSibling.hidden = false; this.remove(); }">`
         + `<span class="lot-thumb-empty" hidden>${JERSEY_PLACEHOLDER}</span>`;
 }
 
@@ -36,7 +37,9 @@ async function showPastJerseys() {
         const won = (Array.isArray(seasons) ? seasons : [])
             .filter(item => item && String(item.maillot || '').trim())
             .sort((a, b) => String(b.saison || '').localeCompare(String(a.saison || '')))
-            .slice(0, 3);
+            // Les 2 derniers maillots vraiment remportés (un maillot pas encore choisi, "TBA", n'est pas affiché)
+            .filter(item => jerseySlug(item.maillot) !== 'tba')
+            .slice(0, 2);
 
         if (won.length === 0) return; // rien à montrer : le bloc reste masqué
 
