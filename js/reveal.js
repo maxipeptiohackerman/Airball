@@ -43,19 +43,13 @@ const dotContent = p => p.avatar ? `<img src="${esc(p.avatar)}" alt="">` : esc(p
 const avatar = (p, i) => `<span class="av" style="animation-delay:${0.25 + i * 0.07}s"><span class="av-dot" style="--a:${p.color}">${dotContent(p)}</span>${esc(p.name)}</span>`;
 const bigAvatar = p => `<span class="big-av" style="--a:${p.color}" aria-hidden="true">${dotContent(p)}</span>`;
 
+// Flammes qui jaillissent derrière le logo d'un hot take (trait noir épais façon dessin)
+const FLAME_OUT = 'stroke="#1a1416" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"';
+const FLAMES = `<svg class="flames" viewBox="0 0 120 104" aria-hidden="true"><path d="M58 6 C62 22 74 30 78 44 C82 34 80 26 76 18 C92 30 100 50 96 66 C102 62 106 54 106 46 C116 62 114 84 102 98 L18 98 C6 84 6 64 16 52 C16 60 20 66 26 68 C22 52 30 40 40 32 C40 42 44 48 48 50 C44 36 50 20 58 6 Z" fill="#a3203a" ${FLAME_OUT}/><path d="M64 40 C68 54 82 58 82 76 C86 72 88 66 87 60 C96 72 94 90 86 100 L38 100 C30 92 30 78 38 70 C38 76 42 80 46 80 C42 66 52 54 56 46 C58 54 62 52 64 40 Z" fill="#f6b546" ${FLAME_OUT}/></svg>`;
+const hotLogo = team => `<span class="hot-logo">${FLAMES}${logo(team)}</span>`;
+
 const ICON_PAUSE = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.2" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1.2" fill="currentColor"/></svg>';
 const ICON_PLAY = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.2-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z" fill="currentColor"/></svg>';
-
-// Illustration « flammes + ballon », trait noir épais façon dessin
-const OUT = 'stroke="#1a1416" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"';
-const FLAME_OUTER = 'M58 6 C62 22 74 30 78 44 C82 34 80 26 76 18 C92 30 100 50 96 66 C102 62 106 54 106 46 C116 62 114 84 102 98 L18 98 C6 84 6 64 16 52 C16 60 20 66 26 68 C22 52 30 40 40 32 C40 42 44 48 48 50 C44 36 50 20 58 6 Z';
-const FLAME_INNER = 'M64 40 C68 54 82 58 82 76 C86 72 88 66 87 60 C96 72 94 90 86 100 L38 100 C30 92 30 78 38 70 C38 76 42 80 46 80 C42 66 52 54 56 46 C58 54 62 52 64 40 Z';
-const SPARKS = `<path d="M28 18 C32 25 32 31 28 33 C24 31 24 25 28 18 Z" fill="#f6b546" ${OUT}/><path d="M100 14 C106 17 108 23 105 28" fill="none" stroke="#f6b546" stroke-width="4" stroke-linecap="round"/><path d="M12 40 C9 46 10 52 14 55" fill="none" stroke="#f6b546" stroke-width="4" stroke-linecap="round"/>`;
-function flames(withBall) {
-    const ball = withBall ? `<circle cx="60" cy="114" r="32" fill="#f39a3b" ${OUT}/><path d="M60 82 V146 M28 112 C44 108 76 108 92 112 M39 89 C51 100 51 126 39 139 M81 89 C69 100 69 126 81 139" fill="none" ${OUT} stroke-width="2.4"/>` : '';
-    return `<svg class="${withBall ? 'flames-big' : 'flames'}" viewBox="0 0 120 ${withBall ? 150 : 104}" aria-hidden="true"><path d="${FLAME_OUTER}" fill="#a3203a" ${OUT}/><path d="${FLAME_INNER}" fill="#f6b546" ${OUT}/>${withBall ? SPARKS : ''}${ball}</svg>`;
-}
-const MINI_FLAME = `<svg viewBox="0 0 120 104" aria-hidden="true"><path d="${FLAME_OUTER}" fill="#a3203a" ${OUT} stroke-width="8"/><path d="${FLAME_INNER}" fill="#fff2e6" ${OUT} stroke-width="8"/></svg>`;
 
 // ==========================================
 // CALCULS À PARTIR DES PRONOS
@@ -104,7 +98,15 @@ function buildModel(data, lastSeason) {
             }
         });
     }
-    const hotTakes = candidates.sort((a, b) => Math.abs(b.gap) - Math.abs(a.gap)).slice(0, 5);
+    // Un tour du groupe : 1 hot take par personne d'abord, puis 2 au maximum si la liste n'est pas pleine
+    // (sinon un joueur qui a rempli « au hasard » raflerait tous les hot takes)
+    const sortedHot = candidates.sort((a, b) => Math.abs(b.gap) - Math.abs(a.gap));
+    const hotTakes = [];
+    [1, 2].forEach(cap => sortedHot.forEach(h => {
+        if (hotTakes.length >= 5 || hotTakes.includes(h)) return;
+        if (hotTakes.filter(x => x.who === h.who).length < cap) hotTakes.push(h);
+    }));
+    hotTakes.sort((a, b) => Math.abs(b.gap) - Math.abs(a.gap));
     const hotAt = (conf, place, team) => hotTakes.find(h => h.conf === conf && h.place === place && h.team === team);
     const hotLine = (h, i) => (h.gap > 0 ? HOT_LINES_UP : HOT_LINES_DOWN)[i % 4];
 
@@ -127,6 +129,15 @@ function buildModel(data, lastSeason) {
     });
     const loner = players.length >= 3 ? [...players].sort((a, b) => similarity(a, consensus) - similarity(b, consensus))[0] : null;
 
+    // Pages spéciales : jamais deux fois la même personne si on peut l'éviter.
+    // L'électron libre est servi en premier (c'est sa page), puis on prend le cas suivant pour les autres.
+    const used = new Set(loner ? [loner] : []);
+    const pickFree = (list, people) => list.find(x => people(x).every(p => !used.has(p))) || list[0] || null;
+    const take = (item, people) => { if (item) people(item).forEach(p => used.add(p)); return item; };
+    const byPair = x => [x.a, x.b];
+    const rivals = pairs.length > 1 ? take(pickFree([...pairs].reverse(), byPair), byPair) : null;
+    const twins = pairs.length ? take(pickFree(pairs.filter(x => x !== rivals), byPair), byPair) : null;
+
     // Par rapport à la saison passée (classement ESPN), si disponible
     let rise = null, fall = null;
     if (lastSeason) {
@@ -136,10 +147,9 @@ function buildModel(data, lastSeason) {
             if (place && last) moves.push({ who: p, conf, team, place, last, delta: last - place });
         })));
         if (moves.length) {
-            rise = [...moves].sort((a, b) => b.delta - a.delta)[0];
-            fall = [...moves].sort((a, b) => a.delta - b.delta)[0];
-            if (rise.delta <= 0) rise = null;
-            if (fall.delta >= 0) fall = null;
+            const byWho = x => [x.who];
+            rise = take(pickFree(moves.filter(m => m.delta > 0).sort((a, b) => b.delta - a.delta), byWho), byWho);
+            fall = take(pickFree(moves.filter(m => m.delta < 0).sort((a, b) => a.delta - b.delta), byWho), byWho);
         }
     }
 
@@ -171,8 +181,7 @@ function buildModel(data, lastSeason) {
 
     return {
         players, picksAt, hotTakes, hotAt, hotLine, otherPicks,
-        twins: pairs[0] || null,
-        rivals: pairs.length > 1 ? pairs[pairs.length - 1] : null,
+        twins, rivals,
         loner, lonerPct: loner ? similarity(loner, consensus) : 0,
         rise, fall, firstPicks
     };
@@ -199,18 +208,11 @@ async function fetchLastSeason() {
 // ==========================================
 function makeSlides(M) {
     const nPlayers = M.players.length;
+    const CHEVRON = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    // Grille de cartes : 3 colonnes, 2 ou 1 quand il y a peu de cartes (centrées)
+    const gridClass = n => n === 1 ? ' picks--1' : n === 2 || n === 4 ? ' picks--2' : '';
 
-    const board = (conf, revealedDownTo, current, full) => {
-        let html = '';
-        for (let place = 1; place <= N; place++) {
-            const cells = place >= revealedDownTo
-                ? M.picksAt(conf, place).map(({ team, who }) => `<span class="chip" title="${esc(team)} : ${esc(who.map(p => p.name).join(', '))}">${logo(team, 'sm')}×${who.length}</span>`).join('')
-                : '<span class="row-empty"></span>';
-            html += `<li class="row${place === current ? ' is-current' : ''}"><span class="row-rank">${place}</span><span class="row-cells">${cells}</span></li>`;
-        }
-        return `<div class="board${full ? ' board--full' : ''}"><ol class="board-list">${html}</ol></div>`;
-    };
-
+    // Écran sombre « titre » : surtitre, grand titre, texte (accueil, chapitres)
     const card = (kicker, title, sub) => () => `
         <div class="slide slide--center"><div class="stack">
             <p class="kicker reveal-1">${kicker}</p>
@@ -218,149 +220,166 @@ function makeSlides(M) {
             ${sub ? `<p class="sub reveal-3">${sub}</p>` : ''}
         </div></div>`;
 
+    // Une place : toutes les équipes choisies à ce rang, en cartes épurées
     const place = (conf, n) => () => {
         const list = M.picksAt(conf, n);
         return `
-        <div class="slide"><div class="place">
-            <div>
-                <div class="place-head"><p class="mega">${ordinal(n)}</p><p class="kicker" style="margin-bottom:12px">${CONF_LABEL[conf]}</p></div>
-                <div class="picks is-dense">
-                ${list.map(({ team, who }, i) => {
-                    const solo = who.length === 1;
-                    const hot = solo && M.hotAt(conf, n, team);
-                    const meta = who.length === nPlayers ? 'Unanimité'
-                        : hot ? 'Seul contre tous'
-                        : solo ? 'Seul à y croire'
-                        : i === 0 ? 'Choix du groupe'
-                        : `${who.length} joueurs`;
-                    const take = hot ? `<span class="pick-take">Le reste du groupe les voit ${ordinalText(hot.avg)}. ${M.hotLine(hot, M.hotTakes.indexOf(hot))}</span>` : '';
-                    return `
-                    <div class="pick${hot ? ' is-hot' : ''}" style="animation-delay:${0.15 + i * 0.12}s">
-                        ${hot ? `<span class="hot-pill">${MINI_FLAME}Hot take</span><span class="hot-logo">${flames(false)}${logo(team)}</span>` : logo(team)}
-                        <div class="pick-team">
-                            <span class="pick-name">${esc(team)}</span>
-                            <span class="pick-meta">${meta}</span>
-                            ${take}
-                            <div class="avatars">${who.map(avatar).join('')}</div>
-                        </div>
-                        <span class="pick-count">${who.length}</span>
-                    </div>`;
-                }).join('')}
-                </div>
+        <div class="slide slide--center"><div class="stack">
+            <p class="kicker">Classement de la ${CONF_LABEL[conf]}</p>
+            <h2 class="title title--md">${ordinalText(n)} position</h2>
+            <div class="picks${gridClass(list.length)}">
+            ${list.map(({ team, who }, i) => {
+                const hot = who.length === 1 && M.hotAt(conf, n, team);
+                return `
+                <div class="pick${hot ? ' is-hot' : ''}" style="animation-delay:${0.15 + i * 0.08}s">
+                    ${hot ? hotLogo(team) : logo(team)}
+                    <div class="pick-team">
+                        <span class="pick-name">${esc(team)}</span>
+                        ${who.length === nPlayers ? '<span class="pick-meta">Unanimité</span>' : ''}
+                        <div class="avatars">${who.map(avatar).join('')}</div>
+                    </div>
+                    <span class="pick-count">${who.length}</span>
+                </div>`;
+            }).join('')}
             </div>
-            ${board(conf, n, n)}
         </div></div>`;
     };
 
     const tease = conf => () => `
         <div class="slide slide--center"><div class="stack">
             <p class="kicker reveal-1">${CONF_LABEL[conf]}</p>
-            <h2 class="title reveal-1">Et à la<br>1re place…</h2>
+            <h2 class="title reveal-1">Et à la 1re place…</h2>
             <div class="dots reveal-2" aria-hidden="true"><span></span><span></span><span></span></div>
         </div></div>`;
 
-    const recap = conf => () => `
-        <div class="slide"><div class="stack">
-            <p class="kicker">Récap · ${CONF_LABEL[conf]}</p>
-            <h2 class="title" style="font-size:clamp(28px,4vw,44px)">Vos 15 places</h2>
-            ${board(conf, 1, 0, true)}
-        </div></div>`;
-
-    const hot = i => () => {
-        const h = M.hotTakes[i];
+    // Classement final : l'équipe la plus choisie à chaque place, en 2 colonnes (1-8, 9-15)
+    const recap = conf => () => {
+        const row = place => {
+            const list = M.picksAt(conf, place);
+            if (!list.length) return `<li class="final-row"><span class="final-rank">${place}</span><span></span><span class="final-team">—</span><span></span></li>`;
+            const { team, who } = list[0];
+            const shown = who.slice(0, 4);
+            return `<li class="final-row" style="animation-delay:${0.05 * place}s">
+                <span class="final-rank">${place}</span>${logo(team, 'sm')}
+                <span class="final-team">${esc(team)}${list.length > 1 ? `<small>+${list.length - 1} autre${list.length > 2 ? 's' : ''}</small>` : ''}</span>
+                <span class="stackav" title="${esc(who.map(p => p.name).join(', '))}">${shown.map(p => `<span class="av-dot" style="--a:${p.color}">${dotContent(p)}</span>`).join('')}${who.length > shown.length ? `<span class="more">+${who.length - shown.length}</span>` : ''}</span>
+            </li>`;
+        };
+        const col = (from, to) => `<ol class="final-col">${Array.from({ length: to - from + 1 }, (_, k) => row(from + k)).join('')}</ol>`;
         return `
-        <div class="slide slide--center">
-            <span class="slide-pill reveal-1">${MINI_FLAME}Hot take #${i + 1}</span>
-            <div class="stack">
-                <p class="kicker reveal-1">Seul contre tous · ${CONF_LABEL[h.conf]}</p>
-                <div class="hot-figure reveal-2">
-                    ${logo(h.team, 'xl')}
-                    <p class="mega">${ordinal(h.place)}</p>
-                    <div class="hot-art">${flames(true)}</div>
-                </div>
-                <p class="line reveal-3"><strong>${esc(h.who.name)}</strong> met les ${esc(h.team)} ${ordinalText(h.place)}. Le reste du groupe les voit ${ordinalText(h.avg)}.</p>
-                <p class="title reveal-4" style="font-size:clamp(24px,3.6vw,40px)">${M.hotLine(h, i)}</p>
+        <div class="slide slide--center"><div class="stack">
+            <p class="kicker">${CONF_LABEL[conf]}</p>
+            <h2 class="title title--md">Classement final</h2>
+            <div class="final">${col(1, 8)}${col(9, N)}</div>
+        </div></div>`;
+    };
+
+    // Hot takes d'une conférence : le titre de la maquette + les cartes épurées
+    const hotConf = conf => () => {
+        const list = M.hotTakes.filter(h => h.conf === conf);
+        return `
+        <div class="slide slide--center"><div class="stack">
+            <p class="kicker reveal-1">${CONF_LABEL[conf]}</p>
+            <h2 class="title reveal-1">🔥Hot takes🔥</h2>
+            <div class="picks${gridClass(list.length)}">
+            ${list.map((h, i) => `
+                <div class="pick is-hot" style="animation-delay:${0.4 + i * 0.15}s" title="Le reste du groupe les voit ${ordinalText(h.avg)}">
+                    ${hotLogo(h.team)}
+                    <div class="pick-team">
+                        <span class="pick-name">${esc(h.team)}</span>
+                        <div class="avatars">${avatar(h.who, 0)}</div>
+                    </div>
+                    <span class="pick-count">${ordinal(h.place)}</span>
+                </div>`).join('')}
             </div>
-        </div>`;
+        </div></div>`;
     };
 
     const noHot = () => `
         <div class="slide slide--center"><div class="stack">
             <p class="kicker reveal-1">Hot takes</p>
-            <h2 class="title reveal-2">Zéro<br>hot take</h2>
-            <p class="line reveal-3">${nPlayers} joueurs, aucune prise de risque. Vous avez tous lu le même article de présaison ?</p>
+            <h2 class="title reveal-2">Zéro hot take</h2>
+            <p class="sub reveal-3">${nPlayers} joueurs, aucune prise de risque. Vous avez tous lu le même article de présaison ?</p>
         </div></div>`;
+
+    // Pages spéciales (fond en couleur) : surtitre, grand chiffre, titre, texte, illustration
+    const special = ({ kicker, figure, title, text, art = '', people = '' }) => `
+        <div class="slide slide--center">
+            ${art}
+            <div class="stack special">
+                <p class="kicker reveal-1">${kicker}</p>
+                <div class="mega-wrap reveal-2"><p class="mega">${figure}</p>${people}</div>
+                <h2 class="title reveal-2">${title}</h2>
+                <p class="line reveal-3">${text}</p>
+            </div>
+        </div>`;
+    const teamArt = team => {
+        const t = Teams.find(team);
+        return t ? `<span class="special-art"><img src="${Teams.logoUrl(t)}" alt="" onerror="this.parentNode.remove()"></span>` : '';
+    };
 
     const move = kind => () => {
         const m = kind === 'rise' ? M.rise : M.fall, up = kind === 'rise', n = Math.abs(m.delta);
-        return `
-        <div class="slide slide--center"><div class="stack">
-            <p class="kicker reveal-1">Par rapport à la saison passée</p>
-            <h2 class="title reveal-1">${up ? 'La remontada' : 'La chute libre'}</h2>
-            <div class="row-flex reveal-2">${logo(m.team, 'xl')}<p class="mega">${up ? '+' : '−'}${n}</p></div>
-            <p class="line reveal-3"><strong>${esc(m.who.name)}</strong> met les ${esc(m.team)} ${ordinalText(m.place)}. L'an dernier : ${ordinalText(m.last)}.</p>
-            <p class="line reveal-4">${up ? `${n} places de mieux, rien que ça. ${esc(m.who.name)} sait quelque chose qu’on ignore ?` : `${n} places de moins. ${esc(m.who.name)} a parié contre eux ou quoi ?`}</p>
-        </div></div>`;
+        return special({
+            kicker: 'Par rapport à la saison passée',
+            figure: `${up ? '+' : '−'}${n}`,
+            title: up ? 'La remontada' : 'La chute libre',
+            text: `${esc(m.who.name)} met les ${esc(m.team)} ${ordinalText(m.place)}. L'an dernier : ${ordinalText(m.last)}. ${up ? `${n} places de mieux, rien que ça : il sait quelque chose qu’on ignore ?` : `${n} places de moins : il a parié contre eux ou quoi ?`}`,
+            art: teamArt(m.team)
+        });
     };
 
     const category = (group, key, label, chapterLabel) => () => {
         const list = M.firstPicks(group, key);
+        const others = M.otherPicks(group, key);
+        const shown = others.slice(0, 8);
         return `
-        <div class="slide"><div class="stack" style="max-width:1000px">
+        <div class="slide slide--center"><div class="stack">
             <p class="kicker">${chapterLabel} · le pick n°1 de chacun</p>
-            <h2 class="title" style="font-size:clamp(30px,5vw,60px)">${label}</h2>
-            <div class="picks is-dense">
+            <h2 class="title title--md">${label}</h2>
+            <div class="picks${gridClass(list.length)}">
             ${list.map(({ name, who }, i) => `
-                <div class="pick" style="animation-delay:${0.15 + i * 0.12}s">
+                <div class="pick" style="animation-delay:${0.15 + i * 0.08}s">
                     <span class="pick-who" aria-hidden="true">${esc(initials(name))}</span>
                     <div class="pick-team">
                         <span class="pick-name">${esc(name)}</span>
-                        <span class="pick-meta">${who.length === nPlayers ? 'Unanimité' : who.length === 1 ? 'Seul à y croire' : i === 0 ? 'Choix du groupe' : `${who.length} joueurs`}</span>
+                        ${who.length === nPlayers ? '<span class="pick-meta">Unanimité</span>' : ''}
                         <div class="avatars">${who.map(avatar).join('')}</div>
                     </div>
                     <span class="pick-count">${who.length}</span>
                 </div>`).join('')}
             </div>
-            ${(() => {
-                const others = M.otherPicks(group, key);
-                if (!others.length) return '';
-                const shown = others.slice(0, 8);
-                return `<p class="also-picked"><span class="also-label">Aussi cités en 2e et 3e choix</span>${shown.map(o => `<span class="also-item">${esc(o.name)}${o.count > 1 ? ` <b>×${o.count}</b>` : ''}</span>`).join('')}${others.length > shown.length ? `<span class="also-item also-more">+${others.length - shown.length}</span>` : ''}</p>`;
-            })()}
+            ${shown.length ? `<p class="also-picked"><span class="also-label">Aussi cités en 2e et 3e choix</span>${shown.map(o => `<span class="also-item">${esc(o.name)}${o.count > 1 ? ` <b>×${o.count}</b>` : ''}</span>`).join('')}${others.length > shown.length ? `<span class="also-item">+${others.length - shown.length}</span>` : ''}</p>` : ''}
         </div></div>`;
     };
 
     const duo = kind => () => {
         const pair = kind === 'twins' ? M.twins : M.rivals, low = kind !== 'twins';
-        return `
-        <div class="slide slide--center"><div class="stack">
-            <p class="kicker reveal-1">Compatibilité des classements</p>
-            <h2 class="title reveal-1">${low ? 'Incompatibles' : 'Âmes sœurs'}</h2>
-            <div class="row-flex reveal-2"><div class="people">${bigAvatar(pair.a)}${bigAvatar(pair.b)}</div><p class="mega">${pair.pct}%</p></div>
-            <div class="meter reveal-2"><span style="--w:${pair.pct}%"></span></div>
-            <p class="line reveal-3"><strong>${esc(pair.a.name)} × ${esc(pair.b.name)}</strong></p>
-            <p class="line reveal-4">${low
-                ? `Seulement ${pair.pct}% en commun. Évitez de les asseoir côte à côte ce soir.`
-                : 'Des pronos quasi identiques. Manque de personnalité, ou vous passez beaucoup trop de temps ensemble ?'}</p>
-        </div></div>`;
+        return special({
+            kicker: 'Compatibilité des classements',
+            figure: `${pair.pct}%`,
+            title: low ? 'Incompatibles' : 'Âmes sœurs',
+            text: `${esc(pair.a.name)} × ${esc(pair.b.name)}. ${low
+                ? `Seulement ${pair.pct}% en commun : évitez de les asseoir côte à côte ce soir.`
+                : 'Des pronos quasi identiques. Manque de personnalité, ou vous passez beaucoup trop de temps ensemble ?'}`,
+            people: `<span class="mega-people">${bigAvatar(pair.a)}${bigAvatar(pair.b)}</span>`
+        });
     };
 
-    const loner = () => `
-        <div class="slide slide--center"><div class="stack">
-            <p class="kicker reveal-1">Compatibilité des classements</p>
-            <h2 class="title reveal-1">L'électron libre</h2>
-            <div class="row-flex reveal-2"><div class="people">${bigAvatar(M.loner)}</div><p class="mega">${M.lonerPct}%</p></div>
-            <div class="meter reveal-2"><span style="--w:${M.lonerPct}%"></span></div>
-            <p class="line reveal-3"><strong>${esc(M.loner.name)}</strong> est le plus éloigné du classement moyen du groupe.</p>
-            <p class="line reveal-4">Génie incompris, ou pronos remplis les yeux fermés ? Réponse en avril.</p>
-        </div></div>`;
+    const loner = () => special({
+        kicker: 'Compatibilité des classements',
+        figure: `${M.lonerPct}%`,
+        title: 'L’électron libre',
+        text: `${esc(M.loner.name)} est le plus éloigné du classement moyen du groupe. Génie incompris, ou pronos remplis les yeux fermés ? Réponse en avril.`,
+        people: `<span class="mega-people">${bigAvatar(M.loner)}</span>`
+    });
 
     const intro = () => `
         <div class="slide slide--center"><div class="stack">
             <p class="kicker reveal-1">Saison 2026/2027 · ${nPlayers} joueurs</p>
-            <h1 class="title reveal-2">Le reveal<br>commence</h1>
-            <p class="sub reveal-2">On remonte chaque conférence de la 15ème à la 1ère place, puis les hot takes, la saison passée, les stats, les awards et la compatibilité de vos pronos.</p>
-            <button class="btn-primary reveal-3" id="btn-start" type="button">Lancer le reveal</button>
+            <h1 class="title reveal-2">Le reveal commence</h1>
+            <p class="sub reveal-2">On remonte chaque conférence de la 15e à la 1re place, puis les hot takes, la saison passée, les stats, les awards et la compatibilité de vos pronos.</p>
+            <button class="btn-primary btn--small reveal-3" id="btn-start" type="button">Lancer le reveal ${CHEVRON}</button>
         </div></div>`;
 
     const end = () => `
@@ -369,35 +388,36 @@ function makeSlides(M) {
             <h2 class="title reveal-2">Rendez-vous<br>en avril</h2>
             <p class="sub reveal-3">Tous les pronos, joueur par joueur, sont sur la page Pronostics. Utilise les chapitres en haut pour revoir un passage.</p>
             <div class="end-actions reveal-3">
-                <a class="btn-primary" href="pronostics.html">Voir les pronos</a>
-                <a class="btn-secondary" href="index.html">Retour au site</a>
+                <a class="btn-secondary" href="pronostics.html">Voir les pronos</a>
+                <a class="btn-secondary" href="index.html">Retour à l’accueil</a>
             </div>
         </div></div>`;
 
     // ---------- chapitres ----------
     const confSlides = conf => [
-        { html: card(conf === 'east' ? 'Chapitre 1' : 'Chapitre 2', CONF_LABEL[conf].replace(' ', '<br>'), 'De la 15ème à la 1ère place.'), ms: 3200 },
-        ...Array.from({ length: N - 1 }, (_, k) => ({ html: place(conf, N - k), ms: 3800 })),
+        { html: card(conf === 'east' ? 'Chapitre 1' : 'Chapitre 2', CONF_LABEL[conf], 'De la 15e à la 1re place.'), ms: 3200 },
+        ...Array.from({ length: N - 1 }, (_, k) => ({ html: place(conf, N - k), ms: 3800, theme: 'blue' })),
         { html: tease(conf), ms: 2600 },
-        { html: place(conf, 1), ms: 5200 },
-        { html: recap(conf), ms: 6000 }
+        { html: place(conf, 1), ms: 5200, theme: 'blue' },
+        { html: recap(conf), ms: 6500, theme: 'blue' }
     ];
+    const hotConfs = ['east', 'west'].filter(conf => M.hotTakes.some(h => h.conf === conf));
     const chapters = [
         { label: 'Intro', icon: '👋', slides: [{ html: intro, ms: 0 }] },
         { label: 'Est', icon: '🏀', slides: confSlides('east') },
         { label: 'Ouest', icon: '🌴', slides: confSlides('west') },
-        { label: 'Hot takes', icon: '🔥', slides: M.hotTakes.length
-            ? M.hotTakes.slice(0, 3).map((_, i) => ({ html: hot(i), ms: 6500, theme: 'fire' }))
-            : [{ html: noHot, ms: 5500, theme: 'fire' }] }
+        { label: 'Hot takes', icon: '🔥', slides: hotConfs.length
+            ? hotConfs.map(conf => ({ html: hotConf(conf), ms: 9000, theme: 'blue' }))
+            : [{ html: noHot, ms: 5500 }] }
     ];
     const moveSlides = [];
     if (M.rise) moveSlides.push({ html: move('rise'), ms: 6500, theme: 'lime' });
     if (M.fall) moveSlides.push({ html: move('fall'), ms: 6500, theme: 'orange' });
     if (moveSlides.length) chapters.push({ label: 'Saison passée', icon: '📈', slides: moveSlides });
 
-    const statSlides = STAT_CATS.filter(([k]) => M.firstPicks('stats', k).length).map(([k, label]) => ({ html: category('stats', k, label, 'Stats'), ms: 5500 }));
+    const statSlides = STAT_CATS.filter(([k]) => M.firstPicks('stats', k).length).map(([k, label]) => ({ html: category('stats', k, label, 'Stats'), ms: 5500, theme: 'blue' }));
     if (statSlides.length) chapters.push({ label: 'Stats', icon: '📊', slides: statSlides });
-    const awardSlides = AWARD_CATS.filter(([k]) => M.firstPicks('awards', k).length).map(([k, label]) => ({ html: category('awards', k, label, 'Awards'), ms: 5500 }));
+    const awardSlides = AWARD_CATS.filter(([k]) => M.firstPicks('awards', k).length).map(([k, label]) => ({ html: category('awards', k, label, 'Awards'), ms: 5500, theme: 'blue' }));
     if (awardSlides.length) chapters.push({ label: 'Awards', icon: '🏆', slides: awardSlides });
 
     const compat = [];
@@ -406,7 +426,7 @@ function makeSlides(M) {
     if (M.loner) compat.push({ html: loner, ms: 7000, theme: 'violet' });
     if (compat.length) chapters.push({ label: 'Compat', icon: '🤝', slides: compat });
 
-    chapters.push({ label: 'Fin', icon: '🏁', slides: [{ html: end, ms: 0 }] });
+    chapters.push({ label: 'Fin', icon: '🏁', slides: [{ html: end, ms: 0, theme: 'end' }] });
     return chapters;
 }
 
@@ -416,7 +436,7 @@ function makeSlides(M) {
 function startPlayer(CHAPTERS) {
     const FLAT = [];
     CHAPTERS.forEach((c, ci) => c.slides.forEach((s, si) => FLAT.push({ ...s, ci, si })));
-    const RING = 131.95;
+    const RING = 125.66;
     let pos = 0, started = false, paused = false, elapsed = 0, last = 0;
 
     function renderChapters() {
@@ -426,7 +446,7 @@ function startPlayer(CHAPTERS) {
             return `
             <button class="chap${i === cur ? ' is-active' : ''}${i < cur ? ' is-done' : ''}" type="button" data-ci="${i}" ${started ? '' : 'disabled'} title="${c.label}">
                 <span class="chap-ring">
-                    <svg viewBox="0 0 48 48" aria-hidden="true"><circle class="ring-bg" cx="24" cy="24" r="21"/><circle class="ring-fg" cx="24" cy="24" r="21" ${i === cur ? 'id="ring-now"' : ''} style="stroke-dashoffset:${RING * (1 - fill)}"/></svg>
+                    <svg viewBox="0 0 40 40" aria-hidden="true"><circle class="ring-fg" cx="20" cy="20" r="20" ${i === cur ? 'id="ring-now"' : ''} style="stroke-dashoffset:${RING * (1 - fill)}"/></svg>
                     <span class="chap-ico" aria-hidden="true">${c.icon}</span>
                 </span>
                 <span class="chap-label">${c.label}</span>
@@ -443,7 +463,7 @@ function startPlayer(CHAPTERS) {
         pos = Math.max(0, Math.min(i, FLAT.length - 1));
         const s = FLAT[pos];
         $('slide-host').innerHTML = s.html();
-        $('screen').className = 'screen' + (s.theme ? ' theme-' + s.theme : '');
+        $('screen').className = 'screen theme-' + (s.theme || 'dark');
         elapsed = 0;
         renderChapters();
         renderBars();
@@ -582,7 +602,7 @@ function demoRevealData() {
 }
 
 function showDemoBadge() {
-    const badge = Object.assign(document.createElement('p'), { className: 'demo-badge', textContent: 'Version locale : données de démonstration' });
+    const badge = Object.assign(document.createElement('p'), { className: 'demo-badge', innerHTML: 'Démo<span> · données inventées (version locale)</span>' });
     const ctrls = document.querySelector('#foot .ctrls');
     if (ctrls) ctrls.after(badge); else document.body.appendChild(badge);
 }

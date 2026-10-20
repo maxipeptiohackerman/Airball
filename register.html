@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Airball - Inscription</title>
-    <link rel="stylesheet" href="css/style.css?v=20261019g">
+    <link rel="stylesheet" href="css/style.css?v=20261020m">
     <!-- Glisser-déposer des équipes -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js" defer></script>
 </head>
@@ -68,6 +68,12 @@
                         <label for="pseudo">Pseudo</label>
                         <input type="text" id="pseudo" required placeholder="ex: king_james" maxlength="24" autocomplete="off">
                         <p id="pseudo-error" class="reg-error" role="alert" hidden></p>
+                    </div>
+                    <div class="reg-field">
+                        <label for="prenom">Prénom</label>
+                        <input type="text" id="prenom" required placeholder="ex: Maxime" maxlength="30" autocomplete="given-name">
+                        <p class="reg-hint">Pour que le groupe sache qui se cache derrière ton pseudo.</p>
+                        <p id="prenom-error" class="reg-error" role="alert" hidden></p>
                     </div>
                     <div class="reg-field">
                         <span class="reg-label">Photo de profil <span class="reg-optional">(facultatif)</span></span>
@@ -216,11 +222,11 @@
     </nav>
 
     <!-- Réglages (config), appels au serveur (api), pages masquées, menu commun, puis logique propre à la page -->
-    <script src="js/config.js?v=20261019g"></script>
-    <script src="js/api.js?v=20261019g"></script>
-    <script src="js/teams.js?v=20261019g"></script>
-    <script src="js/pages-config.js?v=20261019g"></script>
-    <script src="js/jersey.js?v=20261019g" defer></script>
-    <script src="js/register.js?v=20261019g" defer></script>
+    <script src="js/config.js?v=20261020m"></script>
+    <script src="js/api.js?v=20261020m"></script>
+    <script src="js/teams.js?v=20261020m"></script>
+    <script src="js/pages-config.js?v=20261020m"></script>
+    <script src="js/jersey.js?v=20261020m" defer></script>
+    <script src="js/register.js?v=20261020m" defer></script>
 </body>
 </html>

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Airball - Pronostics des Joueurs</title>
     
-    <link rel="stylesheet" href="css/style.css?v=20261019g">
+    <link rel="stylesheet" href="css/style.css?v=20261020m">
 </head>
 <body>
 
@@ -23,9 +23,6 @@
         <div class="players-grid" id="players-grid"></div>
         <div class="players-foot">
             <p class="players-hint" id="players-hint" aria-live="polite"></p>
-            <button type="button" class="btn-primary" id="compare-go" disabled>Comparer
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
-            </button>
         </div>
     </section>
 
@@ -37,24 +34,37 @@
                 Retour
             </button>
             <div class="pronos-pickers">
-            <!-- Menu du joueur affiché : photo + pseudo (le vrai menu déroulant est posé par-dessus) -->
-            <label class="player-picker">
+            <!-- Menu du joueur affiché : photo + pseudo, ouvre un mini-classement (le <select> caché garde la valeur) -->
+            <div class="picker-wrap" data-picker="main">
+                <button type="button" class="player-picker" aria-haspopup="listbox" aria-expanded="false" aria-label="Joueur affiché">
                 <span class="player-picker-avatar" id="picker-avatar" aria-hidden="true"></span>
                 <span class="player-picker-name" id="picker-name" aria-hidden="true"></span>
                 <svg class="player-picker-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-                <select id="player-select" aria-label="Joueur affiché" disabled>
+            
+                </button>
+                <select hidden id="player-select" aria-label="Joueur affiché" disabled>
                     <option value="">Chargement...</option>
                 </select>
-            </label>
+                <div class="picker-pop" role="listbox" hidden></div>
+            </div>
+            <!-- Ajouter un joueur à comparer (ouvre le panneau latéral) -->
+            <button type="button" class="btn-secondary compare-add" id="compare-add" title="Comparer avec un autre joueur">
+                <span class="compare-add-label">Comparer</span>
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" stroke="currentColor" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"><path d="M3.33 2A1.33 1.33 0 0 0 2 3.33M12.67 2A1.33 1.33 0 0 1 14 3.33M14 12.67A1.33 1.33 0 0 1 12.67 14M3.33 14A1.33 1.33 0 0 1 2 12.67M6 2h.67M6 14h.67M9.33 2H10M9.33 14H10M2 6v.67M14 6v.67M2 9.33V10M14 9.33V10M5.33 8h5.34M8 5.33v5.34"/></svg>
+            </button>
             <span class="picker-vs" id="picker-vs" hidden>vs</span>
-            <label class="player-picker" id="rival-picker" hidden>
+            <div class="picker-wrap" id="rival-picker" data-picker="rival" hidden>
+                <button type="button" class="player-picker" aria-haspopup="listbox" aria-expanded="false" aria-label="Joueur comparé">
                 <span class="player-picker-avatar" id="rival-avatar" aria-hidden="true"></span>
                 <span class="player-picker-name" id="rival-name" aria-hidden="true"></span>
                 <svg class="player-picker-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-                <select id="rival-select" aria-label="Joueur comparé" disabled>
+            
+                </button>
+                <select hidden id="rival-select" aria-label="Joueur comparé" disabled>
                     <option value="">Personne</option>
                 </select>
-            </label>
+                <div class="picker-pop" role="listbox" hidden></div>
+            </div>
             </div>
         </div>
 
@@ -72,38 +82,8 @@
                 <button type="button" class="tab-btn" role="tab" data-tab="evolution">Évolution</button>
             </div>
 
-            <!-- Résumé : carte du joueur (ou duel), points par catégorie, comparaison -->
-            <section class="tab-panel" data-panel="resume" hidden>
-                <div class="player-profile-card" id="profile-card">
-                    <div class="profile-left">
-                        <div class="profile-avatar-large" id="profile-avatar"></div>
-                        <div class="profile-info">
-                            <h2 id="profile-name"></h2>
-                            <button type="button" class="btn-secondary btn--small copy-link-btn">🔗 Copier le lien</button>
-                        </div>
-                    </div>
-                    <div class="profile-stats">
-                        <div class="stat-box">
-                            <div class="stat-value highlight" id="profile-rank">-</div>
-                            <div class="stat-label">Classement</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="stat-value" id="profile-total-pts">-</div>
-                            <div class="stat-label">Points totaux</div>
-                        </div>
-                    </div>
-                </div>
-                <div id="duel-banner" hidden></div>
-                <div class="score-pills" id="score-pills"></div>
-                <div class="player-selector" id="compare-row">
-                    <div class="selector-group">
-                        <label for="compare-select">Comparer avec :</label>
-                        <select id="compare-select" disabled>
-                            <option value="">Personne</option>
-                        </select>
-                    </div>
-                </div>
-            </section>
+            <!-- Résumé : bandeau du joueur (ou du duel), cartes Est / Ouest / Stats / Awards, évolution, meilleur coup (pronostics.js) -->
+            <section class="tab-panel rs-panel" data-panel="resume" id="resume-panel" hidden></section>
 
             <!-- Est / Ouest -->
             <section class="tab-panel" data-panel="est" hidden><div id="conf-east"></div></section>
@@ -127,15 +107,39 @@
     </div>
 </div>
 
+    <!-- PANNEAU LATÉRAL : choisir un joueur à comparer (même style que la sélection des picks à l'inscription) -->
+    <dialog class="pick-panel" id="rival-panel" aria-labelledby="rival-panel-title">
+        <div class="pick-panel-inner">
+            <header class="pick-panel-head">
+                <h2 class="pick-panel-title" id="rival-panel-title">Comparer</h2>
+                <button type="button" class="btn-secondary btn--small pick-panel-close" id="rival-panel-close">
+                    Fermer
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                </button>
+            </header>
+            <div class="pick-panel-intro">
+                <p class="pick-panel-lead">Sélectionner un joueur</p>
+                <p class="pick-panel-hint" id="rival-panel-hint"></p>
+            </div>
+            <label class="visually-hidden" for="rival-search">Rechercher un joueur</label>
+            <input type="search" id="rival-search" class="pick-search" placeholder="Rechercher un joueur" autocomplete="off" enterkeyhint="search">
+            <div class="pick-results-head">
+                <span class="pick-panel-label" id="rival-results-label">Joueurs</span>
+                <span class="pick-panel-label" id="rival-results-count" aria-live="polite"></span>
+            </div>
+            <div class="pick-results" id="rival-results" role="listbox" aria-labelledby="rival-results-label"></div>
+        </div>
+    </dialog>
+
     <!-- Réglages (config), appels au serveur (api), pages masquées, menu commun, puis logique propre à la page -->
-    <script src="js/config.js?v=20261019g"></script>
-    <script src="js/api.js?v=20261019g"></script>
-    <script src="js/demo.js?v=20261019g"></script>
-    <script src="js/teams.js?v=20261019g"></script>
-    <script src="js/pages-config.js?v=20261019g"></script>
-    <script src="js/common.js?v=20261019g"></script>
-    <script src="js/scoring.js?v=20261019g"></script>
-    <script src="js/jersey.js?v=20261019g"></script>
-    <script src="js/pronostics.js?v=20261019g"></script>
+    <script src="js/config.js?v=20261020m"></script>
+    <script src="js/api.js?v=20261020m"></script>
+    <script src="js/demo.js?v=20261020m"></script>
+    <script src="js/teams.js?v=20261020m"></script>
+    <script src="js/pages-config.js?v=20261020m"></script>
+    <script src="js/common.js?v=20261020m"></script>
+    <script src="js/scoring.js?v=20261020m"></script>
+    <script src="js/jersey.js?v=20261020m"></script>
+    <script src="js/pronostics.js?v=20261020m"></script>
 </body>
 </html>

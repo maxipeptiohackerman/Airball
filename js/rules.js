@@ -59,3 +59,4 @@ async function showPastJerseys() {
 }
 
 document.addEventListener('DOMContentLoaded', showPastJerseys);
+Api.onUpdate('halloffame', showPastJerseys);

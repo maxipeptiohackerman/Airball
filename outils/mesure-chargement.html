@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Airball · Mesure des temps de chargement</title>
+<!--
+  OUTIL DE MESURE (lecture seule)
+  Appelle chaque route du vrai Apps Script plusieurs fois et affiche les temps de réponse.
+  Aucune écriture dans le Google Sheet : uniquement des lectures (GET), comme le site.
+  Ouvre ce fichier dans ton navigateur (double-clic, ou via le site en local), puis « Lancer la mesure ».
+-->
+<style>
+    :root { --bg: #141417; --card: #1c1c20; --line: #2d2c34; --text: #e8e7e4; --muted: #8e8d91; --lime: #dcfe5f; --ok: #68fe83; --warn: #e2fe68; --bad: #fa5341; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 32px 24px 60px; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; }
+    main { max-width: 980px; margin: 0 auto; }
+    h1 { margin: 0 0 6px; font-size: 24px; }
+    h2 { margin: 32px 0 10px; font-size: 16px; }
+    p { margin: 0 0 10px; color: var(--muted); }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 18px 20px; margin-top: 16px; }
+    .row { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; }
+    label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--muted); }
+    input, select { height: 36px; padding: 0 10px; background: #141417; border: 1px solid #45434c; border-radius: 4px; color: var(--text); font: inherit; }
+    button { height: 38px; padding: 0 18px; border: none; border-radius: 6px; background: var(--lime); color: #111; font: 600 14px system-ui, sans-serif; cursor: pointer; }
+    button.ghost { background: #2f2d35; color: var(--text); border: 1px solid #45434c; }
+    button:disabled { opacity: .5; cursor: progress; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-variant-numeric: tabular-nums; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+    th { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+    th:first-child, td:first-child { text-align: left; white-space: normal; }
+    td small { display: block; color: var(--muted); font-size: 11px; }
+    .ok { color: var(--ok); } .warn { color: var(--warn); } .bad { color: var(--bad); }
+    .status { margin-top: 12px; min-height: 20px; color: var(--muted); }
+    .legend { display: flex; gap: 18px; margin-top: 10px; font-size: 12px; color: var(--muted); }
+    .verdict { margin-top: 14px; padding: 12px 14px; border-radius: 4px; background: #141417; border: 1px solid var(--line); }
+    textarea { width: 100%; height: 140px; margin-top: 10px; background: #141417; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; font: 12px ui-monospace, Menlo, monospace; padding: 10px; }
+</style>
+</head>
+<body>
+<main>
+    <h1>Mesure des temps de chargement</h1>
+    <p>Appelle le vrai Google Sheet (via Apps Script) et chronomètre chaque réponse. <b>Lecture seule</b> : rien n'est écrit dans le Sheet, aucune inscription n'est créée.</p>
+    <p>Pour mesurer le « démarrage à froid », lance la mesure après 30 minutes sans visite sur le site : le 1er passage sera froid, les suivants chauds.</p>
+
+    <div class="card">
+        <div class="row">
+            <label>Nombre de passages
+                <select id="rounds"><option>3</option><option selected>5</option><option>10</option></select>
+            </label>
+            <label>Clé d'aperçu du reveal (facultatif)
+                <input id="key" type="password" placeholder="REVEAL_PREVIEW_KEY" autocomplete="off">
+            </label>
+            <button id="run">Lancer la mesure</button>
+            <button id="copy" class="ghost" disabled>Copier les résultats</button>
+        </div>
+        <p style="margin-top:12px;font-size:12px">Avant le lancement de la saison, la route « pronos » renvoie une réponse vide (pronos cachés). Avec la clé d'aperçu, la route « reveal » renvoie les vrais pronos de tous les inscrits : c'est la mesure la plus représentative.</p>
+        <div class="status" id="status"></div>
+    </div>
+
+    <h2>1 · Chaque route, une par une</h2>
+    <div class="card">
+        <table>
+            <thead><tr><th>Route</th><th>1er appel</th><th>Min</th><th>Moyenne</th><th>Max</th><th>Taille</th></tr></thead>
+            <tbody id="routes"><tr><td colspan="6" style="text-align:left;color:var(--muted)">Pas encore de mesure.</td></tr></tbody>
+        </table>
+        <div class="legend"><span class="ok">● moins de 1,5 s</span><span class="warn">● 1,5 à 3 s</span><span class="bad">● plus de 3 s</span></div>
+    </div>
+
+    <h2>2 · Pages complètes, comme le site les charge</h2>
+    <div class="card">
+        <p>Temps avant que la page ait toutes ses données (mêmes appels que le site, lancés en même temps).</p>
+        <table>
+            <thead><tr><th>Page</th><th>1er passage</th><th>Min</th><th>Moyenne</th><th>Max</th></tr></thead>
+            <tbody id="pages"><tr><td colspan="5" style="text-align:left;color:var(--muted)">Pas encore de mesure.</td></tr></tbody>
+        </table>
+        <div class="verdict" id="verdict" hidden></div>
+    </div>
+
+    <h2>3 · Résultats à me transmettre</h2>
+    <div class="card">
+        <p>Le bouton « Copier les résultats » met ce texte dans le presse-papiers : colle-le dans la conversation.</p>
+        <textarea id="report" readonly></textarea>
+    </div>
+</main>
+
+<script src="../js/config.js"></script>
+<script src="../js/api.js"></script>
+<script>
+(() => {
+    const $ = id => document.getElementById(id);
+    const sec = ms => (ms / 1000).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' s';
+    const cls = ms => ms < 1500 ? 'ok' : ms < 3000 ? 'warn' : 'bad';
+    const kb = b => b < 1024 ? b + ' o' : (b / 1024).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' Ko';
+    const stats = list => ({ first: list[0], min: Math.min(...list), max: Math.max(...list), avg: list.reduce((a, b) => a + b, 0) / list.length });
+
+    // Un appel chronométré, sans aucun cache (paramètre « _ » unique à chaque fois)
+    async function timed(params) {
+        const query = new URLSearchParams(Object.assign({}, params, { _: Date.now() + Math.random() })).toString();
+        const t0 = performance.now();
+        const response = await fetch(APPS_SCRIPT_URL + '?' + query, { cache: 'no-store' });
+        const text = await response.text();
+        const ms = performance.now() - t0;
+        let json = null; try { json = JSON.parse(text); } catch (e) { /* réponse illisible */ }
+        if (!response.ok || !json) throw new Error('réponse invalide (' + response.status + ')');
+        if (json.error) throw new Error(json.error);
+        return { ms, bytes: new Blob([text]).size, json };
+    }
+    async function timedEspn() {
+        const t0 = performance.now();
+        await Espn.getStandings({ season: Espn.currentSeason(), seasonType: 2 });
+        return { ms: performance.now() - t0, bytes: 0 };
+    }
+
+    function routes(key) {
+        const list = [
+            ['config', 'Config (pages masquées)', { page: 'config' }],
+            ['leaderboard', 'Classement (Home)', { page: 'leaderboard' }],
+            ['pronos', 'Pronos de tous les joueurs', { page: 'pronos' }],
+            ['historique', 'Historique hebdomadaire', { page: 'historique' }],
+            ['halloffame', 'Hall of Fame', { page: 'halloffame' }],
+            ['nba-data', 'Stats & awards NBA (NBA DATA)', { page: 'nba-data' }],
+            ['inscription', 'Statut des inscriptions', { page: 'inscription' }]
+        ];
+        if (key) list.push(['reveal', 'Reveal avec la clé (vrais pronos)', { page: 'reveal', cle: key }]);
+        return list;
+    }
+
+    // Enchaînements de la vraie navigation (config d'abord, puis le reste en parallèle)
+    const PAGES = [
+        ['Home', ['leaderboard', 'historique']],
+        ['Pronostics', ['pronos', 'historique', 'halloffame', 'espn']],
+        ['Statistiques NBA', ['nba-data', 'espn']],
+        ['Règles', ['halloffame']]
+    ];
+
+    async function run() {
+        const rounds = Number($('rounds').value);
+        const key = $('key').value.trim();
+        const list = routes(key);
+        const times = {}, sizes = {}, errors = {}, notes = {};
+        $('run').disabled = true; $('copy').disabled = true;
+
+        // 1. Routes une par une (en séquence pour ne pas fausser les temps)
+        for (let r = 0; r < rounds; r++) {
+            for (const [id, label, params] of list) {
+                $('status').textContent = `Passage ${r + 1}/${rounds} · ${label}…`;
+                try {
+                    const res = await timed(params);
+                    (times[id] = times[id] || []).push(res.ms);
+                    sizes[id] = res.bytes;
+                    if (id === 'pronos') notes[id] = res.json.revealed ? `${(res.json.players || []).length} joueurs` : 'pronos encore cachés : réponse vide';
+                    if (id === 'reveal') notes[id] = `${(res.json.players || []).length} joueurs`;
+                    if (id === 'leaderboard') notes[id] = res.json.revealed ? `${(res.json.players || []).length} joueurs` : 'classement encore caché';
+                    if (id === 'historique') { const rows = Array.isArray(res.json) ? res.json : (res.json.rows || res.json.history || res.json.weeks || []); notes[id] = `${rows.length} lignes`; }
+                } catch (e) { errors[id] = e.message; }
+            }
+            $('status').textContent = `Passage ${r + 1}/${rounds} · classement ESPN…`;
+            try { const res = await timedEspn(); (times.espn = times.espn || []).push(res.ms); } catch (e) { errors.espn = e.message; }
+        }
+        renderRoutes(list, times, sizes, errors, notes);
+
+        // 2. Pages complètes
+        const pageTimes = {};
+        const call = id => id === 'espn' ? timedEspn() : timed(Object.assign({}, list.find(l => l[0] === id)[2]));
+        for (let r = 0; r < rounds; r++) {
+            for (const [name, deps] of PAGES) {
+                $('status').textContent = `Pages · passage ${r + 1}/${rounds} · ${name}…`;
+                const t0 = performance.now();
+                try {
+                    // Comme le site : config et données de la page partent en même temps (config ne bloque pas l'affichage)
+                    await Promise.all([timed({ page: 'config' })].concat(deps.map(call)));
+                    (pageTimes[name] = pageTimes[name] || []).push(performance.now() - t0);
+                } catch (e) { errors['page ' + name] = e.message; }
+            }
+        }
+        renderPages(pageTimes);
+        $('status').textContent = Object.keys(errors).length ? 'Terminé, avec des erreurs (voir le rapport).' : 'Mesure terminée.';
+        $('report').value = report(rounds, key, list, times, sizes, errors, notes, pageTimes);
+        $('run').disabled = false; $('copy').disabled = false;
+    }
+
+    function cells(s) {
+        return [s.first, s.min, s.avg, s.max].map(ms => `<td class="${cls(ms)}">${sec(ms)}</td>`).join('');
+    }
+    function renderRoutes(list, times, sizes, errors, notes) {
+        const rows = list.concat([['espn', 'Classement ESPN (depuis le navigateur)']]).map(([id, label]) => {
+            if (!times[id]) return `<tr><td>${label}<small>${id}</small></td><td colspan="5" class="bad">Erreur : ${errors[id] || 'aucune réponse'}</td></tr>`;
+            return `<tr><td>${label}<small>${id}${notes[id] ? ' · ' + notes[id] : ''}</small></td>${cells(stats(times[id]))}<td>${sizes[id] ? kb(sizes[id]) : '—'}</td></tr>`;
+        });
+        $('routes').innerHTML = rows.join('');
+    }
+    function renderPages(pageTimes) {
+        $('pages').innerHTML = PAGES.map(([name]) => pageTimes[name]
+            ? `<tr><td>${name}</td>${cells(stats(pageTimes[name]))}</tr>`
+            : `<tr><td>${name}</td><td colspan="4" class="bad">Erreur</td></tr>`).join('');
+        const p = pageTimes.Pronostics ? stats(pageTimes.Pronostics) : null;
+        if (p) {
+            $('verdict').hidden = false;
+            // Ces temps = 1re visite d'un joueur (squelette affiché). Ensuite le site affiche tout de suite
+            // les données mémorisées de la visite précédente et met à jour en arrière-plan.
+            const note = ' <span style="color:var(--muted)">Ce temps ne concerne que la 1re visite (squelette affiché) : les visites suivantes s\'affichent immédiatement grâce à la mémoire du navigateur.</span>';
+            $('verdict').innerHTML = (p.avg < 3000
+                ? '<b class="ok">Correct.</b> La page Pronostics a ses données en moins de 3 s en moyenne.'
+                : p.avg < 5000
+                    ? '<b class="warn">Acceptable.</b> La page Pronostics met entre 3 et 5 s à la 1re visite : un cache côté Apps Script pourrait aider.'
+                    : '<b class="bad">Trop lent.</b> Plus de 5 s en moyenne à la 1re visite : il faudra un cache côté Apps Script et regrouper les appels.') + note;
+        }
+    }
+    function report(rounds, key, list, times, sizes, errors, notes, pageTimes) {
+        const f = ms => (ms / 1000).toFixed(2);
+        const lines = [`Mesure Airball · ${new Date().toLocaleString('fr-FR')} · ${rounds} passages · ${navigator.userAgent.includes('Mobile') ? 'mobile' : 'ordinateur'}${key ? ' · avec clé reveal' : ''}`, '', 'ROUTES (1er / min / moy / max en s · taille)'];
+        list.concat([['espn', 'espn']]).forEach(([id]) => {
+            if (!times[id]) { lines.push(`${id} : ERREUR ${errors[id] || ''}`); return; }
+            const s = stats(times[id]);
+            lines.push(`${id} : ${f(s.first)} / ${f(s.min)} / ${f(s.avg)} / ${f(s.max)}${sizes[id] ? ' · ' + kb(sizes[id]) : ''}${notes[id] ? ' · ' + notes[id] : ''}`);
+        });
+        lines.push('', 'PAGES (1er / min / moy / max en s)');
+        PAGES.forEach(([name]) => {
+            if (!pageTimes[name]) { lines.push(`${name} : ERREUR`); return; }
+            const s = stats(pageTimes[name]);
+            lines.push(`${name} : ${f(s.first)} / ${f(s.min)} / ${f(s.avg)} / ${f(s.max)}`);
+        });
+        Object.keys(errors).filter(k => k.startsWith('page ')).forEach(k => lines.push(`${k} : ${errors[k]}`));
+        return lines.join('\n');
+    }
+
+    $('run').addEventListener('click', run);
+    $('copy').addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText($('report').value); $('copy').textContent = 'Copié !'; }
+        catch (e) { $('report').select(); document.execCommand('copy'); $('copy').textContent = 'Copié !'; }
+        setTimeout(() => { $('copy').textContent = 'Copier les résultats'; }, 1600);
+    });
+})();
+</script>
+</body>
+</html>

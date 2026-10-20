@@ -25,14 +25,59 @@ const Api = (() => {
         return cache[key];
     }
 
+    // ---------- Mémoire entre les visites (Apps Script met ~2 s à répondre) ----------
+    // La page s'affiche tout de suite avec les données de la visite précédente, pendant que le
+    // Sheet est interrogé en arrière-plan. Si la réponse fraîche est différente, les pages
+    // abonnées via Api.onUpdate se redessinent. Données de plus de MAX_AGE : on attend le Sheet.
+    const STORE = 'airball:data:v1:';
+    const MAX_AGE = 7 * 24 * 3600 * 1000;
+    const listeners = [];
+
+    function readStore(key) {
+        try {
+            const item = JSON.parse(localStorage.getItem(STORE + key) || 'null');
+            return item && 'data' in item && Date.now() - item.time < MAX_AGE ? item : null;
+        } catch (e) { return null; }
+    }
+    function writeStore(key, data) {
+        try { localStorage.setItem(STORE + key, JSON.stringify({ time: Date.now(), data })); } catch (e) { /* stockage plein ou indisponible */ }
+    }
+    function notify(key) {
+        listeners.filter(l => l.keys.includes(key)).forEach(l => {
+            try { l.fn(key); } catch (e) { console.error('Mise à jour impossible :', e); }
+        });
+    }
+
+    function remembered(key, params) {
+        if (cache[key]) return cache[key];
+        const stored = readStore(key);
+        const fresh = get(params).then(data => {
+            cache[key] = Promise.resolve(data);
+            writeStore(key, data);
+            if (stored && JSON.stringify(stored.data) !== JSON.stringify(data)) notify(key);
+            return data;
+        });
+        if (stored) {
+            // On garde la version mémorisée si le Sheet ne répond pas
+            fresh.catch(err => console.warn(`Données « ${key} » non rafraîchies :`, err));
+            cache[key] = Promise.resolve(stored.data);
+        } else {
+            cache[key] = fresh.catch(err => { delete cache[key]; throw err; });
+        }
+        return cache[key];
+    }
+
     return {
-        getLeaderboard: () => get({ page: 'leaderboard' }),
-        getPronos: () => cached('pronos', { page: 'pronos' }),
-        getHistory: () => cached('historique', { page: 'historique' }),
-        getHallOfFame: () => cached('halloffame', { page: 'halloffame' }),
+        getLeaderboard: () => remembered('leaderboard', { page: 'leaderboard' }),
+        getPronos: () => remembered('pronos', { page: 'pronos' }),
+        getHistory: () => remembered('historique', { page: 'historique' }),
+        getHallOfFame: () => remembered('halloffame', { page: 'halloffame' }),
 
         // Stats & awards NBA réels, saisis à la main dans l'onglet "NBA DATA" du Sheet
-        getNbaData: () => get({ page: 'nba-data' }),
+        getNbaData: () => remembered('nba-data', { page: 'nba-data' }),
+
+        /** Appelle fn(clé) quand la réponse fraîche du Sheet diffère de celle déjà affichée. */
+        onUpdate: (keys, fn) => { listeners.push({ keys: [].concat(keys), fn }); },
 
         // Pages masquées (onglet CONFIG) et état du reveal : { pages, reveal: { closed, launched }, seasonStart }
         getConfig: () => cached('config', { page: 'config' }),

@@ -89,6 +89,8 @@ async function fetchNbaDataStatsAwards() {
     }
 }
 
+Api.onUpdate('nba-data', fetchNbaDataStatsAwards);
+
 document.addEventListener('DOMContentLoaded', () => {
     fetchNBAStandings();
     fetchNbaDataStatsAwards();

@@ -99,7 +99,7 @@ function podiumCard({ rank, player, trend }) {
                 </dl>
                 <div class="podium-player">
                     <span class="podium-avatar">${renderAvatarHtml(player.avatar, player.pseudo)}</span>
-                    <span class="podium-name">${name}</span>
+                    <span class="podium-name">${name}${player.prenom ? `<small class="player-prenom">${escapeHtml(player.prenom)}</small>` : ''}</span>
                     ${trendHtml(trend)}
                 </div>
             </div>
@@ -164,7 +164,7 @@ async function fetchLeaderboard() {
                     <td class="rank-col-player">
                         <span class="rank-player">
                             <span class="rank-avatar">${renderAvatarHtml(player.avatar, player.pseudo)}</span>
-                            <span class="rank-name">${escapeHtml(player.pseudo)}</span>
+                            <span class="rank-name">${escapeHtml(player.pseudo)}${player.prenom ? `<small class="player-prenom">${escapeHtml(player.prenom)}</small>` : ''}</span>
                         </span>
                     </td>
                     <td>${st.est}</td>
@@ -192,3 +192,5 @@ async function fetchLeaderboard() {
 })();
 
 document.addEventListener('DOMContentLoaded', fetchLeaderboard);
+// Affiché d'abord avec la visite précédente : on redessine si le Sheet a changé entre-temps
+Api.onUpdate(['leaderboard', 'historique'], fetchLeaderboard);

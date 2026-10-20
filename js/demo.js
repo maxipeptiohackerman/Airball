@@ -43,7 +43,9 @@ const Demo = (() => {
     };
     const STATS = ['pts', 'reb', 'ast', 'stl', 'blk'];
     const AWARDS = ['mvp', 'coy', 'roy', 'mip', 'dpoy', 'sixth'];
-    const PSEUDOS = ['Maxime', 'Guillaume', 'Erwan', 'Thibaut', 'Anthony', 'Léo', 'Tom', 'Camille', 'Nico', 'Sarah', 'Julien', 'Manon', 'Hugo', 'Inès', 'Lucas'];
+    // Pseudos de longueurs variées (pour tester l'affichage) ; le prénom réel est dans DEMO_PRENOMS
+    const PSEUDOS = ['Jalen Bresson', 'Greg Ohdamned', 'Prince Hali-Express', 'Jouanneaux', 'Payetonrichard', 'Kuroko29', 'Wemby', 'Le Professeur du Dimanche', 'Air Max', 'Splash Bro 33', 'Brique Machine', 'TT', 'Dunkerque Dunk', 'Shai-ntement', 'Mamba4ever'];
+    const DEMO_PRENOMS = ['Maxime', 'Guillaume', 'Erwan', 'Thibaut', 'Anthony', 'Léo', 'Tom', 'Marie-Charlotte', 'Nico', 'Sarah', 'Julien', 'Manon', 'Hugo', 'Inès', 'Lucas'];
     // Photos de profil de démo : img/demo/joueur-01.jpg à joueur-15.jpg
     const avatarOf = n => `img/demo/joueur-${String(n % 15 + 1).padStart(2, '0')}.jpg`;
 
@@ -88,7 +90,7 @@ const Demo = (() => {
                 awards: AWARDS.reduce((s, k) => s + pickPts(awards[k], real.awards[k][0]), 0)
             };
             scores.total = scores.est + scores.ouest + scores.stats + scores.awards;
-            return { id: 'demo' + n, pseudo, avatar: avatarOf(n), east, west, stats, awards, scores };
+            return { id: 'demo' + n, pseudo, prenom: DEMO_PRENOMS[n % DEMO_PRENOMS.length], avatar: avatarOf(n), east, west, stats, awards, scores };
         });
 
         // Historique : 4 relevés hebdomadaires qui montent jusqu'aux totaux actuels
@@ -104,7 +106,7 @@ const Demo = (() => {
         });
 
         return {
-            leaderboard: { revealed: true, players: sorted.map(({ id, pseudo, avatar, scores }) => ({ id, pseudo, avatar, scores })) },
+            leaderboard: { revealed: true, players: sorted.map(({ id, pseudo, prenom, avatar, scores }) => ({ id, pseudo, prenom, avatar, scores })) },
             pronos: { revealed: true, real, players },
             history
         };
@@ -122,6 +124,8 @@ const Demo = (() => {
         Api.getLeaderboard = () => Promise.resolve(data.leaderboard);
         Api.getPronos = () => Promise.resolve(data.pronos);
         Api.getHistory = () => Promise.resolve(data.history);
+        // Palmarès de démo : badge « Champion » sur la fiche de Greg Ohdamned
+        Api.getHallOfFame = () => Promise.resolve([{ saison: '2024-2025', maillot: 'Ivica Zubac', vainqueur: 'Greg Ohdamned' }, { saison: '2023-2024', maillot: 'Victor Wembanyama', vainqueur: 'Jalen Bresson' }]);
         // Le mode démo ignore la popin « avant le tip-off »
         try { ['home', 'pronos'].forEach(s => localStorage.setItem(`airball:revealed:${s}`, '1')); } catch (e) { /* stockage indisponible */ }
         document.addEventListener('DOMContentLoaded', showBanner);

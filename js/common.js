@@ -21,9 +21,6 @@ const HEADER_HTML = `
         <a href="index.html" class="sidebar-logo" aria-label="Airball, accueil">
             <img src="img/logo-airball.svg" alt="airball">
         </a>
-        <button type="button" class="sidebar-toggle" id="sidebar-toggle" aria-controls="sidebar" aria-expanded="true" aria-label="Réduire le menu" title="Réduire le menu">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.2"/><path d="M9 3v18" stroke="currentColor" stroke-width="1.2"/><path class="sidebar-toggle-chevron" d="M16 15l-3-3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
     </div>
     <nav class="nav-list" aria-label="Navigation principale">
         <a href="index.html" class="nav-item">
@@ -54,9 +51,15 @@ const HEADER_HTML = `
   </div>
 
     <!-- Chrono façon horloge des 24 secondes : jours restants avant la saison -->
+    <div class="sidebar-bottom">
     <div class="shot-clock" id="shot-clock" role="timer">
         <p class="shot-clock-label" id="shot-clock-label">Jours restants</p>
         <div class="shot-clock-screen"><div class="shot-clock-grid" id="shot-clock-grid" aria-hidden="true"></div></div>
+    </div>
+    <!-- Réduire / étendre le menu : en bas, pour laisser toute la largeur au logo -->
+    <button type="button" class="sidebar-toggle" id="sidebar-toggle" aria-controls="sidebar" aria-expanded="true" aria-label="Réduire le menu" title="Réduire le menu">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.2"/><path d="M9 3v18" stroke="currentColor" stroke-width="1.2"/><path class="sidebar-toggle-chevron" d="M16 15l-3-3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
     </div>
 </aside>
 
@@ -408,7 +411,7 @@ const RevealLock = (() => {
         try { saved = localStorage.getItem(`${KEY}:${scope}`); } catch (e) { /* stockage indisponible */ }
         if (saved === '1') return false;
         if (saved === '0') return true;
-        return new Date() < REVEAL_DATE;
+        return true; // tant que le Sheet n'a pas répondu : verrouillé (c'est toi qui ouvres, pas la date)
     }
 
     // target : le bloc de contenu à masquer ; options : textes propres à la page
@@ -474,3 +477,29 @@ const REVEAL_TEXTS = {
         launchedText: 'Les pronos sont dévoilés : commence par le reveal, tout est dedans.'
     }
 };
+
+// ==========================================
+// SQUELETTES DE CHARGEMENT
+// ==========================================
+// Un <tbody data-skeleton="colonnes,lignes[,joueur]"> est rempli de lignes grises animées
+// jusqu'à l'arrivée des données (« joueur » = 2e colonne avec photo).
+// Si les données de la visite précédente sont mémorisées, la page s'affiche avant même que ça se voie.
+const Skeleton = (() => {
+    const WIDTHS = [70, 55, 85, 60, 75, 50];
+    function rows(cols, count, playerCol) {
+        return Array.from({ length: count }, (_, r) => `<tr class="skel-row" aria-hidden="true">${
+            Array.from({ length: cols }, (_, c) => {
+                if (playerCol && c === 1) return '<td><span class="skel-player"><span class="skel skel--avatar"></span><span class="skel"></span></span></td>';
+                const w = c === 0 ? 24 : WIDTHS[(r + c) % WIDTHS.length];
+                return `<td><span class="skel${c > 1 ? ' skel--right' : ''}" style="width:${c === 0 ? '18px' : w + '%'}"></span></td>`;
+            }).join('')}</tr>`).join('');
+    }
+    function fillTables(root = document) {
+        root.querySelectorAll('tbody[data-skeleton]').forEach(body => {
+            const [cols, count, player] = body.dataset.skeleton.split(',');
+            body.innerHTML = rows(Number(cols), Number(count), player === 'joueur');
+        });
+    }
+    return { rows, fillTables };
+})();
+Skeleton.fillTables();

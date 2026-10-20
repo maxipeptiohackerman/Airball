@@ -148,8 +148,10 @@ function sourceFor(cat) {
 }
 
 // Maillot illustré aux couleurs de l'équipe (js/jersey.js) ; grand format avec numéro sur les cartes
-function jerseyIcon(team, className = 'pick-card-jersey', number = '') {
-    return Jersey.svg(team, { className, number, mini: className !== 'pick-card-jersey' });
+// Coachs : polo (vu de face, nom de la franchise) à la place du maillot
+function jerseyIcon(team, className = 'pick-card-jersey', number = '', coach = false) {
+    const mini = className !== 'pick-card-jersey';
+    return coach ? Jersey.coach(team, { className, mini }) : Jersey.svg(team, { className, number, mini });
 }
 
 // Icône « ajouter » de la maquette (carré pointillé avec un +), en couleur du texte
@@ -173,7 +175,7 @@ function renderCategory(step, sub) {
         return pick
             ? `<button type="button" class="pick-card pick-card--${n} is-filled" data-pick="${n}" aria-label="Pick ${n} : ${esc(pick.name)}${pick.team ? ', ' + esc(pick.team) : ''}. Changer de ${what}">
                 <span class="pick-card-title">Pick ${n}</span>
-                ${jerseyIcon(pick.team, 'pick-card-jersey', pick.num || n)}
+                ${jerseyIcon(pick.team, 'pick-card-jersey', pick.num || n, cat.kind === 'coach')}
                 <span class="pick-card-name">${esc(pick.name)}</span>
                 <span class="pick-card-team">${esc(pick.team || '')}</span>
             </button>`
@@ -235,7 +237,7 @@ function renderPanelResults() {
     document.getElementById('pick-results').innerHTML = results.length
         ? results.map((item, i) => `${(title => title ? `<p class="pick-results-group" role="presentation">${title}</p>` : '')(resultsGroupTitle(item, results[i - 1]))}
             <button type="button" class="pick-result${item.name === current ? ' is-current' : ''}" role="option" aria-selected="${item.name === current}" data-name="${esc(item.name)}" data-team="${esc(item.team || '')}" data-num="${esc(item.num || '')}">
-                ${jerseyIcon(item.team, 'pick-result-jersey')}
+                ${jerseyIcon(item.team, 'pick-result-jersey', '', panelState.cat.kind === 'coach')}
                 <span class="pick-result-text">
                     <span class="pick-result-name">${esc(item.name)}</span>
                     <span class="pick-result-meta">${esc([item.draft ? `#${item.draft}` : '', item.team, item.pos].filter(Boolean).join(' · '))}</span>
@@ -370,6 +372,26 @@ function clearPseudoError() {
     document.getElementById('pseudo').removeAttribute('aria-invalid');
 }
 
+// Prénom : obligatoire, 30 caractères maximum, pas de caractère qui casserait le Sheet
+const prenomValue = () => normalizePseudo(document.getElementById('prenom').value);
+function prenomProblem(prenom) {
+    if (!prenom) return 'Indique ton prénom pour continuer.';
+    if (prenom.length > 30) return 'Ton prénom doit faire 30 caractères maximum.';
+    if (/^[=+\-@']/.test(prenom) || /[<>"\\`\u0000-\u001f]/.test(prenom)) return 'Ton prénom contient un caractère interdit.';
+    return '';
+}
+function showPrenomError(message) {
+    const box = document.getElementById('prenom-error');
+    box.textContent = message;
+    box.hidden = false;
+    document.getElementById('prenom').setAttribute('aria-invalid', 'true');
+    document.getElementById('prenom').focus();
+}
+function clearPrenomError() {
+    document.getElementById('prenom-error').hidden = true;
+    document.getElementById('prenom').removeAttribute('aria-invalid');
+}
+
 /** Étape 1 : le pseudo est-il valide et libre ? Retourne true si on peut continuer. */
 async function checkPseudoStep() {
     const input = document.getElementById('pseudo');
@@ -378,6 +400,9 @@ async function checkPseudoStep() {
 
     const problem = pseudoProblem(pseudo);
     if (problem) { showPseudoError(PSEUDO_MESSAGES[problem]); return false; }
+    document.getElementById('prenom').value = prenomValue();
+    const prenomIssue = prenomProblem(prenomValue());
+    if (prenomIssue) { showPrenomError(prenomIssue); return false; }
 
     setBusy(true, 'Vérification…');
     try {
@@ -461,7 +486,7 @@ function updateNextLabel() {
 
 // Il manque quelque chose dans l'écran en cours ? (le bouton Valider reste alors grisé)
 function stepIsComplete(step) {
-    if (step === 1) return normalizePseudo(document.getElementById('pseudo').value).length > 0;
+    if (step === 1) return normalizePseudo(document.getElementById('pseudo').value).length > 0 && prenomValue().length > 0;
     const cats = STEP_CATEGORIES[step];
     if (cats) return pickNames(cats[currentSub].id).every(Boolean);
     return true;
@@ -489,6 +514,10 @@ function clearStepError() {
 function validateCurrentStep() {
     if (currentStep === 1 && !normalizePseudo(document.getElementById('pseudo').value)) {
         showPseudoError("Indique ton pseudo pour continuer.");
+        return false;
+    }
+    if (currentStep === 1 && !prenomValue()) {
+        showPrenomError('Indique ton prénom pour continuer.');
         return false;
     }
     const cats = STEP_CATEGORIES[currentStep];
@@ -562,7 +591,7 @@ function recapIdentity() {
     const avatar = document.querySelector('#avatar-preview img');
     return `<div class="recap-identity">
             <span class="recap-avatar">${avatar ? `<img src="${avatar.src}" alt="">` : esc(pseudo.charAt(0).toUpperCase())}</span>
-            <strong class="recap-pseudo">${esc(pseudo)}</strong>
+            <span class="recap-names"><strong class="recap-pseudo">${esc(pseudo)}</strong><small class="recap-prenom">${esc(prenomValue())}</small></span>
         </div>
         ${editButton(1, 0, 'Modifier ton identité', 'recap-edit--float')}`;
 }
@@ -585,7 +614,7 @@ function recapPicks(cats, step) {
             ${picks[cat.id].map((pick, i) => `
                 <span class="recap-chip">
                     <span class="recap-chip-rank">${i + 1}</span>
-                    ${pick ? jerseyIcon(pick.team, 'recap-chip-jersey') : ''}
+                    ${pick ? jerseyIcon(pick.team, 'recap-chip-jersey', '', cat.kind === 'coach') : ''}
                     <span class="recap-chip-name">${esc(pick ? pick.name : '—')}</span>
                 </span>`).join('')}
             ${editButton(step, sub, `Modifier : ${cat.title}`)}
@@ -684,6 +713,7 @@ async function submitOnboardingForm() {
 
     const payload = {
         pseudo,
+        prenom: prenomValue(),
         avatarBase64,
         // Rang de chaque équipe, dans l'ordre des colonnes du Sheet
         east: Teams.conference('east').map(team => rankOf(east, team.key)),
@@ -822,6 +852,8 @@ window.matchMedia('(min-width: 1101px)').addEventListener('change', loadDecoVide
 document.getElementById('start-btn').addEventListener('click', () => goTo(1));
 
 document.getElementById('pseudo').addEventListener('input', () => { clearPseudoError(); refreshNextState(); });
+document.getElementById('prenom').addEventListener('input', () => { clearPrenomError(); refreshNextState(); });
+document.getElementById('prenom').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); nextBtn.click(); } });
 document.getElementById('pseudo').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); nextBtn.click(); } });
 
 nextBtn.addEventListener('click', async () => {

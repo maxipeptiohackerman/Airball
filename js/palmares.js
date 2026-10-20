@@ -30,3 +30,4 @@ async function fetchHallOfFame() {
 }
 
 document.addEventListener('DOMContentLoaded', fetchHallOfFame);
+Api.onUpdate('halloffame', fetchHallOfFame);
