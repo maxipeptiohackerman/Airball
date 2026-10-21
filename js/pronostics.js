@@ -973,14 +973,15 @@ function bestMoveHtml(p) {
 
 // Illustrations des cartes (mêmes dessins que la maquette), partie « allumée » propre au joueur
 // Radar purement décoratif : la même forme pour tout le monde, simplement « allumée » en violet
-function radarProfile(color = COLOR_A, fill = 'rgba(169,155,255,.14)') {
+function radarProfile(color = '#8e8d91', fill = 'rgba(255,255,255,.06)') {
     const vals = [0.9, 0.55, 0.75, 0.45, 0.65];
     const cx = 240, cy = 190, R = 140;
     const d = vals.map((v, i) => { const a = -Math.PI / 2 + i * 2 * Math.PI / 5; return `${(cx + R * v * Math.cos(a)).toFixed(1)} ${(cy + R * v * Math.sin(a)).toFixed(1)}`; }).join(' L');
     return `<path d="M${d}Z" fill="${fill}" stroke="${color}" stroke-width="2.5"/>`;
 }
+
 function catIllustration(key, profiles) {
-    const art = { est: 'carte-usa-simple.svg', ouest: 'carte-usa-simple.svg', stats: 'radar.svg', awards: 'laurier.svg' }[key];
+    const art = { est: 'carte-usa-simple.svg', ouest: 'carte-usa-simple.svg', stats: 'radar.svg', awards: 'couronne.svg' }[key];
     const img = extra => `<img class="rs-ill rs-ill--${key}${extra ? ' ' + extra : ''}" src="img/illustrations/${art}" alt="" aria-hidden="true">`;
     if (key === 'est' || key === 'ouest' || key === 'awards') return img() + img('is-lit');
     return img() + `<svg class="rs-ill rs-ill--stats" viewBox="0 0 480 360" aria-hidden="true">${profiles}</svg>`;
@@ -1120,15 +1121,17 @@ function sameBox(a, b) {
             <span class="rs-ident-n">${on}<small>/${total}</small></span>
         </div>`;
     const teamRow = (conf, label) => {
+        // Une case par place, de la 1re à la 15e (prono du 1er joueur) : allumée si l'autre a mis la même équipe au même rang
         const rows = Scoring.conferenceRows(a[conf], real[conf]).filter(r => b[conf] && r.team in b[conf]);
-        const known = rows.some(r => r.real !== null);
-        rows.sort((x, y) => known ? (x.real || 99) - (y.real || 99) : x.predicted - y.predicted);
+        rows.sort((x, y) => a[conf][x.team] - a[conf][y.team]);
         let hits = 0;
         const marks = rows.map(r => {
             const on = a[conf][r.team] === b[conf][r.team];
             if (on) hits++;
             const name = Teams.find(r.team) ? Teams.find(r.team).name : r.team;
-            return `<i class="${on ? 'on' : ''}" title="${esc(name)} : ${on ? `${ordinal(a[conf][r.team])} pour les deux` : `${ordinal(a[conf][r.team])} / ${ordinal(b[conf][r.team])}`}"></i>`;
+            const ordText = n => n === 1 ? "1er" : `${n}e`;
+            const ra = ordText(a[conf][r.team]), rb = ordText(b[conf][r.team]);
+            return `<i class="${on ? 'on' : ''}" role="img" aria-label="${esc(name)} : ${on ? `${ra} pour les deux` : `${ra} / ${rb}`}" data-tip-team="${esc(r.team)}" data-a="${ra}" data-b="${rb}"></i>`;
         });
         return row(label, marks, hits, rows.length);
     };
@@ -1138,12 +1141,61 @@ function sameBox(a, b) {
         const pa = (a.stats[key] || a.awards[key] || [])[0], pb = (b.stats[key] || b.awards[key] || [])[0];
         const on = Scoring.norm(pa) !== '' && Scoring.norm(pa) === Scoring.norm(pb);
         if (on) picks++;
-        return `<i class="${on ? 'on' : ''}" title="${esc(CATEGORY_LABELS[key] || key)} : ${on ? esc(pa) : `${esc(pa || '—')} / ${esc(pb || '—')}`}"></i>`;
+        return `<i class="${on ? 'on' : ''}" role="img" aria-label="${esc(CATEGORY_LABELS[key] || key)} : ${on ? esc(pa) : `${esc(pa || '—')} / ${esc(pb || '—')}`}" data-tip-cat="${esc(CATEGORY_LABELS[key] || key)}" data-a="${esc(pa || '—')}" data-b="${esc(pb || '—')}"></i>`;
     });
     return `<div class="rs-box"><div class="rs-box-h"><span class="rs-box-t">Pronos identiques</span></div>
         <div class="rs-ident">${teamRow('east', 'Est')}${teamRow('west', 'Ouest')}${row('Pick 1', dots, picks, cats.length, true)}</div>
     </div>`;
 }
+
+// Tooltip « face-à-face » des pronos identiques (cases Est / Ouest, points Pick 1) :
+// équipe ou catégorie, étiquette Identique / Différent, puis le prono de chacun à ses couleurs.
+// Survol à la souris, tap sur mobile.
+const IdentTip = (() => {
+    let tip = null, current = null;
+    function build(el) {
+        const a = state.current, b = state.opponent;
+        if (!a || !b) return '';
+        const same = el.classList.contains('on');
+        const team = el.dataset.tipTeam;
+        const isPick = !team;
+        const head = team
+            ? `${Teams.logoHtml(team, 'team-logo')}<span>${esc(Teams.find(team) ? Teams.find(team).name : team)}</span>`
+            : `<span>${esc(el.dataset.tipCat)}</span>`;
+        const cell = (p, cls, val) => `<div class="ident-tip-cell ${cls}"><small>${esc(p.pseudo)}</small><b class="${isPick ? 'is-name' : ''}">${esc(val)}</b></div>`;
+        return `<div class="ident-tip-h">${head}<em class="${same ? 'is-same' : ''}">${same ? 'Identique' : 'Différent'}</em></div>
+            <div class="ident-tip-w">${cell(a, 'is-a', el.dataset.a)}${cell(b, 'is-b', el.dataset.b)}</div>`;
+    }
+    function show(el) {
+        if (!tip) { tip = document.createElement('div'); tip.className = 'ident-tip'; tip.setAttribute('role', 'tooltip'); document.body.appendChild(tip); }
+        current = el;
+        tip.innerHTML = build(el);
+        tip.classList.remove('is-below');
+        tip.style.visibility = 'hidden';
+        tip.classList.add('is-on');
+        const r = el.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+        let top = r.top - h - 12;
+        if (top < 8) { top = r.bottom + 12; tip.classList.add('is-below'); }
+        const left = Math.max(8, Math.min(window.innerWidth - w - 8, r.left + r.width / 2 - w / 2));
+        tip.style.left = `${left + window.scrollX}px`;
+        tip.style.top = `${top + window.scrollY}px`;
+        tip.style.setProperty('--arrow', `${r.left + r.width / 2 - left}px`);
+        tip.style.visibility = '';
+        document.querySelectorAll('.rs-ident-sq i.is-tip').forEach(i => i.classList.remove('is-tip'));
+        el.classList.add('is-tip');
+    }
+    function hide() {
+        if (tip) tip.classList.remove('is-on');
+        if (current) current.classList.remove('is-tip');
+        current = null;
+    }
+    const mark = e => e.target.closest && e.target.closest('.rs-ident-sq i');
+    document.addEventListener('pointerover', e => { if (e.pointerType === 'mouse' && mark(e)) show(mark(e)); });
+    document.addEventListener('pointerout', e => { if (e.pointerType === 'mouse' && mark(e)) hide(); });
+    document.addEventListener('click', e => { const m = mark(e); if (m) { if (current === m) hide(); else show(m); } else if (current) hide(); });
+    window.addEventListener('scroll', hide, { passive: true });
+    return { hide };
+})();
 
 // Données secondaires du Résumé (historique, palmarès), chargées une fois en arrière-plan
 function loadResumeExtras() {

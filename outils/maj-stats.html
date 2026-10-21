@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Mise à jour des stats</title>
+<!--
+  OUTIL DE L'ORGANISATEUR : leaders statistiques ESPN → onglet NBA DATA du Google Sheet
+  1. Récupère sur ESPN le top 3 de chaque stat (points, rebonds, passes, interceptions, contres)
+  2. Les compare à ce qui est dans le Sheet
+  3. « Écrire dans le Sheet » : met à jour NBA DATA (lignes 6 à 10, colonnes J, L, N)
+  ESPN refuse les requêtes des serveurs de Google : c'est donc ton navigateur qui va chercher les chiffres.
+  Protégé par un mot de passe : ADMIN_KEY dans Code.gs (Apps Script).
+  Les awards restent à remplir à la main dans NBA DATA.
+-->
+<style>
+    body { margin: 0; padding: 32px 20px 60px; background: #121216; color: #e8e7e4; font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; }
+    main { max-width: 900px; margin: 0 auto; }
+    h1 { font-size: 24px; margin: 0 0 8px; }
+    p { margin: 0 0 10px; color: #a3a1a7; }
+    code { color: #e8e7e4; }
+    .card { margin-top: 18px; padding: 16px 18px; border: 1px solid #2e2d33; border-radius: 8px; background: #1a1a1f; }
+    .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+    label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #8e8d91; }
+    input { height: 40px; min-width: 240px; padding: 0 12px; background: #121216; border: 1px solid #45434c; border-radius: 6px; color: #e8e7e4; font: inherit; }
+    button { height: 40px; padding: 0 18px; border: none; border-radius: 6px; background: #dcfe5f; color: #17171b; font: 600 14px system-ui, sans-serif; cursor: pointer; }
+    button.secondary { background: #2f2d35; color: #e8e7e4; border: 1px solid #5d5d68; }
+    button:disabled { opacity: .4; cursor: default; }
+    .status { margin-top: 14px; padding: 10px 14px; border-radius: 6px; background: #1a1a1f; border: 1px solid #2e2d33; color: #c0bec3; }
+    .status.ok { border-color: #3d5a1e; color: #c9f27a; }
+    .status.bad { border-color: #6b2a24; color: #ff8a7a; }
+    .status:empty { display: none; }
+    table { width: 100%; margin-top: 8px; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    th, td { padding: 9px 8px; border-bottom: 1px solid #2e2d33; text-align: left; vertical-align: top; }
+    th { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: #8e8d91; }
+    td small { display: block; color: #8e8d91; font-size: 12px; }
+    td.changed { color: #dcfe5f; }
+    td.same { color: #8e8d91; }
+    .tag { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: #2f2d35; color: #c0bec3; font-size: 11px; }
+    .note { margin-top: 10px; font-size: 13px; color: #8e8d91; }
+    @media (max-width: 640px) { th:nth-child(2), td:nth-child(2) { display: none; } input { min-width: 0; width: 100%; } label { flex: 1 1 100%; } }
+</style>
+</head>
+<body>
+<main>
+    <h1>Mise à jour des stats</h1>
+    <p>Récupère sur ESPN les 3 meilleurs joueurs de chaque statistique et les écrit dans l'onglet <code>NBA DATA</code> du Google Sheet. Les points de tout le monde se recalculent ensuite comme d'habitude.</p>
+    <p>Les awards ne sont pas concernés : ils restent à remplir à la main dans <code>NBA DATA</code>.</p>
+
+    <div class="card">
+        <div class="row">
+            <label>Mot de passe (ADMIN_KEY de Code.gs)
+                <input id="key" type="password" autocomplete="current-password" placeholder="Mot de passe">
+            </label>
+            <button id="refresh" class="secondary" type="button">Actualiser depuis ESPN</button>
+            <button id="write" type="button" disabled>Écrire dans le Sheet</button>
+        </div>
+        <div class="status" id="status" role="status" aria-live="polite"></div>
+    </div>
+
+    <div class="card">
+        <table>
+            <thead><tr><th>Catégorie</th><th>Dans le Sheet</th><th>ESPN aujourd'hui</th></tr></thead>
+            <tbody id="rows"><tr><td colspan="3">Chargement…</td></tr></tbody>
+        </table>
+        <p class="note" id="updated"></p>
+    </div>
+</main>
+
+<script src="../js/config.js"></script>
+<script>
+const CATS = [
+    { key: 'pts', label: 'Points', names: ['pointsPerGame', 'avgPoints'], abbr: 'PTS' },
+    { key: 'reb', label: 'Rebonds', names: ['reboundsPerGame', 'avgRebounds'], abbr: 'REB' },
+    { key: 'ast', label: 'Passes', names: ['assistsPerGame', 'avgAssists'], abbr: 'AST' },
+    { key: 'stl', label: 'Interceptions', names: ['stealsPerGame', 'avgSteals'], abbr: 'STL' },
+    { key: 'blk', label: 'Contres', names: ['blocksPerGame', 'avgBlocks'], abbr: 'BLK' }
+];
+// ESPN numérote une saison par l'année où elle se termine (2026-27 = 2027), comme sur le site
+const SEASON = (d => d.getMonth() >= 6 ? d.getFullYear() + 1 : d.getFullYear())(new Date());
+const SOURCES = [
+    `https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/seasons/${SEASON}/types/2/leaders?limit=10`,
+    `https://site.web.api.espn.com/apis/site/v3/sports/basketball/nba/leaders?season=${SEASON}&seasontype=2`
+];
+const KEY_STORE = 'airball:admin-key';
+const $ = id => document.getElementById(id);
+const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const norm = v => String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
+
+let sheet = null;   // { stats: { pts: [..] } , statsUpdatedAt }
+let espn = null;    // { pts: [{ name, value }, ...4], ... }
+
+function status(text, kind = '') { const s = $('status'); s.className = 'status' + (kind ? ' ' + kind : ''); s.innerHTML = text; }
+
+// ---------- Google Sheet (lecture) ----------
+async function loadSheet() {
+    const res = await fetch(`${APPS_SCRIPT_URL}?page=nba-data&t=${Date.now()}`, { cache: 'no-store' });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    return data;
+}
+
+// ---------- ESPN ----------
+const https = url => String(url || '').replace(/^http:/, 'https:');
+async function getJson(url) {
+    const res = await fetch(https(url), { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+}
+// Cherche les catégories (objets avec un tableau « leaders ») où qu'elles soient dans la réponse
+function findCategories(obj, out = []) {
+    if (!obj || typeof obj !== 'object') return out;
+    if (Array.isArray(obj)) { obj.forEach(x => findCategories(x, out)); return out; }
+    if (Array.isArray(obj.leaders) && (obj.name || obj.abbreviation)) out.push(obj);
+    Object.values(obj).forEach(v => { if (v && typeof v === 'object') findCategories(v, out); });
+    return out;
+}
+async function athleteName(leader) {
+    const a = leader.athlete || {};
+    if (a.displayName || a.fullName) return a.displayName || a.fullName;
+    if (a.$ref) { const full = await getJson(a.$ref); return full.displayName || full.fullName || ''; }
+    return '';
+}
+async function loadEspn() {
+    let lastError = null;
+    for (const url of SOURCES) {
+        try {
+            const data = await getJson(url);
+            const cats = findCategories(data);
+            if (!cats.length) throw new Error('aucune catégorie dans la réponse');
+            const result = {};
+            for (const c of CATS) {
+                const cat = c.names.map(n => cats.find(x => x.name === n)).find(Boolean)
+                    || cats.find(x => String(x.abbreviation || '').toUpperCase() === c.abbr);
+                if (!cat) throw new Error(`catégorie « ${c.label} » absente`);
+                const top = cat.leaders.slice(0, 4);
+                result[c.key] = await Promise.all(top.map(async l => ({ name: await athleteName(l), value: l.displayValue || (l.value != null ? Number(l.value).toFixed(1) : '') })));
+                if (result[c.key].length < 3 || result[c.key].slice(0, 3).some(x => !x.name)) throw new Error(`moins de 3 joueurs pour « ${c.label} »`);
+            }
+            return result;
+        } catch (error) { lastError = error; console.warn('Source ESPN indisponible :', url, error); }
+    }
+    throw lastError || new Error('ESPN ne répond pas');
+}
+
+// ---------- Affichage ----------
+function render() {
+    $('rows').innerHTML = CATS.map(c => {
+        const cur = (sheet && sheet.stats && sheet.stats[c.key]) || [];
+        const nxt = espn ? espn[c.key] : null;
+        const curCell = cur.length ? cur.map((n, i) => `${i + 1}. ${esc(n || '—')}`).join('<br>') : '—';
+        let nxtCell = 'Chargement…', cls = '';
+        if (nxt) {
+            const changed = [0, 1, 2].some(i => norm(nxt[i].name) !== norm(cur[i]));
+            cls = changed ? 'changed' : 'same';
+            nxtCell = nxt.slice(0, 3).map((p, i) => `${i + 1}. ${esc(p.name)} <span class="tag">${esc(p.value)}</span>`).join('<br>');
+            if (nxt[3] && nxt[3].value && nxt[3].value === nxt[2].value) nxtCell += `<small>Égalité à la 3e place avec ${esc(nxt[3].name)} : ESPN départage, c'est son ordre qui est retenu.</small>`;
+            nxtCell += `<small>${changed ? 'Change par rapport au Sheet' : 'Identique au Sheet'}</small>`;
+        }
+        return `<tr><td>${c.label}</td><td>${curCell}</td><td class="${cls}">${nxtCell}</td></tr>`;
+    }).join('');
+    const at = sheet && sheet.statsUpdatedAt;
+    $('updated').textContent = at ? `Dernière mise à jour avec cet outil : ${new Date(at).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' })}.` : "Aucune mise à jour faite avec cet outil pour l'instant.";
+    $('write').disabled = !espn;
+}
+
+async function refresh() {
+    $('refresh').disabled = true; $('write').disabled = true;
+    status('Récupération du Sheet et d\'ESPN…');
+    espn = null;
+    const [s, e] = await Promise.allSettled([loadSheet(), loadEspn()]);
+    if (s.status === 'fulfilled') sheet = s.value;
+    if (e.status === 'fulfilled') espn = e.value;
+    render();
+    if (e.status === 'rejected') status(`ESPN n'a pas répondu (${esc(e.reason && e.reason.message)}). En tout début de saison, ESPN n'a parfois pas encore de leaders : réessaie dans quelques jours.`, 'bad');
+    else if (s.status === 'rejected') status(`Le Sheet n'a pas répondu (${esc(s.reason && s.reason.message)}). Tu peux quand même écrire les stats d'ESPN.`, 'bad');
+    else status(`Leaders ESPN récupérés (saison ${SEASON - 1}-${String(SEASON).slice(2)}). Les lignes en lime changent par rapport au Sheet.`);
+    $('refresh').disabled = false;
+}
+
+async function write() {
+    const key = $('key').value.trim();
+    if (!key) { status('Renseigne d\'abord le mot de passe (ADMIN_KEY de Code.gs).', 'bad'); $('key').focus(); return; }
+    try { localStorage.setItem(KEY_STORE, key); } catch (e) { /* stockage indisponible */ }
+    const stats = Object.fromEntries(CATS.map(c => [c.key, espn[c.key].slice(0, 3).map(p => p.name)]));
+    $('write').disabled = true; $('refresh').disabled = true;
+    status('Écriture dans le Sheet…');
+    try {
+        const res = await fetch(APPS_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'maj-stats', cle: key, stats }) });
+        const data = await res.json();
+        if (data.result !== 'success') {
+            const why = { bad_key: 'mot de passe refusé : vérifie ADMIN_KEY dans Code.gs (et que le script a bien été redéployé)', invalid_data: 'données incomplètes', no_sheet: 'onglet NBA DATA introuvable' }[data.code] || data.message || 'erreur inconnue';
+            throw new Error(why);
+        }
+        if (data.real) sheet = Object.assign(data.real, { statsUpdatedAt: data.updatedAt });
+        render();
+        status('C\'est fait : les stats sont à jour dans NBA DATA. Le site les affichera au prochain chargement.', 'ok');
+    } catch (error) {
+        // Réponse illisible (navigateur strict) : on relit le Sheet pour savoir si l'écriture a eu lieu
+        if (error instanceof TypeError || error instanceof SyntaxError) {
+            try {
+                sheet = await loadSheet();
+                render();
+                const done = CATS.every(c => stats[c.key].every((n, i) => norm(n) === norm(((sheet.stats || {})[c.key] || [])[i])));
+                if (done) { status('C\'est fait : les stats sont à jour dans NBA DATA. Le site les affichera au prochain chargement.', 'ok'); return; }
+            } catch (e) { /* rien */ }
+        }
+        status(`L'écriture a échoué (${esc(error.message)}).`, 'bad');
+    } finally {
+        $('write').disabled = !espn; $('refresh').disabled = false;
+    }
+}
+
+try { $('key').value = localStorage.getItem(KEY_STORE) || ''; } catch (e) { /* rien */ }
+$('refresh').addEventListener('click', refresh);
+$('write').addEventListener('click', write);
+refresh();
+</script>
+</body>
+</html>

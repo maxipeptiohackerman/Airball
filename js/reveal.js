@@ -41,6 +41,23 @@ function logo(key, size = '') {
 }
 const dotContent = p => p.avatar ? `<img src="${esc(p.avatar)}" alt="">` : esc(p.name[0].toUpperCase());
 const avatar = (p, i) => `<span class="av" style="animation-delay:${0.25 + i * 0.07}s"><span class="av-dot" style="--a:${p.color}">${dotContent(p)}</span>${esc(p.name)}</span>`;
+// Maillot du joueur (ou polo du coach) sur les cartes Stats & Awards ; initiales si inconnu
+let ROSTER = {};
+async function loadRoster() {
+    try {
+        const [players, coaches] = await Promise.all(['players.json', 'coaches.json'].map(f => fetch(f).then(r => r.ok ? r.json() : [])));
+        players.forEach(p => { ROSTER[normName(p.name)] = { team: p.team, num: p.num || '' }; });
+        coaches.forEach(c => { ROSTER[normName(c.name)] = { team: c.team, coach: true }; });
+    } catch (e) { console.warn('Listes des joueurs et coachs indisponibles :', e); }
+}
+function pickJersey(name) {
+    const info = ROSTER[normName(name)];
+    if (info && typeof Jersey !== 'undefined') {
+        const art = info.coach ? Jersey.coach(info.team, { className: 'pick-jersey' }) : Jersey.svg(info.team, { className: 'pick-jersey', number: info.num });
+        return `<span class="pick-jersey-wrap" aria-hidden="true">${art}</span>`;
+    }
+    return `<span class="pick-who" aria-hidden="true">${esc(initials(name))}</span>`;
+}
 const bigAvatar = p => `<span class="big-av" style="--a:${p.color}" aria-hidden="true">${dotContent(p)}</span>`;
 
 // Flammes qui jaillissent derrière le logo d'un hot take (trait noir épais façon dessin)
@@ -405,7 +422,7 @@ function makeSlides(M, storyFor = null) {
             <div class="picks${gridClass(list.length)}">
             ${list.map(({ name, who }, i) => `
                 <div class="pick" style="animation-delay:${0.15 + i * 0.08}s">
-                    <span class="pick-who" aria-hidden="true">${esc(initials(name))}</span>
+                    ${pickJersey(name)}
                     <div class="pick-team">
                         <span class="pick-name">${esc(name)}</span>
                         ${who.length === nPlayers ? '<span class="pick-meta">Unanimité</span>' : ''}
@@ -896,6 +913,7 @@ const STORY_CACHE = 'airball:reveal:story-data';
 
 // Story d'un joueur (?embed=1&story=<id>) : pronos déjà chargés par la page si possible, sinon le Sheet
 async function initStory() {
+    const rosterReady = loadRoster();
     let data = null;
     try { data = JSON.parse(sessionStorage.getItem(STORY_CACHE) || 'null'); } catch (e) { data = null; }
     if (!data) {
@@ -903,6 +921,7 @@ async function initStory() {
         data = siteDemo ? await Api.getPronos() : await Api.getReveal(new URLSearchParams(window.location.search).get('cle') || '').catch(() => null);
     }
     if (!data || !data.revealed) { showState('Story', 'Pas encore', 'Les stories arrivent avec le reveal.'); return; }
+    await rosterReady;
     const model = buildModel(data, null);
     const P = model.players.find(p => p.id === EMBED.story) || model.players.find(p => p.name === EMBED.story);
     if (!P) { showState('Story', 'Joueur introuvable', 'Ce joueur n’a pas de story.'); return; }
@@ -922,6 +941,7 @@ async function initReveal() {
     try {
         // Mode démo du site : pas besoin d'interroger le Google Sheet
         const siteDemo = typeof Demo !== 'undefined' && Demo.active();
+        const rosterReady = loadRoster();
         const [config, realData, lastSeason] = await Promise.all([
             siteDemo ? null : Api.getConfig().catch(() => null),
             siteDemo ? Api.getPronos() :
@@ -954,6 +974,7 @@ async function initReveal() {
             return;
         }
 
+        await rosterReady;
         const model = buildModel(data, lastSeason);
         if (!model.players.length) {
             showState('Reveal', 'Aucun prono', 'Aucun joueur inscrit pour le moment.');

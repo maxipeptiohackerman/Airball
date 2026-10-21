@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Airball - Statistiques &amp; classements NBA</title>
-    <link rel="stylesheet" href="css/style.css?v=20261021o">
+    <link rel="stylesheet" href="css/style.css?v=20261022a">
 </head>
 <body>
 
@@ -12,109 +12,34 @@
         <!-- Fond, menu latéral et barre du haut s'injectent ici (common.js) -->
         <div id="header-container"></div>
 
-        <!-- Classements des conférences (ESPN, en direct) -->
-        <div class="tables-grid">
-            <section class="card" aria-labelledby="east-title">
-                <div class="table-title" id="east-title">
-                    Conférence Est
-                    <span>Classement NBA en direct</span>
-                </div>
-                <div class="table-responsive">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th class="col-rank">Rg</th>
-                                <th>Équipe</th>
-                                <th class="text-right">V</th>
-                                <th class="text-right">D</th>
-                                <th class="text-right">%</th>
-                            </tr>
-                        </thead>
-                        <tbody id="east-standings" data-skeleton="5,15">
-                            <tr><td colspan="5" class="table-message">Chargement du classement…</td></tr>
-                        </tbody>
-                    </table>
-                </div>
+        <!-- Classements des conférences (ESPN, en direct) : même tableau que les pages Pronostics -->
+        <div class="tables-grid nba-confs">
+            <section class="card pronostics-card nba-conf" id="conf-east" aria-label="Conférence Est">
+                <div class="nba-conf-loading" data-skeleton-host><table class="pt-table"><tbody data-skeleton="5,15"></tbody></table></div>
             </section>
-
-            <section class="card" aria-labelledby="west-title">
-                <div class="table-title" id="west-title">
-                    Conférence Ouest
-                    <span>Classement NBA en direct</span>
-                </div>
-                <div class="table-responsive">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th class="col-rank">Rg</th>
-                                <th>Équipe</th>
-                                <th class="text-right">V</th>
-                                <th class="text-right">D</th>
-                                <th class="text-right">%</th>
-                            </tr>
-                        </thead>
-                        <tbody id="west-standings" data-skeleton="5,15">
-                            <tr><td colspan="5" class="table-message">Chargement du classement…</td></tr>
-                        </tbody>
-                    </table>
-                </div>
+            <section class="card pronostics-card nba-conf" id="conf-west" aria-label="Conférence Ouest">
+                <div class="nba-conf-loading" data-skeleton-host><table class="pt-table"><tbody data-skeleton="5,15"></tbody></table></div>
             </section>
         </div>
 
-        <!-- Statistiques & awards, mis à jour à la main dans le Google Sheet (onglet "NBA DATA") -->
-        <div class="cards-stack">
-            <section class="card" aria-labelledby="stats-title">
-                <div class="table-title" id="stats-title">
-                    Statistiques
-                    <span>Meneurs actuels de la saison</span>
-                </div>
-                <div class="table-responsive">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Catégorie</th>
-                                <th>1er</th>
-                                <th>2e</th>
-                                <th>3e</th>
-                            </tr>
-                        </thead>
-                        <tbody id="nba-stats-body" data-skeleton="4,4">
-                            <tr><td colspan="4" class="table-message">Chargement…</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <section class="card" aria-labelledby="awards-title">
-                <div class="table-title" id="awards-title">
-                    Awards
-                    <span>Favoris actuels pour chaque trophée</span>
-                </div>
-                <div class="table-responsive">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Trophée</th>
-                                <th>1er</th>
-                                <th>2e</th>
-                                <th>3e</th>
-                            </tr>
-                        </thead>
-                        <tbody id="nba-awards-body" data-skeleton="4,4">
-                            <tr><td colspan="4" class="table-message">Chargement…</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        </div>
+        <!-- Statistiques (outil outils/maj-stats.html, depuis ESPN) & awards (à la main), onglet "NBA DATA" du Google Sheet -->
+        <section class="card pronostics-card nba-podiums" aria-labelledby="stats-title">
+            <div class="nba-head"><h3 class="pt-title" id="stats-title">Statistiques</h3><span id="stats-sub">Meneurs actuels de la saison</span></div>
+            <div class="pd-grid" id="nba-stats"></div>
+        </section>
+        <section class="card pronostics-card nba-podiums" aria-labelledby="awards-title">
+            <div class="nba-head"><h3 class="pt-title" id="awards-title">Awards</h3><span>Favoris actuels pour chaque trophée</span></div>
+            <div class="pd-grid" id="nba-awards"></div>
+        </section>
     </div>
 
     <!-- Réglages (config), appels au serveur (api), pages masquées, menu commun, puis logique propre à la page -->
-    <script src="js/config.js?v=20261021o"></script>
-    <script src="js/api.js?v=20261021o"></script>
-    <script src="js/teams.js?v=20261021o"></script>
-    <script src="js/pages-config.js?v=20261021o"></script>
-    <script src="js/common.js?v=20261021o"></script>
-    <script src="js/standings.js?v=20261021o"></script>
+    <script src="js/config.js?v=20261022a"></script>
+    <script src="js/api.js?v=20261022a"></script>
+    <script src="js/teams.js?v=20261022a"></script>
+    <script src="js/pages-config.js?v=20261022a"></script>
+    <script src="js/common.js?v=20261022a"></script>
+    <script src="js/jersey.js?v=20261022a"></script>
+    <script src="js/standings.js?v=20261022a"></script>
 </body>
 </html>

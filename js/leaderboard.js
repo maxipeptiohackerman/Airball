@@ -79,6 +79,20 @@ const nameLink = (player, cls) => `<a class="${cls} lb-link" href="${pronosHref(
 
 const fmt = value => (Math.round((Number(value) || 0) * 10) / 10).toLocaleString('fr-FR');
 
+// Leaders de chaque catégorie (Est, Ouest, Stats, Awards) : petite étoile à côté du chiffre.
+// Égalité : tous les leaders ont l'étoile. Aucune étoile tant que la catégorie est à 0.
+let leaders = { est: 0, ouest: 0, stats: 0, awards: 0 };
+const LEAD_STAR = '<svg class="lead-star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 16.8l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" fill="currentColor"/></svg>';
+const LEAD_LABEL = { est: 'Est', ouest: 'Ouest', stats: 'Stats', awards: 'Awards' };
+function computeLeaders(players) {
+    Object.keys(leaders).forEach(k => { leaders[k] = Math.max(0, ...players.map(p => Number(p.scores[k]) || 0)); });
+}
+function scoreCell(player, key, text) {
+    const v = Number(player.scores[key]) || 0;
+    const lead = leaders[key] > 0 && v === leaders[key];
+    return lead ? `<span class="lead-val" title="Leader ${LEAD_LABEL[key]}">${text}${LEAD_STAR}<span class="visually-hidden"> (leader ${LEAD_LABEL[key]})</span></span>` : text;
+}
+
 function playerStats(player) {
     const s = player.scores;
     return { est: fmt(s.est), ouest: fmt(s.ouest), stats: fmt(s.stats), awards: fmt(s.awards), total: fmt(s.total) };
@@ -92,13 +106,14 @@ function podiumCard({ rank, player, trend }) {
         <article class="podium-card podium-card--${medal.cls}" aria-label="${medal.label} : ${name}, ${st.total} points">
             <div class="podium-medal">
                 <img src="${medal.img}" alt="" onerror="this.outerHTML=medalFallback(${rank})">
+                <span class="podium-rank">${rank === 1 ? '1er' : `${rank}e`}</span>
             </div>
             <div class="podium-body">
                 <dl class="podium-stats">
-                    <div><dt>Pts Est</dt><dd>${st.est}</dd></div>
-                    <div><dt>Pts Ouest</dt><dd>${st.ouest}</dd></div>
-                    <div><dt>Stats</dt><dd>${st.stats}</dd></div>
-                    <div><dt>Awards</dt><dd>${st.awards}</dd></div>
+                    <div><dt>Pts Est</dt><dd>${scoreCell(player, 'est', st.est)}</dd></div>
+                    <div><dt>Pts Ouest</dt><dd>${scoreCell(player, 'ouest', st.ouest)}</dd></div>
+                    <div><dt>Stats</dt><dd>${scoreCell(player, 'stats', st.stats)}</dd></div>
+                    <div><dt>Awards</dt><dd>${scoreCell(player, 'awards', st.awards)}</dd></div>
                     <div><dt>Total</dt><dd>${st.total}</dd></div>
                 </dl>
                 <div class="podium-player">
@@ -147,6 +162,7 @@ async function fetchLeaderboard() {
 
         // Joueurs déjà triés par total décroissant par le script
         const past = historyByPlayer(history);
+        computeLeaders(json.players);
         const ranked = json.players.map((player, index) => {
             const rank = index + 1;
             return { rank, player, trend: trendFor(rank, referenceFor(past[player.id], rank, player.scores.total)) };
@@ -171,10 +187,10 @@ async function fetchLeaderboard() {
                             <span class="rank-name">${nameLink(player, 'rank-link')}${player.prenom ? `<small class="player-prenom">${escapeHtml(player.prenom)}</small>` : ''}</span>
                         </span>
                     </td>
-                    <td>${st.est}</td>
-                    <td>${st.ouest}</td>
-                    <td>${st.stats}</td>
-                    <td>${st.awards}</td>
+                    <td>${scoreCell(player, 'est', st.est)}</td>
+                    <td>${scoreCell(player, 'ouest', st.ouest)}</td>
+                    <td>${scoreCell(player, 'stats', st.stats)}</td>
+                    <td>${scoreCell(player, 'awards', st.awards)}</td>
                     <td>${st.total}</td>
                     <td>${trendHtml(trend)}</td>
                 </tr>`;
