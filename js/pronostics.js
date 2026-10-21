@@ -172,20 +172,25 @@ function soloConferenceTable(title, rows) {
         </ul>`;
 }
 
-// Duel : bandeau de score (points de l'onglet, barre partagée, pronos identiques)
-function duelScoreBanner(a, b, ptsA, ptsB, sameText) {
+// Duel : bandeau de score (points de l'onglet, jauge partagée, écart en étiquette, pronos identiques)
+function gapTagHtml(a, b, ptsA, ptsB) {
+    const gap = Math.abs(ptsA - ptsB);
+    if (gap === 0) return '<span class="rs-gap is-tie">Égalité</span>';
+    const unit = `pt${gap > 1 ? 's' : ''}`;
+    const leader = ptsA > ptsB ? a : b;
+    return `<span class="rs-gap ${ptsA > ptsB ? 'is-a' : 'is-b'}" title="${esc(leader.pseudo)} mène de ${fmt(gap)} ${unit}">+${fmt(gap)} ${unit}</span>`;
+}
+
+function duelScoreBanner(a, b, ptsA, ptsB) {
     const total = ptsA + ptsB;
     const share = total > 0 ? Math.round(ptsA / total * 100) : 50;
-    const gap = Math.abs(ptsA - ptsB);
-    const lead = gap === 0 ? 'Égalité' : `${esc((ptsA > ptsB ? a : b).pseudo)} mène de ${fmt(gap)} pt${gap > 1 ? 's' : ''}`;
     return `<div class="duel-score">
-        <p class="duel-score-pts is-a"><b>${fmt(ptsA)}</b> Pts</p>
+        <p class="duel-score-pts is-a"><b>${fmt(ptsA)}</b></p>
         <div class="duel-score-mid">
-            <p class="duel-score-lead">${lead}</p>
             <div class="duel-score-bar" aria-hidden="true"><span style="width:${share}%"></span></div>
-            <p class="duel-score-same">${sameText}</p>
+            ${gapTagHtml(a, b, ptsA, ptsB)}
         </div>
-        <p class="duel-score-pts is-b"><b>${fmt(ptsB)}</b> Pts</p>
+        <p class="duel-score-pts is-b"><b>${fmt(ptsB)}</b></p>
     </div>`;
 }
 
@@ -223,13 +228,11 @@ function duelConferenceTable(conf, a, b) {
         </tr>`;
     }).join('');
 
-    const same = rows.filter(r => r.a.predicted === r.b.predicted).length;
     const key = conf === 'east' ? 'est' : 'ouest';
     const label = conf === 'east' ? 'EST' : 'OUEST';
     const groupHead = (p, who) => `<th colspan="3" class="pt-who pt-who--${who} pt-sep">${esc(p.pseudo)}</th>`;
     const labels = who => sortTh(`prono-${who}`, 'Prono', 'pt-num pt-sep') + sortTh(`gap-${who}`, 'Écart', 'pt-num') + sortTh(`pts-${who}`, 'Pts', 'pt-num pt-pts--duel');
-    return `<div class="pt-duel-banner">${duelScoreBanner(a, b, a.scores[key] || 0, b.scores[key] || 0,
-            `${same} prono${same > 1 ? 's' : ''} identique${same > 1 ? 's' : ''} sur ${rows.length}`)}</div>
+    return `<div class="pt-duel-banner">${duelScoreBanner(a, b, a.scores[key] || 0, b.scores[key] || 0)}</div>
         <h3 class="pt-title">Conférence <span>${label}</span></h3>
         <div class="table-responsive"><table class="pt-table pt-table--duel" aria-label="Conférence ${label}">
             <thead>
@@ -318,7 +321,7 @@ async function loadRoster() {
     }
 }
 
-function pickCard(key, picks, realFirst) {
+function pickCard(key, picks, realFirst, shared = [], sharedCount = null) {
     const row = Scoring.pickRow(picks, realFirst);
     const pill = row.pts === null ? ''
         : row.pts > 0 ? `<span class="sa-pill is-scored">+${fmt(row.pts)} pt${row.pts > 1 ? 's' : ''}</span>`
@@ -329,14 +332,18 @@ function pickCard(key, picks, realFirst) {
         const team = Teams.find(info.team);
         const sub = name && team ? team.name : '';
         const badge = row.hits[i] ? `<span class="sa-badge sa-badge--${i + 1}">${PICK_BADGE[i]}</span>` : '';
-        return `<div class="sa-pick${row.hits[i] ? ' is-hit' : ''}">
+        const sh = shared[i] === 'same' ? ' is-shared is-shared-same' : shared[i] ? ' is-shared' : '';
+        const shTitle = shared[i] === 'same' ? ' title="Même pick, même rang"' : shared[i] ? ' title="Aussi dans les picks de l’autre joueur"' : '';
+        return `<div class="sa-pick${row.hits[i] ? ' is-hit' : ''}${sh}"${shTitle}>
             <span class="sa-pick-label">Pick ${i + 1}</span>
             <span class="sa-jersey">${info.coach ? Jersey.coach(info.team || '', { className: 'sa-jersey-svg', word: SA_TEAM_WORD }) : Jersey.svg(info.team || '', { className: 'sa-jersey-svg', number: info.num || '', word: SA_TEAM_WORD })}${badge}</span>
             <span class="sa-name">${name ? esc(name) : '—'}</span>
             <span class="sa-team">${esc(sub)}</span>
         </div>`;
     }).join('');
-    return `<article class="sa-card${row.pts > 0 ? ' is-scored' : ''}">
+    const counter = sharedCount === null ? ''
+        : `<span class="sa-shared-count${sharedCount ? '' : ' is-zero'}" title="${sharedCount} pick${sharedCount > 1 ? 's' : ''} en commun">${sharedCount}</span>`;
+    return `<article class="sa-card${row.pts > 0 ? ' is-scored' : ''}">${counter}
         <header class="sa-head"><h4>${esc(CATEGORY_LABELS[key])}</h4>${pill}</header>
         <p class="sa-leader">Leader actuel : <b>${realFirst ? esc(realFirst) : 'à venir'}</b></p>
         <div class="sa-picks">${cells}</div>
@@ -350,9 +357,18 @@ function pickCards(title, keys, picksByKey, realByKey) {
 
 // Duel : les cartes des deux joueurs côte à côte, catégorie par catégorie
 function duelPickCards(title, keys, a, b, source, realByKey) {
+    // Picks en commun : fond gris (cadre si même rang) + compteur entre les deux cartes
+    const sharedOf = (mine, other) => [0, 1, 2].map(i => {
+        const n = normName((mine || [])[i]);
+        if (!n) return '';
+        const j = (other || []).map(normName).indexOf(n);
+        return j === -1 ? '' : j === i ? 'same' : 'other';
+    });
     const cells = keys.map(k => {
         const real = (realByKey[k] || [])[0] || '';
-        return pickCard(k, a[source][k], real) + pickCard(k, b[source][k], real);
+        const pa = a[source][k], pb = b[source][k];
+        const sa = sharedOf(pa, pb);
+        return pickCard(k, pa, real, sa, sa.filter(Boolean).length) + pickCard(k, pb, real, sharedOf(pb, pa));
     }).join('');
     return `<div class="sa-duel">
         <h3 class="sa-duel-title is-a">${title} ${esc(a.pseudo)}</h3>
@@ -366,12 +382,9 @@ function renderStats() {
     const a = state.current;
     if (isDuel()) {
         const b = state.opponent;
-        const keys = STAT_KEYS.concat(AWARD_KEYS);
-        const pick1 = (p, k) => normName(((p.stats[k] || p.awards[k]) || [])[0]);
-        const same = keys.filter(k => pick1(a, k) && pick1(a, k) === pick1(b, k)).length;
         const pts = p => (p.scores.stats || 0) + (p.scores.awards || 0);
         $('stats-panel').innerHTML =
-            duelScoreBanner(a, b, pts(a), pts(b), `${same} Pick 1 identique${same > 1 ? 's' : ''} sur ${keys.length}`) +
+            duelScoreBanner(a, b, pts(a), pts(b)) +
             duelPickCards('Statistiques', STAT_KEYS, a, b, 'stats', real.stats) +
             duelPickCards('Awards', AWARD_KEYS, a, b, 'awards', real.awards);
     } else {
@@ -685,6 +698,7 @@ function findInitialPlayer() {
 
 // ---------- liste des joueurs (cards) et sélection pour le comparatif ----------
 const compareSel = []; // ids des joueurs sélectionnés pour le comparatif (2 au maximum)
+const STORY_ICON = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.2-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>';
 const CHECK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.25"/><path d="m8.5 12.2 2.4 2.4 4.6-4.9"/></svg>';
 
 function renderPlayerCards() {
@@ -912,6 +926,10 @@ const trendTag = d => d === null || d === undefined ? ''
 function championBadge(p) {
     const seasons = state.champions && state.champions[normName(p.pseudo)];
     if (!seasons || !seasons.length) return '';
+    // Plusieurs titres : « 3x Champion » (les saisons restent lisibles au survol)
+    if (seasons.length > 1) {
+        return `<span class="rs-champ" title="Champion ${esc(seasons.map(x => x.label).join(', '))}">🏆 ${seasons.length}x Champion</span>`;
+    }
     const s = seasons[0];
     return `<span class="rs-champ"${s.maillot ? ` title="Maillot remporté : ${esc(s.maillot)}"` : ''}>🏆 Champion ${esc(s.label)}</span>`;
 }
@@ -1020,6 +1038,9 @@ function rankSeries(p) {
 
 const LINK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>';
 
+// Photo du Résumé : bouton vers la story du joueur (contour en dégradé quand le reveal est lancé, voir stories.js)
+const storyAvatar = (p, inner) => `<button type="button" class="rs-story" data-id="${esc(p.id)}" aria-label="Voir la story de ${esc(p.pseudo)}" tabindex="-1">${inner}<span class="rs-story-play" aria-hidden="true">${STORY_ICON}</span></button>`;
+
 function renderResume() {
     const a = state.current;
     if (!a) return;
@@ -1033,7 +1054,7 @@ function renderResume() {
         const ex = exactCount(a);
         panel.innerHTML = `
         <div class="rs-box rs-head">
-            <span class="rs-avatar">${renderAvatarHtml(a.avatar, a.pseudo)}</span>
+            ${storyAvatar(a, `<span class="rs-avatar">${renderAvatarHtml(a.avatar, a.pseudo)}</span>`)}
             <div class="rs-id">
                 <div class="rs-name"><h2>${esc(a.pseudo)}</h2>${trendBadge(weekTrend(a))}</div>
                 ${a.prenom ? `<span class="rs-prenom">${esc(a.prenom)}</span>` : ''}
@@ -1050,77 +1071,77 @@ function renderResume() {
             ${evoBox([{ ranks: rankSeries(a), color: COLOR_A }])}
             <div class="rs-box"><div class="rs-box-h"><span class="rs-box-t">Meilleur coup</span></div>${bestMoveHtml(a)}</div>
         </div>`;
+        if (window.Stories) Stories.refresh();
         return;
     }
 
     const b = state.opponent;
     const ta = a.scores.total || 0, tb = b.scores.total || 0;
     const share = ta + tb > 0 ? Math.round(ta / (ta + tb) * 100) : 50;
-    const gap = Math.abs(ta - tb);
-    const lead = gap === 0 ? 'Égalité' : `${esc((ta > tb ? a : b).pseudo)} mène de ${fmt(gap)} pt${gap > 1 ? 's' : ''}`;
-    const s = Scoring.duelSummary(a, b, STAT_KEYS.concat(AWARD_KEYS));
+    const gapTag = gapTagHtml(a, b, ta, tb);
     // Photo, puis pseudo, puis position au général (en colonne) ; les points à côté
     const side = (p, cls) => `<div class="rs-dside ${cls}">
         <div class="rs-dwho">
-            <span class="rs-avatar">${renderAvatarHtml(p.avatar, p.pseudo)}</span>
+            <span class="rs-avatar-wrap">
+                ${storyAvatar(p, `<span class="rs-avatar">${renderAvatarHtml(p.avatar, p.pseudo)}</span>`)}
+                ${rankOfKey(p, 'total') ? `<span class="rs-drank" title="${ordinal(rankOfKey(p, 'total'))} au général">${ordinal(rankOfKey(p, 'total'))}</span>` : ''}
+            </span>
             <h2>${esc(p.pseudo)}</h2>
             ${p.prenom ? `<span class="rs-prenom">${esc(p.prenom)}</span>` : ''}
-            <span class="rs-dmeta">${rankOfKey(p, 'total') ? ordinal(rankOfKey(p, 'total')) + ' au général' : 'Classement à venir'}</span>
         </div></div>`;
     panel.innerHTML = `
         <div class="rs-box rs-dhead">
             ${side(a, 'is-a')}
             <div class="rs-dmid">
-                <p class="rs-lead">${lead}</p>
                 <div class="rs-score">
                     <span class="rs-dpts is-a">${fmt(ta)}</span>
                     <div class="rs-bar" aria-hidden="true"><span style="width:${share}%"></span></div>
                     <span class="rs-dpts is-b">${fmt(tb)}</span>
                 </div>
-                ${sameGrid(a, b, s)}
+                ${gapTag}
             </div>
             ${side(b, 'is-b')}
         </div>
         <div class="rs-cards">${RS_CATS.map(c => duelCard(c, a, b)).join('')}</div>
         <div class="rs-duo">
             ${evoBox([{ ranks: rankSeries(a), color: COLOR_A }, { ranks: rankSeries(b), color: COLOR_B }])}
-            <div class="rs-box"><div class="rs-box-h"><span class="rs-box-t">Meilleurs coups</span></div>
-                <div class="rs-bests">
-                    <div><p class="rs-who is-a">${esc(a.pseudo)}</p>${bestMoveHtml(a)}</div>
-                    <div><p class="rs-who is-b">${esc(b.pseudo)}</p>${bestMoveHtml(b)}</div>
-                </div>
-            </div>
+            ${sameBox(a, b)}
         </div>`;
+    if (window.Stories) Stories.refresh();
 }
 
-// Comparatif : une case par équipe (Est puis Ouest) et un point par catégorie Pick 1,
+// Comparatif, bloc « Pronos identiques » : une case par équipe (Est, Ouest) et un point par catégorie Pick 1,
 // allumés quand les deux joueurs ont fait exactement le même prono
-function sameGrid(a, b, s) {
+function sameBox(a, b) {
     const real = state.data.real;
-    const teamRow = conf => {
+    const row = (label, marks, on, total, dots = false) => `<div class="rs-ident-row">
+            <span class="rs-ident-l">${label}</span>
+            <span class="rs-ident-sq${dots ? ' is-dots' : ''}">${marks.join('')}</span>
+            <span class="rs-ident-n">${on}<small>/${total}</small></span>
+        </div>`;
+    const teamRow = (conf, label) => {
         const rows = Scoring.conferenceRows(a[conf], real[conf]).filter(r => b[conf] && r.team in b[conf]);
         const known = rows.some(r => r.real !== null);
         rows.sort((x, y) => known ? (x.real || 99) - (y.real || 99) : x.predicted - y.predicted);
-        return `<span class="rs-sq">${rows.map(r => {
+        let hits = 0;
+        const marks = rows.map(r => {
             const on = a[conf][r.team] === b[conf][r.team];
+            if (on) hits++;
             const name = Teams.find(r.team) ? Teams.find(r.team).name : r.team;
             return `<i class="${on ? 'on' : ''}" title="${esc(name)} : ${on ? `${ordinal(a[conf][r.team])} pour les deux` : `${ordinal(a[conf][r.team])} / ${ordinal(b[conf][r.team])}`}"></i>`;
-        }).join('')}</span>`;
+        });
+        return row(label, marks, hits, rows.length);
     };
     const cats = STAT_KEYS.concat(AWARD_KEYS);
+    let picks = 0;
     const dots = cats.map(key => {
         const pa = (a.stats[key] || a.awards[key] || [])[0], pb = (b.stats[key] || b.awards[key] || [])[0];
         const on = Scoring.norm(pa) !== '' && Scoring.norm(pa) === Scoring.norm(pb);
+        if (on) picks++;
         return `<i class="${on ? 'on' : ''}" title="${esc(CATEGORY_LABELS[key] || key)} : ${on ? esc(pa) : `${esc(pa || '—')} / ${esc(pb || '—')}`}"></i>`;
     });
-    const half = Math.ceil(dots.length / 2);
-    return `<div class="rs-same-grid">
-        <div class="rs-same-blk">${teamRow('east')}${teamRow('west')}
-            <span class="rs-same-cap"><b>${s.sameTeams}/${s.totalTeams}</b>classements identiques</span></div>
-        <div class="rs-same-sep" aria-hidden="true"></div>
-        <div class="rs-same-blk">
-            <span class="rs-sq rs-sq--dots">${dots.slice(0, half).join('')}</span><span class="rs-sq rs-sq--dots">${dots.slice(half).join('')}</span>
-            <span class="rs-same-cap"><b>${s.samePick1}/${cats.length}</b>Pick 1 identiques</span></div>
+    return `<div class="rs-box"><div class="rs-box-h"><span class="rs-box-t">Pronos identiques</span></div>
+        <div class="rs-ident">${teamRow('east', 'Est')}${teamRow('west', 'Ouest')}${row('Pick 1', dots, picks, cats.length, true)}</div>
     </div>`;
 }
 

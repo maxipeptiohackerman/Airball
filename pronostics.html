@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Airball - Pronostics des Joueurs</title>
     
-    <link rel="stylesheet" href="css/style.css?v=20261020m">
+    <link rel="stylesheet" href="css/style.css?v=20261021o">
 </head>
 <body>
 
@@ -15,6 +15,8 @@
 
     <div id="pronos-wrap">
     <!-- LISTE DES JOUEURS : clic sur une card = ses pronos ; « Comparer » sur deux cards = comparatif -->
+    <!-- Stories du reveal (une bulle par chapitre) : visibles une fois le reveal lancé, voir stories.js -->
+    <div class="stories" id="stories" hidden></div>
     <section class="card card--panel players-card" id="players-view" aria-labelledby="players-title" hidden>
         <header class="players-head">
             <h2 class="players-title" id="players-title">Liste des joueurs</h2>
@@ -132,14 +134,15 @@
     </dialog>
 
     <!-- Réglages (config), appels au serveur (api), pages masquées, menu commun, puis logique propre à la page -->
-    <script src="js/config.js?v=20261020m"></script>
-    <script src="js/api.js?v=20261020m"></script>
-    <script src="js/demo.js?v=20261020m"></script>
-    <script src="js/teams.js?v=20261020m"></script>
-    <script src="js/pages-config.js?v=20261020m"></script>
-    <script src="js/common.js?v=20261020m"></script>
-    <script src="js/scoring.js?v=20261020m"></script>
-    <script src="js/jersey.js?v=20261020m"></script>
-    <script src="js/pronostics.js?v=20261020m"></script>
+    <script src="js/config.js?v=20261021o"></script>
+    <script src="js/api.js?v=20261021o"></script>
+    <script src="js/demo.js?v=20261021o"></script>
+    <script src="js/teams.js?v=20261021o"></script>
+    <script src="js/pages-config.js?v=20261021o"></script>
+    <script src="js/common.js?v=20261021o"></script>
+    <script src="js/scoring.js?v=20261021o"></script>
+    <script src="js/jersey.js?v=20261021o"></script>
+    <script src="js/pronostics.js?v=20261021o"></script>
+    <script src="js/stories.js?v=20261021o"></script>
 </body>
 </html>

@@ -47,7 +47,9 @@ const Demo = (() => {
     const PSEUDOS = ['Jalen Bresson', 'Greg Ohdamned', 'Prince Hali-Express', 'Jouanneaux', 'Payetonrichard', 'Kuroko29', 'Wemby', 'Le Professeur du Dimanche', 'Air Max', 'Splash Bro 33', 'Brique Machine', 'TT', 'Dunkerque Dunk', 'Shai-ntement', 'Mamba4ever'];
     const DEMO_PRENOMS = ['Maxime', 'Guillaume', 'Erwan', 'Thibaut', 'Anthony', 'Léo', 'Tom', 'Marie-Charlotte', 'Nico', 'Sarah', 'Julien', 'Manon', 'Hugo', 'Inès', 'Lucas'];
     // Photos de profil de démo : img/demo/joueur-01.jpg à joueur-15.jpg
-    const avatarOf = n => `img/demo/joueur-${String(n % 15 + 1).padStart(2, '0')}.jpg`;
+    // Quelques joueurs sans photo (champ facultatif à l'inscription) pour voir le rendu de secours
+    const NO_PHOTO = ['Greg Ohdamned', 'Kuroko29', 'TT', 'Shai-ntement'];
+    const avatarOf = n => NO_PHOTO.includes(PSEUDOS[n]) ? '' : `img/demo/joueur-${String(n % 15 + 1).padStart(2, '0')}.jpg`;
 
     // Classement « réel » de démo, et prono d'un joueur = classement réel légèrement mélangé
     const shuffleNear = (list, noise) => list.map((t, i) => [t, i + (rand() - 0.5) * noise]).sort((a, b) => a[1] - b[1]).map(x => x[0]);

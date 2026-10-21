@@ -586,11 +586,21 @@ function editButton(step, sub, label, extraClass = '') {
     return `<button type="button" class="recap-edit${extraClass ? ' ' + extraClass : ''}" data-goto="${step}" data-sub="${sub || 0}" aria-label="${esc(label)}" title="${esc(label)}">${ICON_EDIT}</button>`;
 }
 
+// Sans photo : mêmes initiales colorées que sur le reste du site (voir avatarFallbackHtml dans common.js)
+function recapFallback(name) {
+    const colors = ['#dcfe5f', '#f08a3c', '#5fb8fe', '#4fd1a5', '#ff7ac6'];
+    let h = 0;
+    for (const c of String(name || '')) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+    const words = String(name || '?').replace(/[^\p{L}\p{N}]+/gu, ' ').trim().split(/\s+/).filter(Boolean);
+    const initials = words.length ? (words.length > 1 ? words[0][0] + words[1][0] : words[0].slice(0, 2)).toUpperCase() : '?';
+    return `<span class="av-fb" style="--c:${colors[h % colors.length]}" aria-hidden="true"><b>${esc(initials)}</b></span>`;
+}
+
 function recapIdentity() {
     const pseudo = normalizePseudo(document.getElementById('pseudo').value);
     const avatar = document.querySelector('#avatar-preview img');
     return `<div class="recap-identity">
-            <span class="recap-avatar">${avatar ? `<img src="${avatar.src}" alt="">` : esc(pseudo.charAt(0).toUpperCase())}</span>
+            <span class="recap-avatar">${avatar ? `<img src="${avatar.src}" alt="">` : recapFallback(pseudo)}</span>
             <span class="recap-names"><strong class="recap-pseudo">${esc(pseudo)}</strong><small class="recap-prenom">${esc(prenomValue())}</small></span>
         </div>
         ${editButton(1, 0, 'Modifier ton identité', 'recap-edit--float')}`;

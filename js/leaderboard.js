@@ -67,11 +67,15 @@ function trendFor(currentRank, reference) {
 
 // Médailles du podium (images de la maquette). Si l'image manque, un insigne de secours s'affiche.
 const MEDALS = {
-    1: { cls: 'gold', img: 'img/home/medal-gold.png', label: '1re place' },
-    2: { cls: 'silver', img: 'img/home/medal-silver.png', label: '2e place' },
-    3: { cls: 'bronze', img: 'img/home/medal-bronze.png', label: '3e place' }
+    1: { cls: 'gold', img: 'img/home/badge-gold.png?v=2', label: '1re place' },
+    2: { cls: 'silver', img: 'img/home/badge-silver.png?v=2', label: '2e place' },
+    3: { cls: 'bronze', img: 'img/home/badge-bronze.png?v=2', label: '3e place' }
 };
 const medalFallback = rank => `<svg class="medal-fallback" viewBox="0 0 80 80" aria-hidden="true"><path d="M40 6l29 17v34L40 74 11 57V23z" fill="none" stroke="currentColor" stroke-width="3"/><text x="40" y="50" text-anchor="middle" font-size="28" font-weight="700" fill="currentColor">${rank}</text></svg>`;
+
+// Lien vers la fiche pronos du joueur (actif seulement une fois les pronos révélés, voir .pronos-open)
+const pronosHref = player => `pronostics.html?joueur=${encodeURIComponent(player.id)}`;
+const nameLink = (player, cls) => `<a class="${cls} lb-link" href="${pronosHref(player)}">${escapeHtml(player.pseudo)}</a>`;
 
 const fmt = value => (Math.round((Number(value) || 0) * 10) / 10).toLocaleString('fr-FR');
 
@@ -99,7 +103,7 @@ function podiumCard({ rank, player, trend }) {
                 </dl>
                 <div class="podium-player">
                     <span class="podium-avatar">${renderAvatarHtml(player.avatar, player.pseudo)}</span>
-                    <span class="podium-name">${name}${player.prenom ? `<small class="player-prenom">${escapeHtml(player.prenom)}</small>` : ''}</span>
+                    <span class="podium-name">${nameLink(player, 'podium-link')}${player.prenom ? `<small class="player-prenom">${escapeHtml(player.prenom)}</small>` : ''}</span>
                     ${trendHtml(trend)}
                 </div>
             </div>
@@ -159,12 +163,12 @@ async function fetchLeaderboard() {
             ? rest.map(({ rank, player, trend }) => {
                 const st = playerStats(player);
                 return `
-                <tr>
+                <tr class="rank-row">
                     <td class="rank-col-rk">${rank}</td>
                     <td class="rank-col-player">
                         <span class="rank-player">
                             <span class="rank-avatar">${renderAvatarHtml(player.avatar, player.pseudo)}</span>
-                            <span class="rank-name">${escapeHtml(player.pseudo)}${player.prenom ? `<small class="player-prenom">${escapeHtml(player.prenom)}</small>` : ''}</span>
+                            <span class="rank-name">${nameLink(player, 'rank-link')}${player.prenom ? `<small class="player-prenom">${escapeHtml(player.prenom)}</small>` : ''}</span>
                         </span>
                     </td>
                     <td>${st.est}</td>
@@ -176,6 +180,7 @@ async function fetchLeaderboard() {
                 </tr>`;
             }).join('')
             : `<tr><td colspan="8" class="rank-message">Les autres joueurs apparaîtront ici dès la 4e place.</td></tr>`;
+        setPronosOpen(); // liens actifs ou non selon l'état des pronos
 
     } catch (error) {
         console.error("Erreur de chargement du leaderboard :", error);

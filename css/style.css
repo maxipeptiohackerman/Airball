@@ -397,7 +397,7 @@ body:has(#header-container) {
     flex-shrink: 0;
     width: 20px;
     height: 20px;
-    color: var(--accent-lime);
+    color: currentColor; /* blanc comme le titre (maquette Figma) ; le lime reste pour les éléments actifs */
 }
 
 /* ==========================================
@@ -892,7 +892,10 @@ body:has(#header-container) {
     gap: 4px;
     border-bottom: 1px solid var(--border-card);
     overflow-x: auto;
+    overflow-y: hidden; /* le soulignement (-1px) créait un petit scroll vertical */
+    scrollbar-width: none;
 }
+.tabs::-webkit-scrollbar { display: none; }
 .tab-btn {
     margin-bottom: -1px;
     padding: 12px 16px;
@@ -2127,8 +2130,9 @@ body.has-hero { position: relative; overflow-x: hidden; }
     background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),
         linear-gradient(140deg, rgba(94, 46, 12, 0.25) 0%, rgba(255, 147, 80, 0.25) 31.95%, rgba(152, 94, 55, 0.25) 56.8%, rgba(36, 25, 12, 0.25) 81.66%);
 }
-.podium-medal { width: 80px; height: 80px; flex-shrink: 0; opacity: 0.8; }
-.podium-medal img, .medal-fallback { width: 100%; height: 100%; object-fit: cover; display: block; }
+.podium-medal { width: 70px; height: 80px; flex-shrink: 0; opacity: 0.8; } /* badges en ×3, transparence comme la maquette Figma */
+.podium-card--bronze .podium-medal { opacity: 0.7; }
+.podium-medal img, .medal-fallback { width: 100%; height: 100%; object-fit: contain; display: block; }
 .podium-card--gold .medal-fallback { color: #e3b84b; }
 .podium-card--silver .medal-fallback { color: #c9c9c9; }
 .podium-card--bronze .medal-fallback { color: #c9875a; }
@@ -2253,7 +2257,7 @@ td.rank-col-rk { font-family: var(--font-display); font-size: 14px; color: #8e8d
     .podium-card--gold { height: auto; order: -1; }
     .podium-card--silver { order: 0; }
     .podium-card--bronze { order: 1; }
-    .podium-medal { width: 56px; height: 56px; }
+    .podium-medal { width: 49px; height: 56px; }
 }
 @media (max-width: 640px) {
     /* Mobile : le détail des points reste visible sur le podium ; le tableau garde Total et Évolution */
@@ -2432,6 +2436,10 @@ body.registration-closed [data-signup] { display: none !important; }
     .reveal-copy { flex: 0 1 500px; min-width: 360px; align-items: flex-start; }
     .reveal-title { font-size: clamp(32px, 2.8vw, 40px); }
     .reveal-actions { flex-direction: row; align-items: center; gap: 24px; }
+}
+/* Écrans hauts : le bloc remonte vers le tiers supérieur au lieu d'être centré pile */
+@media (min-width: 1280px) and (min-height: 820px) {
+    .reveal-lock { padding-bottom: clamp(48px, 22vh, 320px); }
 }
 
 /* ==========================================
@@ -2948,7 +2956,10 @@ body.pronos-detail-open .topbar { display: none; }
 @media (max-width: 768px) {
     .pronos-topbar { flex-wrap: wrap; }
     .pronos-pickers { gap: 8px; }
-    .pronos-pickers .player-picker { min-width: 0; }
+    .pronos-pickers { flex: 1 1 100%; min-width: 0; }
+    .pronos-pickers .picker-wrap { flex: 1 1 0; min-width: 0; }
+    .pronos-pickers .player-picker { min-width: 0; width: 100%; }
+    .pronos-pickers .player-picker-name { max-width: none; }
     .duel-score { grid-template-columns: 1fr 1fr; padding: 14px 16px; }
     .duel-score-mid { grid-column: 1 / -1; grid-row: 2; }
     .duel-score-pts b { font-size: 28px; }
@@ -3491,28 +3502,34 @@ body.pronos-detail-open .topbar { display: none; }
 
 /* Comparatif : score en tableau d'affichage (66 — jauge — 51,5) et grille des pronos identiques */
 .rs-dmid { gap: 0; }
-.rs-score { display: flex; align-items: center; gap: 14px; margin-top: 10px; }
+.rs-score { display: flex; align-items: center; gap: 14px; margin-top: 0; }
 .rs-score .rs-bar { width: 300px; }
 .rs-dpts, .rs-dside.is-b .rs-dpts { margin: 0; }
 .rs-dpts.is-a { color: var(--violet); }
 .rs-dpts.is-b { color: var(--corail); }
-.rs-same-grid { display: flex; align-items: flex-start; justify-content: center; gap: 22px; margin-top: 30px; }
-.rs-same-blk { display: flex; flex-direction: column; align-items: center; gap: 3px; }
-.rs-same-sep { align-self: stretch; width: 1px; background-color: #2d2c34; }
-.rs-sq { display: flex; gap: 3px; }
-.rs-sq i { display: block; width: 11px; height: 11px; border-radius: 2px; background-color: #2d2c34; }
-.rs-sq i.on { background-color: #e8e7e4; }
-.rs-sq--dots i { border-radius: 50%; }
-.rs-sq--dots i.on { background-color: var(--accent-lime); }
-.rs-same-cap { display: flex; flex-direction: column; align-items: center; margin-top: 8px; font-size: 11px; color: #8e8d91; }
-.rs-same-cap b { font-family: var(--font-display); font-size: 18px; font-weight: 700; line-height: 1.1; color: #ffffff; }
+/* Centrage optique : la jauge tombe pile au milieu de la carte, quelle que soit la largeur des scores (33,5 vs 68) */
+.rs-score { display: grid; grid-template-columns: 1fr auto 1fr; width: 100%; max-width: 620px; }
+@media (min-width: 1101px) {
+    .rs-dhead { grid-template-columns: minmax(150px, 1fr) minmax(0, 620px) minmax(150px, 1fr); }
+    .rs-dhead .rs-dmid { min-width: 0; }
+}
+/* Jauge : se raccourcit si la place manque, pour que les deux scores gardent la même largeur de colonne */
+.rs-score { container-type: inline-size; }
+.rs-score .rs-bar { width: clamp(90px, 100cqw - 300px, 300px); }
+/* Carte trop étroite pour 3 colonnes (menu + écran moyen) : joueurs en haut, score et blocs dessous */
+@media (max-width: 1100px) {
+    .rs-dhead { grid-template-columns: 1fr 1fr; gap: 14px; }
+    .rs-dmid { grid-column: 1 / -1; grid-row: 2; min-width: 0; }
+    .rs-dside, .rs-dside.is-b { justify-content: center; }
+    .rs-duo { grid-template-columns: 1fr; }
+}
+.rs-score .is-a { justify-self: end; }
+.rs-score .is-b { justify-self: start; }
 @media (max-width: 768px) {
     .rs-score { gap: 10px; }
-    .rs-score .rs-bar { width: auto; flex: 1; min-width: 80px; }
+    .rs-score .rs-bar { width: clamp(80px, 100cqw - 200px, 300px); }
     .rs-dmid { width: 100%; }
     .rs-score { width: 100%; }
-    .rs-same-grid { gap: 14px; margin-top: 22px; }
-    .rs-sq i { width: 9px; height: 9px; }
 }
 /* Plus de bouton « Comparer » : le pied de liste n'apparaît que pendant une sélection */
 .players-foot:has(.players-hint:empty) { display: none; }
@@ -3571,3 +3588,159 @@ body.pronos-detail-open .topbar { display: none; }
 .rs-dwho { max-width: 210px; }
 .rs-dwho h2 { white-space: normal; overflow-wrap: anywhere; text-align: center; line-height: 1.15; }
 @media (max-width: 768px) { .rs-dwho { max-width: 140px; } }
+/* Comparatif : rang au général en bandeau à cheval sous la photo, couleur du joueur */
+.rs-avatar-wrap { position: relative; display: inline-flex; margin-bottom: 8px; }
+.rs-drank {
+    position: absolute; left: 50%; bottom: -11px; transform: translateX(-50%);
+    height: 22px; padding: 0 10px; display: inline-flex; align-items: center;
+    border-radius: 4px; font-family: var(--font-display); font-size: 12px; color: #141417; white-space: nowrap;
+}
+.rs-dside.is-a .rs-drank { background: var(--violet); }
+.rs-dside.is-b .rs-drank { background: var(--corail); }
+
+/* Comparatif Stats & Awards : picks en commun (fond gris, cadre si même rang) + compteur entre les deux cartes */
+.sa-duel .sa-card { position: relative; overflow: visible; }
+.sa-duel .sa-pick { padding: 6px 2px; border-radius: 4px; }
+.sa-pick.is-shared { background: rgba(255, 255, 255, 0.06); }
+.sa-pick.is-shared-same { background: rgba(255, 255, 255, 0.09); box-shadow: inset 0 0 0 1px #5d5d68; }
+.sa-shared-count {
+    position: absolute; top: 50%; right: -45px; transform: translateY(-50%); z-index: 2;
+    min-width: 26px; height: 26px; padding: 0 6px; box-sizing: border-box;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 999px; background: #1e1e22; border: 1px solid #5d5d68;
+    font: 700 11px var(--font-ui); color: #e8e7e4;
+}
+.sa-shared-count.is-zero { color: #5d5d68; border-color: #3c3c43; }
+@media (max-width: 768px) {
+    .sa-shared-count { right: -17px; min-width: 22px; height: 22px; font-size: 10px; }
+}
+
+/* ==========================================
+   GRANDS ÉCRANS
+   ========================================== */
+/* Le contenu ne s'étire plus au-delà de 1520 px : il se centre à droite du menu (le fond reste plein écran) */
+@media (min-width: 901px) {
+    .container:has(> #header-container) > *,
+    #header-container > .topbar { width: 100%; max-width: 1520px; margin-inline: auto; box-sizing: border-box; }
+}
+/* Très grands écrans (27″ et plus) : tout est légèrement agrandi pour ne pas paraître minuscule */
+@media (min-width: 2200px) { html { zoom: 1.15; } }
+@media (min-width: 3000px) { html { zoom: 1.35; } }
+
+/* ==========================================
+   AVATAR DE SECOURS (joueur sans photo) : initiales sur fond teinté
+   ========================================== */
+.av-fb {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    container-type: size;
+    background-color: color-mix(in srgb, var(--c) 18%, #1c1b20);
+    color: var(--c);
+    font-family: var(--font-display);
+    line-height: 1;
+    letter-spacing: -0.02em;
+}
+.av-fb b { font-size: 42cqmin; font-weight: 900; }
+.player-card-photo .av-fb { position: absolute; inset: 0; }
+
+/* ==========================================
+   CLASSEMENT CLIQUABLE : ligne / carte du podium → fiche pronos du joueur
+   Le lien du pseudo couvre toute la ligne (::after) ; inactif tant que les pronos sont masqués
+   ========================================== */
+.lb-link { color: inherit; text-decoration: none; transition: color 0.2s ease; }
+.rank-row, .podium-card { position: relative; }
+body.pronos-open .lb-link::after { content: ''; position: absolute; inset: 0; z-index: 1; }
+body:not(.pronos-open) .lb-link { pointer-events: none; cursor: default; }
+body.pronos-open .lb-link:focus-visible { outline: none; }
+body.pronos-open .lb-link:focus-visible::after { outline: 2px solid var(--accent-lime); outline-offset: -2px; border-radius: 8px; }
+/* Survol : le pseudo se grise légèrement (les effets d'origine de la ligne et des cartes restent) */
+body.pronos-open .rank-row:hover .lb-link,
+body.pronos-open .podium-card:hover .lb-link { color: #a9a8ad; }
+
+/* Comparatif, bloc « Pronos identiques » : Est / Ouest (une case par équipe) et Pick 1 (un point par catégorie) */
+.rs-ident { display: flex; flex-direction: column; justify-content: center; gap: 18px; flex: 1; }
+.rs-ident-row { display: grid; grid-template-columns: 52px 1fr auto; align-items: center; gap: 12px; }
+.rs-ident-l { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #8e8d91; }
+.rs-ident-sq { display: flex; gap: 4px; min-width: 0; }
+.rs-ident-sq i { flex: 0 1 14px; min-width: 0; aspect-ratio: 1; border-radius: 3px; background-color: #2d2c34; }
+.rs-ident-sq i.on { background-color: #e8e7e4; }
+.rs-ident-sq.is-dots i { border-radius: 50%; }
+.rs-ident-sq.is-dots i.on { background-color: var(--accent-lime); }
+.rs-ident-n { min-width: 42px; text-align: right; font-family: var(--font-display); font-size: 15px; color: #ffffff; white-space: nowrap; }
+.rs-ident-n small { font-family: var(--font-ui); font-size: 11px; color: #8e8d91; }
+@media (max-width: 768px) {
+    .rs-ident { gap: 14px; }
+    .rs-ident-row { grid-template-columns: 44px 1fr auto; gap: 10px; }
+    .rs-ident-sq { gap: 3px; }
+}
+
+/* Comparatif : écart au score, en étiquette sous la jauge */
+.rs-gap { margin-top: 12px; padding: 3px 10px; border-radius: 999px; font-family: var(--font-display); font-size: 13px; line-height: 1.3; color: var(--c); background-color: color-mix(in srgb, var(--c) 14%, transparent); }
+.rs-gap.is-a { --c: var(--violet); }
+.rs-gap.is-b { --c: var(--corail); }
+.rs-gap.is-tie { --c: #c0bec3; }
+.duel-score-mid .rs-gap { margin-top: 2px; }
+
+/* Dégradé des stories : lime ↔ violet du logo, en anneau */
+:root { --story-gradient: conic-gradient(from 210deg, #dcfe5f, #a99bff, #dcfe5f); }
+
+/* ==========================================
+   STORIES DU REVEAL (page Pronostics) : bulles par chapitre + fenêtre plein écran
+   ========================================== */
+.stories { margin: 0 0 20px; }
+/* Seulement au-dessus de la liste des joueurs (pas sur une fiche) */
+.stories:has(+ #players-view[hidden]) { display: none; }
+.stories-row { display: flex; gap: 18px; overflow-x: auto; padding: 4px 2px 6px; scrollbar-width: none; }
+.stories-row::-webkit-scrollbar { display: none; }
+.story { flex: none; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 76px; padding: 0; background: none; border: none; color: #e8e7e4; font: inherit; cursor: pointer; }
+.story-ring { position: relative; width: 68px; height: 68px; border-radius: 50%; padding: 3px; box-sizing: border-box;
+    background: var(--story-gradient); transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.story-ico { display: grid; place-items: center; width: 100%; height: 100%; border-radius: 50%; background: #1c1b20; border: 3px solid #1c1b20; box-sizing: border-box; font-size: 26px; line-height: 1; }
+.story-label { max-width: 100%; font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.story:hover .story-ring { transform: scale(1.06); }
+.story:focus-visible { outline: none; }
+.story:focus-visible .story-ring { outline: 2px solid var(--accent-lime); outline-offset: 3px; }
+.story.is-seen .story-ring { background: #4a4950; }
+.story.is-seen .story-label { color: #8e8d91; }
+
+/* Préchargé mais invisible ; à l'ouverture, un cercle part de la bulle cliquée et remplit l'écran */
+.story-overlay { position: fixed; inset: 0; z-index: 1000; background: #0c0c0e; visibility: hidden; pointer-events: none;
+    clip-path: circle(0 at var(--ox, 50%) var(--oy, 50%)); transition: clip-path 0.38s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s linear 0.38s; }
+.story-overlay.is-open { visibility: visible; pointer-events: auto; clip-path: circle(150% at var(--ox, 50%) var(--oy, 50%)); transition: clip-path 0.38s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s; }
+.story-overlay iframe { display: block; width: 100%; height: 100%; border: 0; }
+body.has-story { overflow: hidden; }
+@media (prefers-reduced-motion: reduce) { .story-overlay { transition: none; } }
+@media (max-width: 768px) {
+    .stories-row { gap: 12px; }
+    .story { width: 66px; }
+    .story-ring { width: 60px; height: 60px; }
+    .story-ico { font-size: 22px; }
+}
+
+/* Story d'un joueur : sa photo en haut du Résumé (fiche et comparatif) prend un contour en dégradé ;
+   un clic dessus lance sa story. Rien tant que le reveal n'est pas lancé. */
+.rs-story { position: relative; display: inline-flex; flex-shrink: 0; padding: 0; background: none; border: none; border-radius: 8px; color: inherit; cursor: default; }
+.rs-story-play { display: none; }
+.rs-story.has-story { cursor: pointer; }
+.rs-story.has-story::before {
+    content: ''; position: absolute; inset: -5px; border-radius: 10px; padding: 3px; pointer-events: none;
+    background: var(--story-gradient);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+.rs-story.has-story .rs-story-play {
+    position: absolute; top: -9px; right: -9px; z-index: 2; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent-lime); color: #141417; box-shadow: 0 0 0 3px #1c1b20; transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.rs-story-play svg { width: 10px; height: 10px; margin-left: 1px; }
+.rs-story.has-story:hover .rs-story-play { transform: scale(1.15); }
+.rs-story.has-story:focus-visible { outline: 2px solid var(--accent-lime); outline-offset: 6px; }
+.rs-story.is-seen::before { background: #5d5d68; }
+.rs-story.is-seen .rs-story-play { background: #4a4950; color: #e8e7e4; }
+@media (max-width: 768px) {
+    .rs-head { align-items: flex-start; }
+    .rs-head .rs-story { margin: 5px 4px 0 5px; }
+}

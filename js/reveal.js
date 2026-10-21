@@ -58,6 +58,8 @@ function buildModel(data, lastSeason) {
     const players = (data.players || [])
         .filter(p => Object.keys(p.east || {}).length || Object.keys(p.west || {}).length)
         .map((p, i) => ({
+            id: String(p.id || ''),
+            prenom: String(p.prenom || '').trim(),
             name: String(p.pseudo || 'Joueur').trim(),
             avatar: p.avatar || '',
             color: AVATAR_COLORS[i % AVATAR_COLORS.length],
@@ -179,24 +181,87 @@ function buildModel(data, lastSeason) {
         return Object.values(byName).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
     }
 
+    // ---------- Histoires ----------
+    const ranksOfTeam = (conf, team) => players.map(p => ({ p, r: rankOf(p, conf, team) })).filter(x => x.r);
+    const allTeams = ['east', 'west'].flatMap(conf => CONF_TEAMS[conf].map(team => ({ conf, team })));
+    // L'équipe qui divise : le plus grand écart entre le prono le plus haut et le plus bas
+    let divisive = null;
+    if (players.length >= 3) {
+        allTeams.forEach(({ conf, team }) => {
+            const list = ranksOfTeam(conf, team);
+            if (list.length < 3) return;
+            const rs = list.map(x => x.r), min = Math.min(...rs), max = Math.max(...rs);
+            const mean = rs.reduce((a, b) => a + b, 0) / rs.length;
+            const sd = Math.sqrt(rs.reduce((a, b) => a + (b - mean) ** 2, 0) / rs.length);
+            const cand = { conf, team, min, max, spread: max - min, sd,
+                high: list.filter(x => x.r === min).map(x => x.p), low: list.filter(x => x.r === max).map(x => x.p) };
+            if (!divisive || cand.spread > divisive.spread || (cand.spread === divisive.spread && cand.sd > divisive.sd)) divisive = cand;
+        });
+        if (divisive && divisive.spread < 5) divisive = null;
+    }
+    // Le consensus : l'équipe que le plus de monde met exactement à la même place
+    let agreed = null;
+    if (players.length >= 3) {
+        allTeams.forEach(({ conf, team }) => {
+            const list = ranksOfTeam(conf, team);
+            const byPlace = {};
+            list.forEach(x => { byPlace[x.r] = (byPlace[x.r] || 0) + 1; });
+            Object.entries(byPlace).forEach(([place, count]) => {
+                const cand = { conf, team, place: Number(place), count, total: list.length };
+                if (!agreed || count > agreed.count || (count === agreed.count && cand.place < agreed.place)) agreed = cand;
+            });
+        });
+        if (agreed && agreed.count < Math.max(2, Math.ceil(players.length / 2))) agreed = null;
+    }
+    // Votre Finale : le n°1 le plus choisi de chaque conférence
+    const top = conf => { const l = picksAt(conf, 1); return l.length ? l[0] : null; };
+    const finale = top('east') && top('west') ? { east: top('east'), west: top('west') } : null;
+    // Chouchou / mal-aimé : l'équipe que le groupe voit le plus au-dessus / en dessous de l'an dernier
+    let pet = null, snub = null;
+    if (lastSeason) {
+        allTeams.forEach(({ conf, team }) => {
+            const last = lastSeason[conf][team], avg = avgRank[conf][team];
+            if (!last || avg === 99) return;
+            const cand = { conf, team, last, avg: Math.round(avg), delta: last - avg };
+            if (!pet || cand.delta > pet.delta) pet = cand;
+            if (!snub || cand.delta < snub.delta) snub = cand;
+        });
+        if (pet && pet.delta < 2) pet = null;
+        if (snub && snub.delta > -2) snub = null;
+    }
+    // Le conformiste : le plus proche du classement moyen (l'inverse de l'électron libre)
+    const conformist = players.length >= 3
+        ? [...players].filter(p => p !== loner).sort((a, b) => similarity(b, consensus) - similarity(a, consensus))[0] || null : null;
+
     return {
-        players, picksAt, hotTakes, hotAt, hotLine, otherPicks,
-        twins, rivals,
+        players, picksAt, hotTakes, hotAt, hotLine, otherPicks, candidates,
+        twins, rivals, similarity, consensus, rankOf, teamAt,
         loner, lonerPct: loner ? similarity(loner, consensus) : 0,
+        conformist, conformistPct: conformist ? similarity(conformist, consensus) : 0,
+        divisive, agreed, finale, pet, snub,
         rise, fall, firstPicks
     };
 }
 
 // Classement final de la saison passée chez ESPN : { east: { Hawks: 3, ... }, west: { ... } }, ou null
+// Retenu dans le navigateur : un classement final ne change plus, inutile de redemander à ESPN.
 async function fetchLastSeason() {
+    let key = '';
     try {
-        const standings = await Espn.getStandings({ season: Espn.currentSeason() - 1, seasonType: 2, timeoutMs: 7000 });
+        key = `airball:last-season:${Espn.currentSeason() - 1}`;
+        const saved = JSON.parse(localStorage.getItem(key) || 'null');
+        if (saved && saved.east && saved.west) return saved;
+    } catch (e) { /* stockage indisponible */ }
+    try {
+        const standings = await Espn.getStandings({ season: Espn.currentSeason() - 1, seasonType: 2, timeoutMs: 4000 });
         const result = { east: {}, west: {} };
         ['east', 'west'].forEach(conf => standings[conf].entries.forEach((entry, i) => {
             const team = Teams.find((entry.team || {}).abbreviation) || Teams.find((entry.team || {}).displayName);
             if (team) result[conf][team.key] = i + 1;
         }));
-        return Object.keys(result.east).length && Object.keys(result.west).length ? result : null;
+        if (!Object.keys(result.east).length || !Object.keys(result.west).length) return null;
+        try { if (key) localStorage.setItem(key, JSON.stringify(result)); } catch (e) { /* stockage indisponible */ }
+        return result;
     } catch (error) {
         console.warn('Classement de la saison passée indisponible (chapitre ignoré) :', error);
         return null;
@@ -206,7 +271,7 @@ async function fetchLastSeason() {
 // ==========================================
 // ÉCRANS
 // ==========================================
-function makeSlides(M) {
+function makeSlides(M, storyFor = null) {
     const nPlayers = M.players.length;
     const CHEVRON = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     // Grille de cartes : 3 colonnes, 2 ou 1 quand il y a peu de cartes (centrées)
@@ -374,11 +439,71 @@ function makeSlides(M) {
         people: `<span class="mega-people">${bigAvatar(M.loner)}</span>`
     });
 
+    // ---------- Histoires ----------
+    const names = list => {
+        const n = list.map(p => esc(p.name));
+        return n.length <= 2 ? n.join(' et ') : `${n.slice(0, 2).join(', ')} et ${n.length - 2} autre${n.length > 3 ? 's' : ''}`;
+    };
+    const verb = (list, one, many) => list.length > 1 ? many : one;
+    const peopleRow = list => `<span class="mega-people">${list.slice(0, 3).map(bigAvatar).join('')}</span>`;
+
+    const divisive = () => {
+        const d = M.divisive;
+        return special({
+            kicker: `L’équipe qui divise · ${CONF_LABEL[d.conf]}`,
+            figure: `${ordinal(d.min)}<span class="mega-to">→</span>${ordinal(d.max)}`,
+            title: esc(d.team),
+            text: `${names(d.high)} ${verb(d.high, 'les voit', 'les voient')} ${ordinalText(d.min)}, ${names(d.low)} ${ordinalText(d.max)}. ${d.spread} places d’écart : quelqu’un devra s’excuser en avril.`,
+            art: teamArt(d.team)
+        });
+    };
+    const agreed = () => {
+        const a = M.agreed, all = a.count === nPlayers;
+        return special({
+            kicker: `Le consensus · ${ordinalText(a.place)} de l’${a.conf === 'east' ? 'Est' : 'Ouest'}`,
+            figure: `${a.count}/${nPlayers}`,
+            title: esc(a.team),
+            text: `${all ? 'Tout le monde met' : `${a.count} joueurs sur ${nPlayers} mettent`} les ${esc(a.team)} à la ${ordinalText(a.place)} place. Enfin un sujet qui ne fâche personne.`,
+            art: teamArt(a.team)
+        });
+    };
+    const finale = () => {
+        const f = M.finale;
+        const side = (pick, conf) => `<div class="finale-team">
+                <span class="finale-logo">${logo(pick.team)}</span>
+                <b>${esc(pick.team)}</b>
+                <small>${pick.who.length}/${nPlayers} les voient 1<sup>ers</sup> de l’${conf === 'east' ? 'Est' : 'Ouest'}</small>
+            </div>`;
+        return `
+        <div class="slide slide--center"><div class="stack">
+            <p class="kicker reveal-1">Votre Finale NBA</p>
+            <div class="finale reveal-2">${side(f.east, 'east')}<span class="finale-vs">VS</span>${side(f.west, 'west')}</div>
+            <p class="sub reveal-3">Les deux équipes que vous placez le plus souvent en tête de leur conférence. Rendez-vous en juin.</p>
+        </div></div>`;
+    };
+    const petSlide = kind => () => {
+        const t = kind === 'pet' ? M.pet : M.snub, up = kind === 'pet', n = Math.round(Math.abs(t.delta));
+        return special({
+            kicker: 'Par rapport à la saison passée',
+            figure: `${up ? '+' : '−'}${n}`,
+            title: up ? 'Le chouchou' : 'Le mal-aimé',
+            text: `En moyenne, vous mettez les ${esc(t.team)} ${ordinalText(t.avg)}. L’an dernier : ${ordinalText(t.last)}. ${up ? 'Le groupe y croit dur comme fer.' : 'Le groupe ne leur fait plus confiance.'}`,
+            art: teamArt(t.team)
+        });
+    };
+    const conformist = () => special({
+        kicker: 'Compatibilité des classements',
+        figure: `${M.conformistPct}%`,
+        title: 'Le conformiste',
+        text: `${esc(M.conformist.name)} colle au classement moyen du groupe. Prudence de vieux briscard, ou un œil sur la copie du voisin ?`,
+        people: `<span class="mega-people">${bigAvatar(M.conformist)}</span>`
+    });
+
     const intro = () => `
         <div class="slide slide--center"><div class="stack">
             <p class="kicker reveal-1">Saison 2026/2027 · ${nPlayers} joueurs</p>
             <h1 class="title reveal-2">Le reveal commence</h1>
-            <p class="sub reveal-2">On remonte chaque conférence de la 15e à la 1re place, puis les hot takes, la saison passée, les stats, les awards et la compatibilité de vos pronos.</p>
+            <p class="sub reveal-2">On remonte chaque conférence de la 15e à la 1re place, puis les hot takes, vos histoires, la saison passée, les stats, les awards et la compatibilité de vos pronos.</p>
             <button class="btn-primary btn--small reveal-3" id="btn-start" type="button">Lancer le reveal ${CHEVRON}</button>
         </div></div>`;
 
@@ -392,6 +517,122 @@ function makeSlides(M) {
                 <a class="btn-secondary" href="index.html">Retour à l’accueil</a>
             </div>
         </div></div>`;
+
+    // ---------- Story d'un joueur (photo de sa carte sur la page Pronostics) ----------
+    function playerStory(P) {
+        const others = M.players.filter(p => p !== P);
+        const storyIntro = () => `
+        <div class="slide slide--center"><div class="stack">
+            <span class="story-av reveal-1" style="--a:${P.color}">${dotContent(P)}</span>
+            <p class="kicker reveal-1">La story de</p>
+            <h1 class="title reveal-2">${esc(P.name)}</h1>
+            <p class="sub reveal-3">${P.prenom ? `${esc(P.prenom)} · ` : ''}Ses pronos à la loupe : son affiche, ses coups de poker, son jumeau et son opposé.</p>
+        </div></div>`;
+
+        const myFinale = () => {
+            const e = M.teamAt(P, 'east', 1), w = M.teamAt(P, 'west', 1);
+            const same = (conf, t) => others.filter(o => M.teamAt(o, conf, 1) === t).length;
+            const side = (team, conf) => `<div class="finale-team">
+                    <span class="finale-logo">${logo(team)}</span>
+                    <b>${esc(team || '—')}</b>
+                    <small>${same(conf, team) ? `Comme ${same(conf, team)} autre${same(conf, team) > 1 ? 's' : ''}` : 'Personne d’autre'}</small>
+                </div>`;
+            const both = others.filter(o => M.teamAt(o, 'east', 1) === e && M.teamAt(o, 'west', 1) === w).length;
+            return `
+            <div class="slide slide--center"><div class="stack">
+                <p class="kicker reveal-1">Sa Finale NBA</p>
+                <div class="finale reveal-2">${side(e, 'east')}<span class="finale-vs">VS</span>${side(w, 'west')}</div>
+                <p class="sub reveal-3">${both ? `${both} autre${both > 1 ? 's' : ''} joueur${both > 1 ? 's ont' : ' a'} exactement la même affiche.` : 'Une affiche que personne d’autre n’a imaginée.'}</p>
+            </div></div>`;
+        };
+
+        const mine = M.candidates.filter(h => h.who === P).sort((a, b) => Math.abs(b.gap) - Math.abs(a.gap)).slice(0, 3);
+        const myHot = () => mine.length ? `
+            <div class="slide slide--center"><div class="stack">
+                <p class="kicker reveal-1">${esc(P.name)}</p>
+                <h2 class="title reveal-1">🔥Ses hot takes🔥</h2>
+                <div class="picks${gridClass(mine.length)}">
+                ${mine.map((h, i) => `
+                    <div class="pick is-hot" style="animation-delay:${0.4 + i * 0.15}s">
+                        ${hotLogo(h.team)}
+                        <div class="pick-team">
+                            <span class="pick-name">${esc(h.team)}</span>
+                            <span class="pick-meta">Le groupe : ${ordinalText(h.avg)}</span>
+                        </div>
+                        <span class="pick-count">${ordinal(h.place)}</span>
+                    </div>`).join('')}
+                </div>
+            </div></div>` : `
+            <div class="slide slide--center"><div class="stack">
+                <p class="kicker reveal-1">Hot takes</p>
+                <h2 class="title reveal-2">Zéro hot take</h2>
+                <p class="sub reveal-3">${esc(P.name)} ne s’éloigne jamais vraiment du groupe. Sage, ou un peu trop prudent ?</p>
+            </div></div>`;
+
+        // Son pick le plus original : le 1er choix (stats ou awards) que le moins de monde partage
+        const cats = [...STAT_CATS.map(([k, l]) => ['stats', k, l]), ...AWARD_CATS.map(([k, l]) => ['awards', k, l])];
+        let bold = null;
+        cats.forEach(([group, key, label]) => {
+            const pick = String(((P[group] || {})[key] || [])[0] || '').trim();
+            if (!pick) return;
+            const count = M.players.filter(o => normName(((o[group] || {})[key] || [])[0]) === normName(pick)).length;
+            if (!bold || count < bold.count) bold = { pick, label, count };
+        });
+        const myBold = () => special({
+            kicker: `Son pick le plus original · ${bold.label}`,
+            figure: `${bold.count}/${M.players.length}`,
+            title: esc(bold.pick),
+            text: bold.count === 1
+                ? `${esc(P.name)} est le seul à voir ${esc(bold.pick)} en ${esc(bold.label)}. Coup de génie ou coup de cœur ?`
+                : `Même son choix le plus original, ${bold.count - 1} autre${bold.count > 2 ? 's l’ont' : ' l’a'} fait. ${esc(P.name)} aime la sécurité.`,
+            people: `<span class="mega-people">${bigAvatar(P)}</span>`
+        });
+
+        const sims = others.map(o => ({ o, pct: M.similarity(P, o) })).sort((a, b) => b.pct - a.pct);
+        const duoSlide = (x, twin) => () => special({
+            kicker: twin ? 'Son jumeau de pronos' : 'Son opposé',
+            figure: `${x.pct}%`,
+            title: esc(x.o.name),
+            text: twin ? `Le joueur dont les classements ressemblent le plus à ceux de ${esc(P.name)}. Coïncidence ?` : `Le joueur le plus éloigné de ${esc(P.name)}. Les débats de la saison sont déjà là.`,
+            people: `<span class="mega-people">${bigAvatar(P)}${bigAvatar(x.o)}</span>`
+        });
+
+        const order = [...M.players].sort((a, b) => M.similarity(b, M.consensus) - M.similarity(a, M.consensus));
+        const rank = order.indexOf(P) + 1, pct = M.similarity(P, M.consensus);
+        const myGroup = () => special({
+            kicker: 'Proche du groupe ?',
+            figure: `${pct}%`,
+            title: rank === 1 ? 'Le plus dans le moule' : rank === order.length ? 'Le plus à part' : `${ordinalText(rank)} sur ${order.length}`,
+            text: `Les classements de ${esc(P.name)} collent à ${pct}% au classement moyen du groupe. ${rank <= Math.ceil(order.length / 3) ? 'Plutôt dans le peloton.' : rank > order.length - Math.ceil(order.length / 3) ? 'Plutôt à contre-courant.' : 'Ni mouton, ni rebelle.'}`,
+            people: `<span class="mega-people">${bigAvatar(P)}</span>`
+        });
+
+        const storyEnd = () => `
+        <div class="slide slide--center"><div class="stack">
+            <p class="kicker reveal-1">C’est tout pour</p>
+            <h2 class="title reveal-2">${esc(P.name)}</h2>
+            <p class="sub reveal-3">Tous ses pronos, ligne par ligne, sont sur sa fiche.</p>
+            <div class="end-actions reveal-3">
+                <a class="btn-primary" href="pronostics.html?joueur=${encodeURIComponent(P.id)}" target="_top">Voir ses pronos</a>
+                <button class="btn-secondary" type="button" data-close>Fermer</button>
+            </div>
+        </div></div>`;
+
+        const list = [
+            { label: 'Intro', icon: '👤', slides: [{ html: storyIntro, ms: 4500 }] },
+            { label: 'Finale', icon: '🏆', slides: [{ html: myFinale, ms: 7000, theme: 'blue' }] },
+            { label: 'Hot takes', icon: '🔥', slides: [{ html: myHot, ms: mine.length ? 8000 : 5500, theme: 'blue' }] }
+        ];
+        if (bold) list.push({ label: 'Pick osé', icon: '🎲', slides: [{ html: myBold, ms: 7000, theme: 'violet' }] });
+        if (sims.length) list.push({ label: 'Duos', icon: '🤝', slides: [
+            { html: duoSlide(sims[0], true), ms: 7000, theme: 'lime' },
+            ...(sims.length > 1 ? [{ html: duoSlide(sims[sims.length - 1], false), ms: 7000, theme: 'orange' }] : [])
+        ] });
+        if (M.players.length >= 3) list.push({ label: 'Groupe', icon: '👥', slides: [{ html: myGroup, ms: 7000, theme: 'blue' }] });
+        list.push({ label: 'Fin', icon: '🏁', slides: [{ html: storyEnd, ms: 0, theme: 'end' }] });
+        return list;
+    }
+    if (storyFor) return playerStory(storyFor);
 
     // ---------- chapitres ----------
     const confSlides = conf => [
@@ -410,9 +651,17 @@ function makeSlides(M) {
             ? hotConfs.map(conf => ({ html: hotConf(conf), ms: 9000, theme: 'blue' }))
             : [{ html: noHot, ms: 5500 }] }
     ];
+    const stories = [];
+    if (M.divisive) stories.push({ html: divisive, ms: 8000, theme: 'orange' });
+    if (M.agreed) stories.push({ html: agreed, ms: 7000, theme: 'lime' });
+    if (M.finale) stories.push({ html: finale, ms: 8000, theme: 'blue' });
+    if (stories.length) chapters.push({ label: 'Histoires', icon: '📖', slides: stories });
+
     const moveSlides = [];
     if (M.rise) moveSlides.push({ html: move('rise'), ms: 6500, theme: 'lime' });
     if (M.fall) moveSlides.push({ html: move('fall'), ms: 6500, theme: 'orange' });
+    if (M.pet) moveSlides.push({ html: petSlide('pet'), ms: 7000, theme: 'violet' });
+    if (M.snub) moveSlides.push({ html: petSlide('snub'), ms: 7000, theme: 'orange' });
     if (moveSlides.length) chapters.push({ label: 'Saison passée', icon: '📈', slides: moveSlides });
 
     const statSlides = STAT_CATS.filter(([k]) => M.firstPicks('stats', k).length).map(([k, label]) => ({ html: category('stats', k, label, 'Stats'), ms: 5500, theme: 'blue' }));
@@ -424,6 +673,7 @@ function makeSlides(M) {
     if (M.twins) compat.push({ html: duo('twins'), ms: 7000, theme: 'lime' });
     if (M.rivals) compat.push({ html: duo('rivals'), ms: 7000, theme: 'orange' });
     if (M.loner) compat.push({ html: loner, ms: 7000, theme: 'violet' });
+    if (M.conformist) compat.push({ html: conformist, ms: 7000, theme: 'blue' });
     if (compat.length) chapters.push({ label: 'Compat', icon: '🤝', slides: compat });
 
     chapters.push({ label: 'Fin', icon: '🏁', slides: [{ html: end, ms: 0, theme: 'end' }] });
@@ -433,7 +683,24 @@ function makeSlides(M) {
 // ==========================================
 // LECTEUR
 // ==========================================
-function startPlayer(CHAPTERS) {
+// Reveal ouvert dans la page Pronostics (stories) : la croix ferme la fenêtre au lieu de changer de page
+const EMBED = (() => {
+    const q = new URLSearchParams(window.location.search);
+    const on = q.get('embed') === '1' && window.parent !== window;
+    if (on) {
+        document.documentElement.classList.add('is-embed');
+        document.addEventListener('click', e => {
+            const close = e.target.closest('.close, a[href="index.html"], [data-close]');
+            if (!close) return;
+            e.preventDefault();
+            window.parent.postMessage({ airballReveal: 'close' }, '*');
+        });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') window.parent.postMessage({ airballReveal: 'close' }, '*'); });
+    }
+    return { on, story: on ? (q.get('story') || '') : '' };
+})();
+
+function startPlayer(CHAPTERS, opts = {}) {
     const FLAT = [];
     CHAPTERS.forEach((c, ci) => c.slides.forEach((s, si) => FLAT.push({ ...s, ci, si })));
     const RING = 125.66;
@@ -462,6 +729,7 @@ function startPlayer(CHAPTERS) {
     function show(i) {
         pos = Math.max(0, Math.min(i, FLAT.length - 1));
         const s = FLAT[pos];
+        if (EMBED.on && !EMBED.story && started) window.parent.postMessage({ airballReveal: 'seen', chap: CHAPTERS[s.ci].label }, '*');
         $('slide-host').innerHTML = s.html();
         $('screen').className = 'screen theme-' + (s.theme || 'dark');
         elapsed = 0;
@@ -546,6 +814,23 @@ function startPlayer(CHAPTERS) {
     $('foot').hidden = false;
     $('btn-pause').innerHTML = ICON_PAUSE;
     show(0);
+    // Story d'un joueur : démarre tout de suite, sans écran d'accueil
+    if (opts.autostart) { started = true; setPaused(false); show(0); return; }
+    // Intégré à la page Pronostics (stories) : la page reçoit la liste des chapitres pour dessiner ses bulles,
+    // puis demande d'ouvrir un chapitre (« open ») ou de mettre en pause à la fermeture (« pause »)
+    if (EMBED.on) {
+        const list = CHAPTERS.filter(c => c.label !== 'Fin').map(c => ({ label: c.label, icon: c.icon }));
+        window.parent.postMessage({ airballReveal: 'chapters', list, players: (opts.players || []) }, '*');
+        window.addEventListener('message', e => {
+            const m = e.data || {};
+            if (m.airballStories === 'open') {
+                const ci = Math.max(0, CHAPTERS.findIndex(c => c.label === m.chap));
+                if (ci === 0) { started = false; setPaused(false); show(0); return; } // Intro : écran d'accueil et bouton « Lancer »
+                started = true; setPaused(false);
+                show(FLAT.findIndex(sl => sl.ci === ci));
+            } else if (m.airballStories === 'pause' && started) setPaused(true);
+        });
+    }
     requestAnimationFrame(t => { last = t; tick(t); });
 }
 
@@ -607,7 +892,26 @@ function showDemoBadge() {
     if (ctrls) ctrls.after(badge); else document.body.appendChild(badge);
 }
 
+const STORY_CACHE = 'airball:reveal:story-data';
+
+// Story d'un joueur (?embed=1&story=<id>) : pronos déjà chargés par la page si possible, sinon le Sheet
+async function initStory() {
+    let data = null;
+    try { data = JSON.parse(sessionStorage.getItem(STORY_CACHE) || 'null'); } catch (e) { data = null; }
+    if (!data) {
+        const siteDemo = typeof Demo !== 'undefined' && Demo.active();
+        data = siteDemo ? await Api.getPronos() : await Api.getReveal(new URLSearchParams(window.location.search).get('cle') || '').catch(() => null);
+    }
+    if (!data || !data.revealed) { showState('Story', 'Pas encore', 'Les stories arrivent avec le reveal.'); return; }
+    const model = buildModel(data, null);
+    const P = model.players.find(p => p.id === EMBED.story) || model.players.find(p => p.name === EMBED.story);
+    if (!P) { showState('Story', 'Joueur introuvable', 'Ce joueur n’a pas de story.'); return; }
+    if (typeof Demo !== 'undefined' && Demo.active()) showDemoBadge();
+    startPlayer(makeSlides(model, P), { autostart: true });
+}
+
 async function initReveal() {
+    if (EMBED.story) { initStory().catch(error => showState('Erreur', 'Story indisponible', esc(error.message || ''))); return; }
     if (typeof Api === 'undefined') {
         showState('Erreur', 'Reveal indisponible', 'Les fichiers js/config.js et js/api.js ne sont pas chargés.');
         return;
@@ -616,8 +920,11 @@ async function initReveal() {
     const local = isLocalSite();
 
     try {
+        // Mode démo du site : pas besoin d'interroger le Google Sheet
+        const siteDemo = typeof Demo !== 'undefined' && Demo.active();
         const [config, realData, lastSeason] = await Promise.all([
-            Api.getConfig().catch(() => null),
+            siteDemo ? null : Api.getConfig().catch(() => null),
+            siteDemo ? Api.getPronos() :
             // En local, si le Sheet ne répond pas, on passe aux données de démonstration
             local ? Api.getReveal(key).catch(() => null) : Api.getReveal(key),
             fetchLastSeason()
@@ -629,9 +936,11 @@ async function initReveal() {
             return;
         }
 
-        // Sur ton ordinateur, tant que le reveal n'est pas lancé : faux pronos pour travailler la page
+        // Mode démo du site (?demo=1) : mêmes faux joueurs que les pages Home et Pronostics
         let data = realData;
-        if (local && (!data || !data.revealed)) {
+        if (siteDemo) showDemoBadge();
+        // Sur ton ordinateur, tant que le reveal n'est pas lancé : faux pronos pour travailler la page
+        if (!siteDemo && local && (!data || !data.revealed)) {
             data = demoRevealData();
             showDemoBadge();
         }
@@ -650,7 +959,9 @@ async function initReveal() {
             showState('Reveal', 'Aucun prono', 'Aucun joueur inscrit pour le moment.');
             return;
         }
-        startPlayer(makeSlides(model));
+        // Les stories des joueurs réutilisent ces pronos sans les redemander au Sheet
+        try { sessionStorage.setItem(STORY_CACHE, JSON.stringify(data)); } catch (e) { /* stockage indisponible */ }
+        startPlayer(makeSlides(model), { players: model.players.map(p => p.id || p.name) });
     } catch (error) {
         console.error('Erreur de chargement du reveal :', error);
         showState('Erreur', 'Reveal indisponible', `Le chargement a échoué (${esc(error.message || 'erreur inconnue')}). Recharge la page dans quelques instants.`);

@@ -43,10 +43,6 @@ const HEADER_HTML = `
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15M11 12 5.12 2.2M13 12l5.88-9.8M8 7h8"/><circle cx="12" cy="17" r="5"/><path d="M12 18v-2h-.5"/></svg>
             <span class="nav-label">Hall of Fame</span>
         </a>
-        <a href="reveal.html" class="nav-item nav-item--reveal">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c.5 3 3 4.5 4 7 1.3 3.2-.6 7-4 7s-5.3-3.8-4-7c.4 1 1.2 1.6 2 1.7C9.5 9 10.5 6 12 3Z"/><path d="M5 21h14"/></svg>
-            <span class="nav-label">Le reveal</span>
-        </a>
     </nav>
   </div>
 
@@ -123,12 +119,29 @@ function loadHeader() {
     }
 }
 
+// ---------- Pronos révélés : lignes du classement cliquables (vers la fiche du joueur) ----------
+// Sheet (reveal.pronos, ou reveal lancé), ou dernier état connu de la page Pronostics (mode démo compris)
+let lastPronosReveal = {};
+function setPronosOpen(reveal = lastPronosReveal) {
+    lastPronosReveal = reveal || {};
+    let saved = null;
+    try { saved = localStorage.getItem('airball:revealed:pronos'); } catch (e) { /* stockage indisponible */ }
+    const demo = typeof Demo !== 'undefined' && Demo.active(); // démo : pronos toujours visibles, quel que soit le vrai Sheet
+    const open = demo || (reveal.pronos === undefined ? (!!reveal.launched || saved === '1') : !!reveal.pronos);
+    document.body.classList.toggle('pronos-open', open);
+    document.querySelectorAll('.lb-link').forEach(a => {
+        if (open) { a.removeAttribute('tabindex'); a.removeAttribute('aria-disabled'); }
+        else { a.tabIndex = -1; a.setAttribute('aria-disabled', 'true'); }
+    });
+}
+
 // ---------- Pages masquées et état des inscriptions / du reveal ----------
 function applyPageStatuses(container, pages, currentFile, preview, reveal = {}) {
     // Inscriptions closes : les boutons « Je prépare mes pronos » (data-signup) disparaissent
     // et les fausses popins proposent le reveal ; reveal lancé : lien « Le reveal » du menu
     document.body.classList.toggle('registration-closed', !!reveal.closed);
     document.body.classList.toggle('reveal-launched', !!reveal.launched);
+    setPronosOpen(reveal);
 
     // Menu : liens des pages masquées retirés
     container.querySelectorAll('.nav-item').forEach(link => {
@@ -367,7 +380,25 @@ function renderAvatarHtml(avatarUrl, playerName) {
     if (url.startsWith('http') || url.startsWith('data:image') || /^img\/[\w\/.-]+\.(jpe?g|png|webp|gif)$/i.test(url)) {
         return `<img src="${escapeHtml(url)}" alt="${escapeHtml(playerName)}">`;
     }
-    return escapeHtml(String(playerName).charAt(0).toUpperCase());
+    return avatarFallbackHtml(playerName);
+}
+
+// Joueur sans photo : deux initiales en Mattone sur un fond teinté.
+// La couleur dépend du pseudo (toujours la même pour un joueur) ; ni violet ni corail,
+// réservés aux joueurs A / B du comparatif.
+const AVATAR_COLORS = ['#dcfe5f', '#f08a3c', '#5fb8fe', '#4fd1a5', '#ff7ac6'];
+function avatarInitials(name) {
+    const words = String(name || '?').replace(/[^\p{L}\p{N}]+/gu, ' ').trim().split(/\s+/).filter(Boolean);
+    if (!words.length) return '?';
+    return (words.length > 1 ? words[0][0] + words[1][0] : words[0].slice(0, 2)).toUpperCase();
+}
+function avatarColor(name) {
+    let h = 0;
+    for (const c of String(name || '')) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+    return AVATAR_COLORS[h % AVATAR_COLORS.length];
+}
+function avatarFallbackHtml(name) {
+    return `<span class="av-fb" style="--c:${avatarColor(name)}" aria-hidden="true"><b>${escapeHtml(avatarInitials(name))}</b></span>`;
 }
 
 // Catégories de stats et d'awards, partagées par pronostics.js et standings.js
@@ -441,7 +472,7 @@ const RevealLock = (() => {
                         <span class="btn-primary reveal-cta is-disabled" aria-disabled="true">Regarder le reveal <span class="soon-tag">Bientôt</span></span>
                     </div>
                     <div class="reveal-actions rv-launched">
-                        <a href="reveal.html" class="btn-primary reveal-cta">Regarder le reveal</a>
+                        <a href="pronostics.html?reveal=1" class="btn-primary reveal-cta">Regarder le reveal</a>
                     </div>
                 </div>
             </section>`);

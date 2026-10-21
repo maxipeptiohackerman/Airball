@@ -74,6 +74,8 @@ const PageConfig = (() => {
         Object.keys(json.pages).forEach(key => { pages[key.toLowerCase()] = normalize(json.pages[key]); });
         // État du reveal (inscriptions closes, reveal lancé) : sert à la Home et au lien du menu
         const reveal = { closed: !!(json.reveal && json.reveal.closed), launched: !!(json.reveal && json.reveal.launched) };
+        // Pronos visibles (reveal lancé ou aperçu forcé) : absent des anciennes versions du script
+        if (json.reveal && json.reveal.pronos !== undefined) reveal.pronos = !!json.reveal.pronos;
         try { localStorage.setItem(CACHE_KEY, JSON.stringify({ time: Date.now(), pages, reveal })); } catch (e) { /* stockage indisponible */ }
         return { pages, reveal };
     }
