@@ -63,6 +63,7 @@
         overlay.style.setProperty('--oy', `${box.top + box.height / 2}px`);
         if (ready) frame.contentWindow.postMessage({ airballStories: 'open', chap: label }, '*');
         markSeen(label);
+        if (typeof Track !== 'undefined') Track.event(`reveal-${label}`, `Reveal : ${label}`);
         isOpen = true;
         overlay.setAttribute('aria-hidden', 'false');
         frame.tabIndex = 0;
@@ -105,6 +106,7 @@
         lastCard = btn;
         const seenIds = read(PSEEN_KEY, []);
         if (!seenIds.includes(id)) { seenIds.push(id); write(PSEEN_KEY, seenIds); }
+        if (typeof Track !== 'undefined') Track.event('story-joueur', 'Story d’un joueur');
         const box = btn.getBoundingClientRect();
         const key = new URLSearchParams(window.location.search).get('cle');
         playerOverlay = document.createElement('div');

@@ -741,6 +741,7 @@ async function submitOnboardingForm() {
 
     try {
         await Api.postRegistration(payload);
+        Track.event('inscription', 'Inscription envoyée');
     } catch (error) {
         // Le réseau a pu couper après l'envoi : on ne conclut rien, la vérification ci-dessous tranche.
         console.warn("Envoi de l'inscription :", error);

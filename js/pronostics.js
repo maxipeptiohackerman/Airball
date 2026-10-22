@@ -656,6 +656,7 @@ function showPlayer(player) {
     $('picker-avatar').innerHTML = renderAvatarHtml(player.avatar, player.pseudo);
     $('picker-name').textContent = player.pseudo;
     showView('detail');
+    Track.event('fiche-joueur', 'Fiche d’un joueur');
 
     fillCompareSelect();
     renderAll();
@@ -665,6 +666,7 @@ function showPlayer(player) {
 
 function setOpponent(player) {
     state.opponent = player;
+    if (player) Track.event('comparatif', 'Comparatif de deux joueurs');
     renderAll();
 }
 
@@ -1283,7 +1285,7 @@ function bindEvents() {
 
     document.querySelector('.tabs').addEventListener('click', event => {
         const button = event.target.closest('.tab-btn');
-        if (button) setTab(button.dataset.tab);
+        if (button) { setTab(button.dataset.tab); Track.event(`onglet-${state.tab}`, `Onglet ${state.tab}`); }
     });
 
     // Résumé : une carte ouvre son onglet, « Comparer » ouvre le panneau, « Voir l'évolution » l'onglet Évolution
