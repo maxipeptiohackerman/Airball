@@ -126,8 +126,8 @@ const Demo = (() => {
         Api.getLeaderboard = () => Promise.resolve(data.leaderboard);
         Api.getPronos = () => Promise.resolve(data.pronos);
         Api.getHistory = () => Promise.resolve(data.history);
-        // Palmarès de démo : badge « Champion » sur la fiche de Greg Ohdamned
-        Api.getHallOfFame = () => Promise.resolve([{ saison: '2024-2025', maillot: 'Ivica Zubac', vainqueur: 'Greg Ohdamned' }, { saison: '2023-2024', maillot: 'Victor Wembanyama', vainqueur: 'Jalen Bresson' }]);
+        // Palmarès de démo : « 3x Champion » sur la fiche de Greg Ohdamned (dont un titre noté sous son prénom, Guillaume)
+        Api.getHallOfFame = () => Promise.resolve([{ saison: '2024-2025', maillot: 'Ivica Zubac', vainqueur: 'Greg Ohdamned' }, { saison: '2023-2024', maillot: 'Victor Wembanyama', vainqueur: 'Jalen Bresson' }, { saison: '2022-2023', maillot: 'TBA', vainqueur: 'Guillaume' }, { saison: '2021-2022', maillot: 'TBA', vainqueur: 'Greg Ohdamned' }]);
         // Le mode démo ignore la popin « avant le tip-off »
         try { ['home', 'pronos'].forEach(s => localStorage.setItem(`airball:revealed:${s}`, '1')); } catch (e) { /* stockage indisponible */ }
         document.addEventListener('DOMContentLoaded', showBanner);

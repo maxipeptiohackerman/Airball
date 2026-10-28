@@ -67,9 +67,10 @@ const dividerRow = (label, cols) => `<tr class="sheet-divider"><td colspan="${co
 
 // ---------- tri des tableaux Est / Ouest (clic sur Rk, Streak, Prono, Écart, Pts) ----------
 // state.sort = { col, dir } ; col = 'rank' | 'streak' | 'prono-a' | 'gap-a' | 'pts-a' | (duel) '…-b'.
-// 1er clic : le tri le plus parlant, 2e : l'inverse, 3e : retour au classement réel.
+// Par défaut : tri par prono du joueur (1 à 15). 1er clic : le tri le plus parlant, 2e : l'inverse, 3e : retour au tri par défaut.
 // Les lignes playoffs / play-in restent à leur place (après la 6e et la 10e ligne).
 const SORT_FIRST_DIR = { rank: 1, streak: -1, prono: 1, gap: 1, pts: -1 }; // 1 = croissant
+const DEFAULT_SORT = { col: 'prono-a', dir: 1 };
 const streakValue = key => {
     const m = /^([WL])\s*(\d+)$/i.exec(String(state.streaks[key] || '').trim());
     return m ? (m[1].toUpperCase() === 'W' ? 1 : -1) * Number(m[2]) : null;
@@ -87,7 +88,7 @@ function sortValue(col, row) {
 }
 function sortRows(rows, known) {
     const base = (x, y) => known ? (x.real || 99) - (y.real || 99) : (x.predicted || (x.a && x.a.predicted) || 0) - (y.predicted || (y.a && y.a.predicted) || 0);
-    const sort = state.sort;
+    const sort = state.sort || DEFAULT_SORT;
     return [...rows].sort((x, y) => {
         if (sort) {
             const vx = sortValue(sort.col, x), vy = sortValue(sort.col, y);
@@ -101,7 +102,7 @@ function sortRows(rows, known) {
 const CHEVRON = '<svg class="pt-chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>';
 // En-tête triable : bouton + chevron (vers le bas = décroissant, vers le haut = croissant)
 function sortTh(col, label, cls = '', title = '') {
-    const sort = state.sort || { col: 'rank', dir: 1 };
+    const sort = state.sort || DEFAULT_SORT;
     const active = sort.col === col;
     const aria = active ? ` aria-sort="${sort.dir > 0 ? 'ascending' : 'descending'}"` : '';
     const state_ = active ? (sort.dir > 0 ? ' is-asc' : ' is-desc') : '';
@@ -112,12 +113,11 @@ function onSortClick(event) {
     if (!button) return;
     const col = button.dataset.sort;
     const first = SORT_FIRST_DIR[col.split('-')[0]];
-    const cur = state.sort;
-    if (col === 'rank') state.sort = cur && cur.col === 'rank' ? (cur.dir === 1 ? { col, dir: -1 } : null) : null;
-    else if (!cur || cur.col !== col) state.sort = { col, dir: first };
+    const cur = state.sort || DEFAULT_SORT;
+    if (cur.col !== col) state.sort = { col, dir: first };
     else if (cur.dir === first) state.sort = { col, dir: -first };
-    else state.sort = null; // 3e clic : retour au classement réel
-    if (state.sort && state.sort.col === 'rank' && state.sort.dir === 1) state.sort = null;
+    else state.sort = null; // 3e clic : retour au tri par défaut (prono du joueur)
+    if (state.sort && state.sort.col === DEFAULT_SORT.col && state.sort.dir === DEFAULT_SORT.dir) state.sort = null;
     renderConferences();
     // Garde le focus sur l'en-tête cliqué (clavier)
     const again = event.currentTarget.querySelector(`.pt-sort[data-sort="${col}"]`);
@@ -134,7 +134,8 @@ function soloConferenceTable(title, rows) {
         const key = team ? team.key : r.team;
         const cls = gapClass(r.gap);
         const cut = known && i === 5 ? ' cut-playoffs' : known && i === 9 ? ' cut-playin' : '';
-        return `<tr class="${cut.trim()}">
+        // Rang exact : ligne en vert léger ; 1 place d'écart (1 point) : jaune léger (plus de pastille dans la colonne Pts)
+        return `<tr class="${[cut.trim(), r.gap === 0 ? 'is-exact' : r.gap === 1 ? 'is-near' : ''].filter(Boolean).join(' ')}">
             <td class="pt-rank">${r.real === null ? '—' : r.real}</td>
             <td class="pt-team"><span class="team-inline">${teamLogo(r.team)}<span class="team-name"><span class="name-full">${esc(team ? team.name : r.team)}</span><span class="name-short">${esc(teamShortName(r.team))}</span></span></span></td>
             <td class="pt-num">${esc(state.records[key] || '—')}</td>
@@ -142,7 +143,7 @@ function soloConferenceTable(title, rows) {
             <td class="pt-num">${esc(state.streaks[key] || '—')}</td>
             <td class="pt-num pt-prono pt-sep">${r.predicted}</td>
             <td class="pt-num pt-ecart ${cls}">${gapCell(r)}</td>
-            <td class="pt-num pt-pts ${cls}">${r.pts === null ? '—' : r.pts > 0 ? `<span class="pt-pill">${fmt(r.pts)}</span>` : fmt(r.pts)}</td>
+            <td class="pt-num pt-pts ${cls}">${r.pts === null ? '—' : fmt(r.pts)}</td>
         </tr>`;
     }).join('');
 
@@ -926,7 +927,9 @@ const trendTag = d => d === null || d === undefined ? ''
     : '<span class="rs-tag">= Stable cette semaine</span>';
 
 function championBadge(p) {
-    const seasons = state.champions && state.champions[normName(p.pseudo)];
+    // Le Hall of Fame peut citer le vainqueur par son pseudo ou par son prénom
+    const keys = [...new Set([normName(p.pseudo), normName(p.prenom)].filter(Boolean))];
+    const seasons = state.champions && keys.flatMap(k => state.champions[k] || []).sort((x, y) => y.label.localeCompare(x.label));
     if (!seasons || !seasons.length) return '';
     // Plusieurs titres : « 3x Champion » (les saisons restent lisibles au survol)
     if (seasons.length > 1) {
@@ -1011,24 +1014,27 @@ function duelCard(c, a, b) {
 
 // Mini-courbe du rang sur les derniers relevés
 function sparkline(series) {
-    const w = 560, h = 96;
+    const w = 560, h = 140, top = 26, bottom = 20;
     const all = series.flatMap(s => s.ranks.filter(Boolean));
     if (!all.length) return '<p class="rs-empty">La courbe apparaîtra après le premier relevé hebdomadaire.</p>';
     const n = Math.max(...series.map(s => s.ranks.length));
     const maxR = Math.max(10, ...all);
-    const y = r => 12 + (r - 1) / (maxR - 1) * (h - 28);
-    const x = i => 24 + (n > 1 ? i * (w - 40) / (n - 1) : (w - 40) / 2);
+    const y = r => top + (r - 1) / (maxR - 1) * (h - top - bottom);
+    const x = i => 30 + (n > 1 ? i * (w - 60) / (n - 1) : (w - 60) / 2);
     const ticks = [1, Math.round((maxR + 1) / 2), maxR].map(r => `<text x="0" y="${y(r) + 4}" class="rs-tick">${r}</text>`).join('');
     const lines = series.map((s, si) => {
         const pts = s.ranks.map((r, i) => r ? [x(i), y(r)] : null).filter(Boolean);
         if (!pts.length) return '';
         const last = pts[pts.length - 1];
         const lastRank = s.ranks.filter(Boolean).pop();
+        // Étiquette du rang actuel : au-dessus du point, ou en dessous s'il est collé en haut (1er)
+        const above = si ? last[1] + 22 > h : last[1] - 12 > 4;
+        const ly = above ? last[1] - 11 : last[1] + 20;
         return `<path d="M${pts.map(q => q.join(' ')).join('L')}" stroke="${s.color}" stroke-width="2" fill="none"/>
             ${pts.map((q, i) => `<circle cx="${q[0]}" cy="${q[1]}" r="${i === pts.length - 1 ? 5 : 3}" fill="${i === pts.length - 1 ? s.color : '#1e1e23'}" stroke="${s.color}" stroke-width="1.5"/>`).join('')}
-            <text x="${last[0] - 10}" y="${last[1] + (si ? 18 : -9)}" text-anchor="end" fill="${s.color}" class="rs-last">${ordinal(lastRank)}</text>`;
+            <text x="${last[0] - 10}" y="${ly}" text-anchor="end" fill="${s.color}" class="rs-last">${ordinal(lastRank)}</text>`;
     }).join('');
-    return `<svg class="rs-spark" viewBox="0 0 ${w} ${h}" role="img" aria-label="Évolution du classement"><path d="M24 ${h - 12}H${w - 16}" stroke="#2c2c31"/>${ticks}${lines}</svg>`;
+    return `<svg class="rs-spark" viewBox="0 0 ${w} ${h}" role="img" aria-label="Évolution du classement"><path d="M30 ${h - 8}H${w - 16}" stroke="#2c2c31"/>${ticks}${lines}</svg>`;
 }
 function rankSeries(p) {
     if (!state.history) return [];

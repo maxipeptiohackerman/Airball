@@ -134,7 +134,7 @@ async function loadEspn() {
                 const cat = c.names.map(n => cats.find(x => x.name === n)).find(Boolean)
                     || cats.find(x => String(x.abbreviation || '').toUpperCase() === c.abbr);
                 if (!cat) throw new Error(`catégorie « ${c.label} » absente`);
-                const top = cat.leaders.slice(0, 4);
+                const top = cat.leaders.slice(0, 6);
                 result[c.key] = await Promise.all(top.map(async l => ({ name: await athleteName(l), value: l.displayValue || (l.value != null ? Number(l.value).toFixed(1) : '') })));
                 if (result[c.key].length < 3 || result[c.key].slice(0, 3).some(x => !x.name)) throw new Error(`moins de 3 joueurs pour « ${c.label} »`);
             }
@@ -142,6 +142,16 @@ async function loadEspn() {
         } catch (error) { lastError = error; console.warn('Source ESPN indisponible :', url, error); }
     }
     throw lastError || new Error('ESPN ne répond pas');
+}
+
+// Podium écrit dans le Sheet : [1er, 2e, 3e]. Égalité en tête (même moyenne) : les leaders
+// partagent la case du 1er, séparés par « / » (un pick sur l'un ou l'autre rapporte les points du 1er),
+// puis les deux joueurs suivants.
+function podium(list) {
+    const tied = list.filter(p => p.value !== '' && p.value === list[0].value);
+    const lead = tied.length > 1 ? tied : [list[0]];
+    const rest = list.slice(lead.length);
+    return [lead.map(p => p.name).join(' / '), (rest[0] || {}).name || '', (rest[1] || {}).name || ''];
 }
 
 // ---------- Affichage ----------
@@ -152,10 +162,12 @@ function render() {
         const curCell = cur.length ? cur.map((n, i) => `${i + 1}. ${esc(n || '—')}`).join('<br>') : '—';
         let nxtCell = 'Chargement…', cls = '';
         if (nxt) {
-            const changed = [0, 1, 2].some(i => norm(nxt[i].name) !== norm(cur[i]));
+            const pod = podium(nxt);
+            const changed = [0, 1, 2].some(i => norm(pod[i]) !== norm(cur[i]));
             cls = changed ? 'changed' : 'same';
-            nxtCell = nxt.slice(0, 3).map((p, i) => `${i + 1}. ${esc(p.name)} <span class="tag">${esc(p.value)}</span>`).join('<br>');
-            if (nxt[3] && nxt[3].value && nxt[3].value === nxt[2].value) nxtCell += `<small>Égalité à la 3e place avec ${esc(nxt[3].name)} : ESPN départage, c'est son ordre qui est retenu.</small>`;
+            const valueOf = name => { const f = nxt.find(p => p.name === name); return f ? f.value : ''; };
+            nxtCell = pod.map((names, i) => `${i + 1}. ${names.split(' / ').map(n => `${esc(n)} <span class="tag">${esc(valueOf(n))}</span>`).join(' / ') || '—'}`).join('<br>');
+            if (pod[0].includes(' / ')) nxtCell += `<small>Égalité en tête : un pick sur l'un ou l'autre rapporte les points du 1er.</small>`;
             nxtCell += `<small>${changed ? 'Change par rapport au Sheet' : 'Identique au Sheet'}</small>`;
         }
         return `<tr><td>${c.label}</td><td>${curCell}</td><td class="${cls}">${nxtCell}</td></tr>`;
@@ -183,11 +195,14 @@ async function write() {
     const key = $('key').value.trim();
     if (!key) { status('Renseigne d\'abord le mot de passe (ADMIN_KEY de Code.gs).', 'bad'); $('key').focus(); return; }
     try { localStorage.setItem(KEY_STORE, key); } catch (e) { /* stockage indisponible */ }
-    const stats = Object.fromEntries(CATS.map(c => [c.key, espn[c.key].slice(0, 3).map(p => p.name)]));
+    const stats = Object.fromEntries(CATS.map(c => [c.key, podium(espn[c.key])]));
+    // Moyennes par match affichées sur la page Statistiques NBA (même ordre que le podium)
+    const valueOf = (list, names) => { const f = list.find(p => p.name === String(names).split(' / ')[0]); return f ? String(f.value) : ''; };
+    const values = Object.fromEntries(CATS.map(c => [c.key, stats[c.key].map(n => valueOf(espn[c.key], n))]));
     $('write').disabled = true; $('refresh').disabled = true;
     status('Écriture dans le Sheet…');
     try {
-        const res = await fetch(APPS_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'maj-stats', cle: key, stats }) });
+        const res = await fetch(APPS_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'maj-stats', cle: key, stats, values }) });
         const data = await res.json();
         if (data.result !== 'success') {
             const why = { bad_key: 'mot de passe refusé : vérifie ADMIN_KEY dans Code.gs (et que le script a bien été redéployé)', invalid_data: 'données incomplètes', no_sheet: 'onglet NBA DATA introuvable' }[data.code] || data.message || 'erreur inconnue';

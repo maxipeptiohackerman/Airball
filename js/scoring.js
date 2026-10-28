@@ -8,7 +8,8 @@
 // ce fichier ne sert qu'à détailler ligne par ligne.
 const Scoring = (() => {
     const PICK_POINTS = [2, 1, 0.5];
-    const norm = value => String(value === null || value === undefined ? '' : value).trim().toLowerCase();
+    // Comparaison des noms sans accents ni majuscules (« Doncic » = « Dončić »)
+    const norm = value => String(value === null || value === undefined ? '' : value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
 
     function rankPoints(gap) {
         if (gap === 0) return 2;
@@ -30,9 +31,14 @@ const Scoring = (() => {
     }
 
     // picks : [pick1, pick2, pick3]   realFirst : nom du leader/gagnant réel ("" si inconnu)
+    // realFirst : le leader de la catégorie, ou plusieurs leaders ex æquo séparés par « / »
+    // (« Nikola Jokić / Victor Wembanyama ») : un pick sur l'un ou l'autre compte comme le leader.
     function pickRow(picks, realFirst) {
-        const known = norm(realFirst) !== '';
-        const hits = (picks || []).map(p => known && norm(p) === norm(realFirst));
+        const leaders = String(realFirst || '').split('/').map(norm).filter(Boolean);
+        const known = leaders.length > 0;
+        // Un seul pick compte par catégorie : le mieux placé qui désigne un leader (2, 1 ou 0,5 pt, jamais plus)
+        const first = known ? (picks || []).findIndex(p => norm(p) !== '' && leaders.includes(norm(p))) : -1;
+        const hits = (picks || []).map((p, i) => i === first);
         const pts = known ? hits.reduce((sum, hit, i) => sum + (hit ? PICK_POINTS[i] : 0), 0) : null;
         return { picks: picks || [], hits, pts };
     }

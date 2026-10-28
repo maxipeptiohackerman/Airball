@@ -1,7 +1,7 @@
 // ==========================================
 // STATS NBA & STANDINGS ESPN (page standings.html)
 // Classements : même tableau que les pages Pronostics (en-têtes triables, coupures playoffs / play-in)
-// Stats & awards : mini-podiums avec les maillots (2e · 1er · 3e)
+// Stats : top 3 en liste avec les moyennes · Awards : mini-podiums avec les maillots (2e · 1er · 3e)
 // Dépend de : common.js (escapeHtml, STAT_KEYS, AWARD_KEYS, CATEGORY_LABELS), api.js (Api, Espn), teams.js (Teams), jersey.js (Jersey)
 // ==========================================
 const NBA = { standings: null, sort: null, roster: null };
@@ -164,6 +164,77 @@ function podiumCard(key, picks) {
         <div class="pd-row">${[1, 0, 2].map(place).join('')}</div></article>`;
 }
 
+// Stats : top 3 en liste (rang, maillot, joueur et équipe, moyenne par match à droite)
+function statsCard(key, picks, values) {
+    const list = picks || [], vals = values || [];
+    const teamOf = name => { const info = (NBA.roster || {})[normName(String(name).split(' / ')[0])]; const t = info && Teams.find(info.team); return t ? t.name : ''; };
+    const row = i => {
+        const name = list[i] || '';
+        const tie = name.includes(' / ');
+        return `<div class="st-row is-${i + 1}">
+            <span class="pd-tag">${i === 0 ? '1er' : `${i + 1}e`}</span>
+            <span class="st-jersey">${jerseyOf(name.split(' / ')[0])}</span>
+            <span class="st-who"><b>${name ? escapeHtml(name) : '—'}</b><small>${tie ? 'Ex æquo' : escapeHtml(teamOf(name))}</small></span>
+            <span class="st-val">${vals[i] ? escapeHtml(String(vals[i]).replace('.', ',')) : ''}</span>
+        </div>`;
+    };
+    return `<article class="pd-card st-card"><h4>${escapeHtml(CATEGORY_LABELS[key] || key)}<small>par match</small></h4>${[0, 1, 2].map(row).join('')}</article>`;
+}
+
+// ---------- Awards sans favoris réels (début de saison) ----------
+// Pronos révélés : pour chaque trophée, le pick n°1 le plus choisi par les joueurs d'Airball (« Choix du groupe »).
+// Pronos encore cachés : un seul bloc illustré « Les awards se jouent en avril ».
+function groupChoice(players, key) {
+    const counts = {};
+    let total = 0;
+    players.forEach(p => {
+        const pick = String(((p.awards || {})[key] || [])[0] || '').trim();
+        if (!pick) return;
+        total++;
+        const k = normName(pick);
+        (counts[k] = counts[k] || { name: pick, n: 0 }).n++;
+    });
+    const list = Object.values(counts).sort((a, b) => b.n - a.n || a.name.localeCompare(b.name));
+    if (!list.length) return null;
+    const tied = list.filter(x => x.n === list[0].n);
+    return { names: tied.map(x => x.name), n: list[0].n, total };
+}
+function groupCard(key, choice) {
+    if (!choice) return `<article class="pd-card pd-group"><h4>${escapeHtml(CATEGORY_LABELS[key] || key)}</h4><p class="pd-group-sub">Aucun pick pour ce trophée.</p></article>`;
+    const [first, ...others] = choice.names;
+    return `<article class="pd-card pd-group"><h4>${escapeHtml(CATEGORY_LABELS[key] || key)}</h4>
+        <div class="pd-group-row">${jerseyOf(first)}
+            <div><b>${escapeHtml(first)}${others.length ? ` <small>et ${others.map(escapeHtml).join(', ')}</small>` : ''}</b>
+            <span class="pd-group-sub">${choice.n} joueur${choice.n > 1 ? 's' : ''} sur ${choice.total} l'${choice.n > 1 ? 'ont' : 'a'} mis en pick 1${others.length ? ' (ex æquo)' : ''}</span></div>
+        </div></article>`;
+}
+const AWARDS_WAIT = () => `<div class="pd-wait"><div>
+        <h4>Les awards se jouent en avril</h4>
+        <p>Il faut une bonne trentaine de matchs pour que les favoris se dessinent. Les premières tendances arriveront dans quelques semaines, et les trophées seront remis à la fin de la saison régulière.</p>
+        <div class="pd-wait-chips">${AWARD_KEYS.map(k => `<span>🏆 ${escapeHtml(CATEGORY_LABELS[k] || k)}</span>`).join('')}</div>
+    </div><img src="img/illustrations/couronne.svg" alt="" aria-hidden="true"></div>`;
+
+async function renderAwards(host, awards) {
+    const filled = AWARD_KEYS.filter(k => String(((awards || {})[k] || [])[0] || '').trim());
+    // Au moins un favori réel : podiums (et « choix du groupe » pour les trophées encore vides)
+    let pronos = null;
+    if (filled.length < AWARD_KEYS.length) {
+        try { pronos = await Api.getPronos(); } catch (e) { pronos = null; }
+    }
+    const players = pronos && pronos.revealed && Array.isArray(pronos.players) ? pronos.players : null;
+    const sub = document.getElementById('awards-sub');
+    if (!filled.length && !players) {
+        host.classList.add('is-wait');
+        host.innerHTML = AWARDS_WAIT();
+        if (sub) sub.textContent = 'Favoris actuels pour chaque trophée';
+        return;
+    }
+    host.classList.remove('is-wait');
+    const intro = filled.length < AWARD_KEYS.length && players
+        ? `<p class="pd-group-intro"><span>Choix du groupe</span>En attendant les vrais favoris : le pick n°1 le plus choisi par les joueurs d'Airball.</p>` : '';
+    host.innerHTML = intro + AWARD_KEYS.map(k => filled.includes(k) ? podiumCard(k, awards[k]) : (players ? groupCard(k, groupChoice(players, k)) : podiumCard(k, []))).join('');
+}
+
 async function fetchNbaDataStatsAwards() {
     const statsHost = document.getElementById('nba-stats');
     const awardsHost = document.getElementById('nba-awards');
@@ -180,8 +251,8 @@ async function fetchNbaDataStatsAwards() {
             const d = new Date(data.statsUpdatedAt);
             if (!isNaN(d)) sub.textContent = `Meneurs actuels · au ${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`;
         }
-        if (statsHost) statsHost.innerHTML = STAT_KEYS.map(k => podiumCard(k, data.stats[k])).join('');
-        if (awardsHost) awardsHost.innerHTML = AWARD_KEYS.map(k => podiumCard(k, data.awards[k])).join('');
+        if (statsHost) statsHost.innerHTML = STAT_KEYS.map(k => statsCard(k, data.stats[k], (data.statsValues || {})[k])).join('');
+        if (awardsHost) await renderAwards(awardsHost, data.awards);
     } catch (error) {
         console.error("Erreur lors du chargement de NBA DATA :", error);
         const message = `<p class="table-message table-message--error">Les données n’ont pas pu être chargées (${escapeHtml(error.message)}).</p>`;
