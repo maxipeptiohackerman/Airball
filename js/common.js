@@ -111,6 +111,7 @@ function loadHeader() {
     }
 
     setupSidebarToggle(container);
+    setupStatsOptOut(container);
     startShotClock();
 
     // Pages en maintenance ou masquées (onglet CONFIG du Sheet)
@@ -118,6 +119,54 @@ function loadHeader() {
         const preview = PageConfig.isPreview();
         PageConfig.watch((pages, reveal) => applyPageStatuses(container, pages, isHome ? 'index.html' : currentFileName, preview, reveal));
     }
+}
+
+// ---------- Fonction cachée de l'organisateur : ne plus compter cet appareil dans GoatCounter ----------
+// Appui long de 10 secondes sur le logo, puis confirmation. Refaire le geste réactive le comptage.
+// Utile dans l'app installée sur iPhone, qui a sa propre mémoire (séparée de Safari) et pas de barre d'adresse
+// pour ouvrir une page outils/. Ne change rien au jeu : seulement le comptage des visites (clé skipgc, lue dans config.js).
+const STATS_OPT_OUT_DELAY = 10000;
+function setupStatsOptOut(container) {
+    const logo = container.querySelector('.sidebar-logo');
+    if (!logo) return;
+    const img = logo.querySelector('img');
+    if (img) img.draggable = false;
+    let timer = null;
+    let fired = false;
+    const cancel = () => { clearTimeout(timer); timer = null; };
+    logo.addEventListener('pointerdown', () => {
+        fired = false;
+        cancel();
+        timer = setTimeout(() => {
+            timer = null;
+            fired = true;
+            let off = false;
+            try { off = localStorage.getItem('skipgc') === 't'; } catch (e) { return; }
+            const question = off
+                ? 'Compter à nouveau les visites de cet appareil dans les statistiques ?'
+                : 'Ne plus compter les visites de cet appareil dans les statistiques ?';
+            if (!window.confirm(question)) return;
+            try {
+                if (off) localStorage.removeItem('skipgc');
+                else localStorage.setItem('skipgc', 't');
+            } catch (e) { return; }
+            showStatsToast(off ? 'Cet appareil est de nouveau compté.' : 'Cet appareil n’est plus compté.');
+        }, STATS_OPT_OUT_DELAY);
+    });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(type => logo.addEventListener(type, cancel));
+    // Après le geste, le lâcher du doigt ne doit pas ramener à la Home
+    logo.addEventListener('click', e => { if (fired) { e.preventDefault(); fired = false; } });
+    // Pas de menu « Ouvrir le lien / Enregistrer l'image » pendant l'appui long
+    logo.addEventListener('contextmenu', e => e.preventDefault());
+}
+
+function showStatsToast(text) {
+    const toast = document.createElement('div');
+    toast.className = 'stats-toast';
+    toast.setAttribute('role', 'status');
+    toast.textContent = text;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
 }
 
 // ---------- Pronos révélés : lignes du classement cliquables (vers la fiche du joueur) ----------
