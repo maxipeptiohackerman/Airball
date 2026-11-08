@@ -461,7 +461,7 @@ body:has(#header-container) {
         padding: 4px 3px 3px;
         gap: 4px;
     }
-    .shot-clock-label { font-size: 9px; }
+    .shot-clock-label { font-size: 10px; }
     .shot-clock-screen { --led: 3px; --led-gap: 1px; height: 36px; }
     .sidebar-top { min-height: 62px; }
     .sidebar {
@@ -2148,7 +2148,7 @@ body.has-hero { position: relative; overflow-x: hidden; }
     font-family: var(--font-ui);
 }
 .podium-stats div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.podium-stats dt { order: 0; font-size: 8px; font-weight: 600; text-transform: uppercase; color: #b1a998; white-space: nowrap; }
+.podium-stats dt { order: 0; font-size: 10px; font-weight: 600; text-transform: uppercase; color: #b1a998; white-space: nowrap; }
 .podium-stats dd { margin: 0; font-size: 20px; font-weight: 500; color: #c0bec3; font-variant-numeric: tabular-nums; }
 
 .podium-player { display: flex; align-items: center; gap: 8px; }
@@ -2523,6 +2523,17 @@ body.registration-closed [data-signup] { display: none !important; }
 .rules-page .lot-thumb img.lot-thumb-svg { position: absolute; top: -1px; left: 50%; width: 78%; height: auto; padding: 0; transform: translateX(-50%); object-fit: initial; }
 .rules-page .lot-history-name { font-size: 16px; font-weight: 500; color: #ffffff; }
 .rules-page .lot-history-meta { font-size: 14px; color: #c0bec3; }
+/* Bloc caché tant que le Hall of Fame est vide (display: flex l'emportait sur l'attribut hidden) */
+.lot-history[hidden] { display: none; }
+/* Téléphone et tablette : une seule colonne, marges normales */
+@media (max-width: 1100px) {
+    .rules-page .lot-body { grid-template-columns: minmax(0, 1fr); padding: 20px 16px; }
+}
+@media (max-width: 640px) {
+    .rules-page .lot-main { align-items: flex-start; gap: 16px; }
+    .rules-page .lot-visual { width: 88px; height: 88px; }
+    .rules-page .lot-visual img { padding: 8px 0; }
+}
 
 /* Barème : lignes de 72 px, points en capitales violet clair (maquette) */
 .rules-page .rules-row { min-height: 72px; padding: 16px 24px; gap: 16px; border-bottom-color: #303034; }
@@ -2676,6 +2687,7 @@ body:has(.demo-banner) .preview-banner { display: none; }
     text-underline-offset: 3px;
     cursor: pointer;
 }
+.player-card-compare::before { content: ''; position: absolute; inset: -12px -20px; }
 .player-card-compare:hover { color: var(--accent-lime); }
 .player-card-compare:focus-visible { outline: 2px solid var(--accent-lime); outline-offset: 2px; border-radius: 3px; }
 .player-card-check { position: absolute; right: 10px; bottom: 10px; width: 22px; height: 22px; color: var(--accent-lime); opacity: 0; transition: opacity 0.15s; pointer-events: none; }
@@ -2713,7 +2725,7 @@ body:has(.demo-banner) .preview-banner { display: none; }
     .players-grid { padding: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     .player-card { padding-bottom: 68px; }
     .player-card-name { bottom: 36px; }
-    .player-card-compare { bottom: 10px; }
+    .player-card-compare { bottom: 10px; font-size: 12px; }
     .player-card-check { right: 8px; bottom: 8px; }
     .players-foot { padding: 12px 16px 16px; flex-direction: column; align-items: stretch; gap: 8px; }
     .players-hint { text-align: center; }
@@ -3892,3 +3904,258 @@ body.has-story { overflow: hidden; }
 .st-row.is-1 { background: rgba(220, 254, 95, 0.06); border-top-color: transparent; }
 .st-row.is-1 + .st-row { border-top-color: transparent; }
 .st-row.is-1 .st-val { font-size: 22px; color: var(--accent-lime); }
+
+
+/* ==========================================
+   TÉLÉPHONE ET TABLETTE : BARRE D'ONGLETS EN BAS (variante A, 08/11/2026)
+   L'en-tête se réduit au logo + compteur ; les pages passent dans une barre fixée en bas,
+   toujours sous le pouce. Sur ordinateur, rien ne change.
+   ========================================== */
+.nav-label-short { display: none; }
+@media (max-width: 900px) {
+    :root { --tabbar-h: 64px; --tabbar-space: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px)); }
+
+    /* En-tête compact : logo à gauche, compteur à droite, sur une ligne */
+    .sidebar { padding: 10px 16px; gap: 0; }
+    .sidebar-main { gap: 0; }
+    .sidebar-top { min-height: 44px; }
+    .sidebar-logo { width: 132px; }
+    .shot-clock {
+        top: 50%;
+        transform: translateY(-50%);
+        width: auto;
+        padding: 4px 6px 4px 8px;
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+    }
+    .shot-clock-label { width: 50px; font-size: 10px; line-height: 1.15; text-align: right; white-space: normal; }
+    .shot-clock-screen { flex: none; width: 72px; height: 30px; }
+
+    /* Barre d'onglets */
+    .nav-list {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 30;
+        margin: 0;
+        padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+        gap: 0;
+        overflow: visible;
+        background: rgba(18, 18, 20, 0.96);
+        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(12px);
+        border-top: 1px solid #26262a;
+    }
+    .nav-item {
+        flex: 1 1 0;
+        min-width: 0;
+        min-height: 52px;
+        padding: 4px 2px;
+        flex-direction: column;
+        justify-content: center;
+        gap: 4px;
+        font-family: var(--font-ui);
+        font-size: 11px;
+        font-weight: 500;
+        color: #8e8d91;
+    }
+    .nav-item svg { width: 22px; height: 22px; color: currentColor; }
+    .nav-item:hover { background: none; }
+    .nav-item.active { background: none; color: var(--accent-lime); font-weight: 700; }
+    .nav-item.active svg { color: var(--accent-lime); }
+    /* Libellé long gardé pour les lecteurs d'écran, libellé court affiché */
+    .nav-item:has(.nav-label-short) .nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .nav-label-short { display: inline; }
+
+    /* Le contenu ne passe jamais sous la barre */
+    .container:has(> #header-container) { padding-bottom: calc(var(--tabbar-space) + 24px); }
+    .demo-banner, .preview-banner { bottom: calc(var(--tabbar-space) + 12px); }
+    .players-foot { bottom: var(--tabbar-space); }
+}
+
+/* Home sur téléphone : podium « en marches » (2e, 1er, 3e côte à côte), total seul.
+   Le détail Est / Ouest / Stats / Awards reste dans la fiche du joueur. */
+@media (max-width: 640px) {
+    .podium { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-items: end; }
+    .podium-card,
+    .podium-card--gold, .podium-card--silver, .podium-card--bronze { order: 0; }
+    .podium-card { height: 196px; padding: 14px 8px 12px; gap: 8px; justify-content: flex-start; border-radius: 10px 10px 4px 4px; }
+    .podium-card--gold { height: 220px; }
+    .podium-card--bronze { height: 186px; }
+    .podium-medal { width: 34px; height: 39px; }
+    .podium-rank { height: 16px; padding: 0 6px; font-size: 10px; bottom: -6px; }
+    .podium-body { flex: 1; gap: 6px; justify-content: space-between; align-items: center; }
+    .podium-player { order: -1; flex-direction: column; gap: 6px; width: 100%; }
+    .podium-player .trend { display: none; }
+    .podium-avatar { width: 40px; height: 40px; }
+    .podium-name { flex: none; width: 100%; text-align: center; white-space: normal; font-size: 12px; line-height: 1.25; }
+    .podium-name .lb-link { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .podium-name .player-prenom { display: none; }
+    .podium-stats { display: block; }
+    .podium-stats div:not(:last-child) { display: none; }
+    .podium-stats div:last-child { align-items: center; gap: 0; }
+    .podium-stats div:last-child dt { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .podium-stats div:last-child dd { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: #ffffff; }
+    .podium-stats div:last-child dd::after { content: ' pts'; font-family: var(--font-ui); font-size: 12px; font-weight: 500; color: #c0bec3; }
+}
+/* Très petits écrans (320 px) : un pseudo d'un seul long mot passe à la ligne plutôt que d'être rogné */
+@media (max-width: 360px) { .podium-name .lb-link { overflow-wrap: anywhere; } }
+
+/* ==========================================
+   RETOURS DE LA REVIEW MOBILE (08/11/2026, suite)
+   ========================================== */
+
+/* Home, podium en marches : plus de médaille, la pastille « 1er / 2e / 3e » est posée sur la photo */
+@media (max-width: 640px) {
+    .podium-card { height: 176px; padding-top: 16px; }
+    .podium-card--gold { height: 198px; }
+    .podium-card--bronze { height: 166px; }
+    .podium-medal { position: relative; z-index: 2; width: 100%; height: 0; margin-bottom: -8px; }
+    .podium-medal img, .podium-medal .medal-fallback { display: none; }
+    .podium-rank { top: 42px; bottom: auto; height: 18px; padding: 0 7px; font-size: 11px; }
+    .podium-avatar { width: 52px; height: 52px; border-width: 1.5px; border-radius: 8px; font-size: 18px; }
+    .podium-player { gap: 10px; }
+}
+
+/* Pronostics : cartes des joueurs plus petites sur téléphone (3 par ligne) */
+@media (max-width: 640px) {
+    .players-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 12px; }
+    .player-card { padding-bottom: 66px; }
+    .player-card-photo { font-size: 36px; }
+    .player-card-name { left: 4px; right: 4px; bottom: 30px; font-size: 12px; }
+    .player-card-name .player-prenom { font-size: 11px; }
+    .player-card-compare { bottom: 6px; font-size: 11px; }
+    .player-card-check { width: 18px; height: 18px; right: 5px; bottom: 6px; }
+}
+
+/* Fiche pronos, onglets Est / Ouest : colonne « Prono » en tête, sans rang réel, Bilan ni L10 (téléphone) */
+.pt-table .pt-prono-first { display: none; }
+@media (max-width: 768px) {
+    .pt-table:has(.pt-prono-first) .pt-prono-first { display: table-cell; width: 46px; padding-left: 12px; text-align: left; font-weight: 700; color: #ffffff; }
+    .pt-table:has(.pt-prono-first) th.pt-prono-first .pt-sort { justify-content: flex-start; padding-left: 0; }
+    .pt-table:has(.pt-prono-first) .pt-rank,
+    .pt-table:has(.pt-prono-first) .pt-bilan,
+    .pt-table:has(.pt-prono-first) .pt-l10,
+    .pt-table:has(.pt-prono-first) .pt-prono,
+    .pt-table:has(.pt-prono-first) .pt-sep { display: none; }
+    .pt-table:has(.pt-prono-first) .pt-num { width: 52px; }
+    .pt-table:has(.pt-prono-first) th:last-child, .pt-table:has(.pt-prono-first) td.pt-pts { width: 44px; }
+    .pt-table tr.is-exact td.pt-prono-first { box-shadow: inset 3px 0 0 #68fe83; }
+    .pt-table tr.is-near td.pt-prono-first { box-shadow: inset 3px 0 0 #e2fe68; }
+    /* Logos d'équipes de retour, avec de l'air entre le numéro et l'équipe */
+    .pt-table .pt-team .team-logo { display: inline-block; width: 20px; height: 20px; flex-shrink: 0; }
+    .pt-table .pt-team .team-inline { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .pt-table td.pt-team { padding-left: 8px; }
+    /* Duel : logo un peu plus petit, la place est comptée */
+    .pt-table--duel .pt-team .team-logo { width: 18px; height: 18px; }
+    .pt-table--duel .pt-team .team-inline { gap: 6px; }
+}
+
+/* Statistiques NBA : logos, et Bilan / Retard serrés à droite pour laisser la place aux noms */
+@media (max-width: 768px) {
+    .nba-table .pt-rank { width: 30px; }
+    .nba-table .pt-num { width: 40px; }
+    .nba-table .nba-gb { width: 46px; }
+    .nba-table th:last-child, .nba-table td:last-child { width: 56px; }
+    .nba-table .pt-team .team-name { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+}
+
+/* Fiche pronos, téléphone : en-tête épuré (sans « À x pts du leader » ni badge champion) */
+@media (max-width: 640px) { .rs-head .rs-meta { display: none; } }
+
+/* Fiche pronos, Résumé : liste de 4 lignes sur téléphone (les grandes cartes restent sur ordinateur) */
+.rs-list, .sa-recap { display: none; }
+@media (max-width: 640px) {
+    .rs-cards { display: none; }
+    .rs-list { display: flex; flex-direction: column; border: 1px solid #2c2c30; border-radius: 12px; background: #1b1b20; overflow: hidden; }
+    .rs-row { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 12px 0 16px; border: none; border-bottom: 1px solid #26262a; background: none; color: #ffffff; font: inherit; text-align: left; cursor: pointer; }
+    .rs-row:last-child { border-bottom: none; }
+    .rs-row:focus-visible { outline: 2px solid var(--accent-lime); outline-offset: -2px; }
+    .rs-row-t { flex: 1; font-family: var(--font-display); font-size: 13px; font-weight: 700; letter-spacing: 0.04em; }
+    .rs-row-v { display: flex; align-items: baseline; gap: 12px; }
+    .rs-row .rs-rank { font-family: var(--font-display); font-size: 20px; font-weight: 900; color: var(--violet); }
+    .rs-row b { min-width: 54px; text-align: right; font-size: 14px; font-weight: 500; color: #c0bec3; }
+    .rs-row-chev { width: 16px; height: 16px; flex-shrink: 0; color: #8e8d91; }
+    /* Comparatif : catégorie, joueur A, joueur B */
+    .rs-list--duel .rs-row-t { flex: 0 0 74px; }
+    .rs-row-side { flex: 1; display: flex; align-items: baseline; gap: 6px; }
+    .rs-row-side.is-b { justify-content: flex-end; }
+    .rs-row-side b { min-width: 0; font-size: 12px; color: #8e8d91; white-space: nowrap; }
+    .rs-row-side .rs-rank { font-size: 18px; }
+    .rs-row-side.is-a .rs-rank { color: var(--duel-a); }
+    .rs-row-side.is-b .rs-rank { color: var(--duel-b); }
+    .rs-row-side.is-behind .rs-rank { opacity: 0.55; }
+}
+
+/* Fiche pronos, comparatif Stats & Awards sur téléphone : récap par catégorie, détail au toucher */
+@media (max-width: 640px) {
+    .sa-duel { display: none; }
+    .sa-recap { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
+    .sar-seg { display: flex; padding: 3px; border: 1px solid #2c2c30; border-radius: 999px; background: #17171c; }
+    .sar-seg-btn { flex: 1; min-height: 38px; border: none; border-radius: 999px; background: none; color: #8e8d91; font: 500 14px var(--font-ui); cursor: pointer; }
+    .sar-seg-btn.is-on { background: #2a2a30; color: #ffffff; font-weight: 700; }
+    .sar-seg-btn:focus-visible { outline: 2px solid var(--accent-lime); outline-offset: 1px; }
+    .sar-section[hidden] { display: none; }
+    .sar-head { display: flex; justify-content: space-between; gap: 8px; padding: 0 4px 8px; font-size: 13px; color: #c0bec3; }
+    .sar-head span { display: flex; align-items: center; gap: 6px; min-width: 0; }
+    .sar-head i { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .sar-head .is-a i { background: var(--duel-a); }
+    .sar-head .is-b i { background: var(--duel-b); }
+    .sar-head .is-a b { color: var(--duel-a); font-family: var(--font-display); font-size: 16px; }
+    .sar-head .is-b b { color: var(--duel-b); font-family: var(--font-display); font-size: 16px; }
+    .sar-list { border: 1px solid #2c2c30; border-radius: 12px; background: #1b1b20; overflow: hidden; }
+    .sar-row { border-bottom: 1px solid #26262a; }
+    .sar-row:last-child { border-bottom: none; }
+    .sar-row summary { display: flex; align-items: center; gap: 8px; min-height: 56px; padding: 0 12px; list-style: none; cursor: pointer; }
+    .sar-row summary::-webkit-details-marker { display: none; }
+    .sar-row summary:focus-visible { outline: 2px solid var(--accent-lime); outline-offset: -2px; }
+    .sar-row[open] summary { background: #202026; }
+    .sar-cat { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
+    .sar-cat b { font-size: 15px; font-weight: 700; color: #ffffff; }
+    .sar-cat small { max-width: 100%; font-size: 12px; color: #8e8d91; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sar-pts { width: 40px; flex-shrink: 0; text-align: center; font-family: var(--font-display); font-size: 16px; font-weight: 900; color: #5d5d68; }
+    .sar-pts.is-a.is-scored { color: var(--duel-a); }
+    .sar-pts.is-b.is-scored { color: var(--duel-b); }
+    .sar-pts.is-behind { opacity: 0.55; }
+    .sar-detail { display: flex; gap: 8px; padding: 10px 12px 14px; background: #202026; }
+    .sar-picks { flex: 1; min-width: 0; margin: 0; padding: 10px; list-style: none; display: flex; flex-direction: column; gap: 8px; border-radius: 8px; }
+    .sar-picks.is-a { background: rgba(169, 155, 255, 0.08); border: 1px solid rgba(169, 155, 255, 0.3); }
+    .sar-picks.is-b { background: rgba(244, 93, 79, 0.08); border: 1px solid rgba(244, 93, 79, 0.3); }
+    /* Numéro dans sa propre colonne : un nom sur 2 lignes reste aligné sous le prénom */
+    .sar-picks li { display: flex; align-items: flex-start; gap: 6px; font-size: 13px; line-height: 1.3; color: #c0bec3; }
+    .sar-n { flex: 0 0 12px; font-size: 11px; line-height: 17px; color: #8e8d91; }
+    .sar-name { flex: 1; min-width: 0; overflow-wrap: break-word; }
+    .sar-picks li.is-hit .sar-name { color: #ffffff; font-weight: 700; }
+    .sar-badge { display: inline-block; white-space: nowrap; vertical-align: 1px; padding: 0 6px; border-radius: 999px; background: #68fe83; color: #1b4422; font-size: 11px; font-weight: 700; line-height: 15px; }
+}
+/* Très petits écrans : les deux listes de picks l'une sous l'autre, pour ne jamais couper un nom */
+@media (max-width: 360px) { .sar-detail { flex-direction: column; } }
+
+/* Fiche pronos, téléphone : première carte centrée (variante 2), rang posé sur la photo, puis points et tendance */
+.rs-head-av { display: contents; }
+.rs-head-rank, .rs-head-line { display: none; }
+@media (max-width: 640px) {
+    .rs-head { flex-direction: column; align-items: center; gap: 6px; padding: 20px 16px 18px; text-align: center; }
+    .rs-head .rs-story { margin: 0; }
+    .rs-head-av { display: inline-flex; position: relative; margin-bottom: 12px; }
+    .rs-head .rs-avatar { width: 76px; height: 76px; border: 2px solid var(--accent-lime); border-radius: 12px; }
+    .rs-head-rank { display: inline-flex; align-items: center; position: absolute; left: 50%; bottom: -10px; transform: translateX(-50%); z-index: 2; height: 22px; padding: 0 10px; border-radius: 999px; background: var(--accent-lime); color: #0c0c0e; font-family: var(--font-display); font-size: 13px; font-weight: 900; white-space: nowrap; }
+    .rs-head .rs-id { align-items: center; gap: 4px; width: 100%; }
+    .rs-head .rs-name { justify-content: center; }
+    .rs-head .rs-name h2 { font-size: 20px; }
+    .rs-head .rs-name .rs-trend { display: none; }
+    .rs-head .rs-stats { display: none; }
+    .rs-head-line { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 8px; }
+    .rs-head-pts { display: flex; align-items: baseline; gap: 5px; font-size: 13px; color: #c0bec3; }
+    .rs-head-pts b { font-family: var(--font-display); font-size: 24px; font-weight: 900; color: #ffffff; }
+    .rs-head-line .rs-trend { position: relative; }
+    .rs-head-line .rs-trend::before { content: ''; position: absolute; left: -7px; top: 50%; width: 1px; height: 18px; transform: translateY(-50%); background: #3c3c43; }
+}
+
+/* Tableaux Est / Ouest sur téléphone : plus de trait vertical avant la colonne Pts (il collait à l'Écart) */
+@media (max-width: 768px) {
+    .pt-table th:last-child, .pt-table td.pt-pts { border-left: none; }
+    .pt-table:has(.pt-prono-first) .pt-ecart { padding-right: 6px; }
+}

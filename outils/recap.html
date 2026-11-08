@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Récap du lundi</title>
+<!--
+  OUTIL DE L'ORGANISATEUR : l'image « Récap du lundi » à poster dans le groupe WhatsApp
+  1. Calcule des faits de la semaine (classement Airball, pronos du groupe, classements et stats ESPN,
+     blessures, matchs de la semaine à venir)
+  2. Tu coches 2 faits (ou 1 + un fait libre) et 1 « À suivre », tu retouches les textes si besoin
+  3. « Télécharger l'image » : PNG 1080 x 1350 (format 4:5, le plus lisible dans WhatsApp)
+  4. « Copier la légende WhatsApp » : 3 lignes et un seul lien (cliquable dans WhatsApp), à coller en légende de l'image
+  ESPN refuse les serveurs de Google : tout est récupéré par ton navigateur, rien n'est écrit dans le Sheet.
+  Mode démo (en local) : recap.html?demo=1 (faux joueurs, vraies données ESPN).
+  Photos de profil dans l'image : route ?page=avatar de Code.gs (sinon, initiales en couleur).
+-->
+<style>
+    @font-face { font-family: 'Mattone'; src: url('../fonts/Mattone-Black.woff2') format('woff2'); font-weight: 900; }
+    @font-face { font-family: 'DM Sans'; src: url('../fonts/dm-sans-latin-400-normal.woff2') format('woff2'); font-weight: 400; }
+    @font-face { font-family: 'DM Sans'; src: url('../fonts/dm-sans-latin-500-normal.woff2') format('woff2'); font-weight: 500; }
+    @font-face { font-family: 'DM Sans'; src: url('../fonts/dm-sans-latin-700-normal.woff2') format('woff2'); font-weight: 700; }
+    @font-face { font-family: 'DM Sans'; src: url('../fonts/dm-sans-latin-ext-400-normal.woff2') format('woff2'); font-weight: 400; unicode-range: U+0100-02BA, U+1E00-1EFF; }
+    @font-face { font-family: 'DM Sans'; src: url('../fonts/dm-sans-latin-ext-700-normal.woff2') format('woff2'); font-weight: 700; unicode-range: U+0100-02BA, U+1E00-1EFF; }
+    @font-face { font-family: 'Rokkitt'; src: url('../fonts/Rokkitt-Medium.woff2') format('woff2'); font-weight: 500; }
+    @font-face { font-family: 'Saira Extra Condensed'; src: url('../fonts/SairaExtraCondensed-Bold.woff2') format('woff2'); font-weight: 700; }
+
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; padding: 32px 24px 60px; background: #0c0c0e; color: #e8e7e4; font: 15px/1.5 'DM Sans', system-ui, sans-serif; }
+    main { max-width: 1400px; margin: 0 auto; }
+    h1 { margin: 0 0 6px; font: 900 24px 'Mattone', sans-serif; text-transform: uppercase; color: #fff; }
+    .intro { margin: 0; color: #9d9ca1; font-size: 14px; }
+    .sources { margin: 8px 0 0; font-size: 12px; color: #8e8d91; }
+    .sources b { font-weight: 500; color: #c5c4c8; }
+    .sources .ko { color: #ff8a7a; }
+    .layout { margin-top: 24px; display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 24px; align-items: start; }
+    .families { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 16px; align-items: start; }
+    .family { padding: 16px 18px; border: 1px solid #2d2c32; border-radius: 12px; background: linear-gradient(143.86deg, #15151a 8.65%, #1b1b20 93.44%); display: flex; flex-direction: column; gap: 8px; }
+    .family-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+    .tag { font-size: 12px; font-weight: 700; border-radius: 999px; padding: 3px 10px; color: var(--c); background: var(--b); white-space: nowrap; }
+    .hint { font-size: 12px; color: #8e8d91; text-align: right; }
+    .empty { margin: 0; font-size: 13px; color: #8e8d91; }
+    .fact { display: grid; grid-template-columns: 20px minmax(0, 1fr) 34px; gap: 12px; align-items: start; padding: 10px 12px; border: 1px solid #2d2c32; border-radius: 10px; cursor: pointer; }
+    .fact:hover { border-color: #45434c; }
+    .fact:has(input:checked) { border-color: rgba(220, 255, 95, 0.55); background: rgba(220, 255, 95, 0.05); }
+    .fact:has(input:disabled) { opacity: 0.45; cursor: default; }
+    .fact input { margin: 3px 0 0; width: 17px; height: 17px; accent-color: #dcff5f; }
+    .fact-title { display: block; font-size: 14px; font-weight: 700; color: #fff; }
+    .fact-detail { display: block; font-size: 13px; color: #9d9ca1; line-height: 1.4; }
+    .dots { display: flex; gap: 3px; justify-content: flex-end; margin-top: 6px; }
+    .dots i { width: 7px; height: 7px; border-radius: 50%; background: #3a3940; }
+    .dots i.on { background: #dcff5f; }
+    .libre { grid-column: 1 / -1; }
+    .field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #9d9ca1; }
+    input[type=text], select { height: 38px; padding: 0 10px; border: 1px solid #45434c; border-radius: 8px; background: #0c0c0e; color: #fff; font: 14px 'DM Sans', system-ui, sans-serif; width: 100%; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .row > * { flex: 1 1 160px; }
+    .check { display: flex; gap: 8px; align-items: center; font-size: 13px; color: #e8e7e4; cursor: pointer; }
+    .check input { width: 17px; height: 17px; accent-color: #dcff5f; }
+    aside { position: sticky; top: 16px; padding: 18px; border: 1px solid #2d2c32; border-radius: 12px; background: #15151a; display: flex; flex-direction: column; gap: 14px; }
+    aside h2 { margin: 0; font: 900 14px 'Mattone', sans-serif; text-transform: uppercase; color: #fff; }
+    canvas { display: block; width: 100%; height: auto; border-radius: 8px; border: 1px solid #2d2c32; }
+    .slot { display: flex; flex-direction: column; gap: 6px; padding-top: 12px; border-top: 1px solid #2d2c32; }
+    .slot-label { font-size: 12px; color: #8e8d91; }
+    .slot-empty { font-size: 13px; color: #8e8d91; }
+    button { height: 44px; padding: 0 18px; border: none; border-radius: 999px; background: #dcff5f; color: #0c0c0e; font: 700 15px 'DM Sans', system-ui, sans-serif; cursor: pointer; }
+    button.secondary { background: transparent; border: 1px solid #45434c; color: #fff; font-weight: 500; }
+    button:disabled { opacity: 0.4; cursor: default; }
+    .status { margin: 0; font-size: 13px; color: #9d9ca1; }
+    .status.ok { color: #c9f27a; }
+    .status.bad { color: #ff8a7a; }
+    .status:empty { display: none; }
+    @media (max-width: 980px) { .layout { grid-template-columns: 1fr; } aside { position: static; } .families { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+    <h1>Récap du lundi</h1>
+    <p class="intro" id="intro">Calcul des faits de la semaine…</p>
+    <p class="sources" id="sources"></p>
+
+    <div class="layout">
+        <div class="families" id="families"></div>
+
+        <aside>
+            <h2>Ton récap</h2>
+            <canvas id="preview" width="1080" height="1350" aria-label="Aperçu de l'image du récap"></canvas>
+            <div id="slots"></div>
+            <button id="download" type="button" disabled>Télécharger l'image</button>
+            <button id="copy" class="secondary" type="button" disabled>Copier la légende WhatsApp</button>
+            <p class="status" id="status" role="status" aria-live="polite"></p>
+        </aside>
+    </div>
+</main>
+
+<script src="../js/config.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/demo.js"></script>
+<script src="../js/teams.js"></script>
+<script src="../js/jersey.js"></script>
+<script src="../js/scoring.js"></script>
+<script src="recap.js?v=20261108b"></script>
+</body>
+</html>

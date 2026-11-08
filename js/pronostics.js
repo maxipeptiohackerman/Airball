@@ -136,9 +136,10 @@ function soloConferenceTable(title, rows) {
         const cut = known && i === 5 ? ' cut-playoffs' : known && i === 9 ? ' cut-playin' : '';
         // Rang exact : ligne en vert léger ; 1 place d'écart (1 point) : jaune léger (plus de pastille dans la colonne Pts)
         return `<tr class="${[cut.trim(), r.gap === 0 ? 'is-exact' : r.gap === 1 ? 'is-near' : ''].filter(Boolean).join(' ')}">
+            <td class="pt-prono-first">${r.predicted}</td>
             <td class="pt-rank">${r.real === null ? '—' : r.real}</td>
             <td class="pt-team"><span class="team-inline">${teamLogo(r.team)}<span class="team-name"><span class="name-full">${esc(team ? team.name : r.team)}</span><span class="name-short">${esc(teamShortName(r.team))}</span></span></span></td>
-            <td class="pt-num">${esc(state.records[key] || '—')}</td>
+            <td class="pt-num pt-bilan">${esc(state.records[key] || '—')}</td>
             <td class="pt-num pt-l10">${esc(state.lastTen[key] || '—')}</td>
             <td class="pt-num">${esc(state.streaks[key] || '—')}</td>
             <td class="pt-num pt-prono pt-sep">${r.predicted}</td>
@@ -152,9 +153,10 @@ function soloConferenceTable(title, rows) {
         <div class="table-responsive"><table class="pt-table" aria-label="${esc(title)}">
             <thead>
                 <tr class="pt-labels">
+                    ${sortTh('prono-a', 'Prono', 'pt-prono-first')}
                     ${sortTh('rank', 'Rk', 'pt-rank')}
                     <th class="pt-team">Équipe</th>
-                    <th class="pt-num">Bilan</th>
+                    <th class="pt-num pt-bilan">Bilan</th>
                     <th class="pt-num pt-l10" title="Bilan des 10 derniers matchs">L10</th>
                     ${sortTh('streak', 'Streak', 'pt-num')}
                     ${sortTh('prono-a', 'Prono', 'pt-num pt-sep')}
@@ -378,6 +380,43 @@ function duelPickCards(title, keys, a, b, source, realByKey) {
     </div>`;
 }
 
+// Téléphone, comparatif : une ligne par catégorie (points de chacun), on la touche pour voir les 3 picks.
+// Le pick qui rapporte des points est mis en avant ; un nom long passe à la ligne sous le prénom, pas sous le numéro.
+state.saSection = state.saSection || 'stats';
+function recapPoints(v, cls, win) {
+    if (v === null) return `<span class="sar-pts ${cls}">—</span>`;
+    return `<span class="sar-pts ${cls}${v > 0 ? ' is-scored' : ''}${win ? '' : ' is-behind'}">${v > 0 ? `+${fmt(v)}` : '0'}</span>`;
+}
+function recapPicks(row, cls) {
+    return `<ol class="sar-picks ${cls}">${[0, 1, 2].map(i => {
+        const name = row.picks[i] || '—';
+        return `<li class="${row.hits[i] ? 'is-hit' : ''}"><span class="sar-n">${i + 1}</span><span class="sar-name">${esc(name)}${row.hits[i] ? ` <span class="sar-badge">${PICK_BADGE[i]}</span>` : ''}</span></li>`;
+    }).join('')}</ol>`;
+}
+function duelRecap(a, b, real) {
+    const section = (id, keys, source, realByKey) => {
+        const rows = keys.map(k => {
+            const lead = (realByKey[k] || [])[0] || '';
+            const ra = Scoring.pickRow(a[source][k], lead), rb = Scoring.pickRow(b[source][k], lead);
+            return `<details class="sar-row">
+                <summary>${recapPoints(ra.pts, 'is-a', (ra.pts || 0) >= (rb.pts || 0))}
+                    <span class="sar-cat"><b>${esc(CATEGORY_LABELS[k])}</b><small>${lead ? esc(lead) : 'Leader à venir'}</small></span>
+                    ${recapPoints(rb.pts, 'is-b', (rb.pts || 0) >= (ra.pts || 0))}</summary>
+                <div class="sar-detail">${recapPicks(ra, 'is-a')}${recapPicks(rb, 'is-b')}</div>
+            </details>`;
+        }).join('');
+        return `<div class="sar-section" data-sar="${id}"${state.saSection === id ? '' : ' hidden'}>
+            <div class="sar-head"><span class="is-a"><i></i>${esc(a.pseudo)} <b>${fmt(a.scores[id] || 0)}</b></span><span class="is-b"><b>${fmt(b.scores[id] || 0)}</b> ${esc(b.pseudo)}<i></i></span></div>
+            <div class="sar-list">${rows}</div>
+        </div>`;
+    };
+    const seg = (id, label) => `<button type="button" class="sar-seg-btn${state.saSection === id ? ' is-on' : ''}" data-sar-go="${id}" aria-pressed="${state.saSection === id}">${label}</button>`;
+    return `<div class="sa-recap">
+        <div class="sar-seg" role="group" aria-label="Catégories">${seg('stats', 'Statistiques')}${seg('awards', 'Awards')}</div>
+        ${section('stats', STAT_KEYS, 'stats', real.stats)}${section('awards', AWARD_KEYS, 'awards', real.awards)}
+    </div>`;
+}
+
 function renderStats() {
     const real = state.data.real;
     const a = state.current;
@@ -387,7 +426,13 @@ function renderStats() {
         $('stats-panel').innerHTML =
             duelScoreBanner(a, b, pts(a), pts(b)) +
             duelPickCards('Statistiques', STAT_KEYS, a, b, 'stats', real.stats) +
-            duelPickCards('Awards', AWARD_KEYS, a, b, 'awards', real.awards);
+            duelPickCards('Awards', AWARD_KEYS, a, b, 'awards', real.awards) +
+            duelRecap(a, b, real);
+        $('stats-panel').querySelectorAll('[data-sar-go]').forEach(btn => btn.addEventListener('click', () => {
+            state.saSection = btn.dataset.sarGo;
+            $('stats-panel').querySelectorAll('[data-sar-go]').forEach(x => { const on = x === btn; x.classList.toggle('is-on', on); x.setAttribute('aria-pressed', on); });
+            $('stats-panel').querySelectorAll('[data-sar]').forEach(x => { x.hidden = x.dataset.sar !== state.saSection; });
+        }));
     } else {
         $('stats-panel').innerHTML =
             pickCards('Statistiques', STAT_KEYS, a.stats, real.stats) +
@@ -729,7 +774,7 @@ function refreshCompareSelection() {
     $('players-grid').classList.toggle('is-comparing', compareSel.length > 0);
     const names = compareSel.map(id => findPlayer(id).pseudo);
     const text = compareSel.length === 0 ? ''
-        : compareSel.length === 1 ? `${esc(names[0])} sélectionné : clique sur un 2e joueur.`
+        : compareSel.length === 1 ? `${esc(names[0])} sélectionné : choisis un 2e joueur.`
         : `${esc(names[0])} vs ${esc(names[1])}`;
     $('players-hint').innerHTML = text && `${text} <button type="button" class="players-cancel">Annuler</button>`;
 }
@@ -1012,6 +1057,30 @@ function duelCard(c, a, b) {
     </button>`;
 }
 
+// Téléphone : les 4 cartes deviennent une liste de 4 lignes (chaque ligne ouvre son onglet).
+// Fiche : catégorie à gauche, rang puis points à droite. Comparatif : joueur A à gauche, joueur B à droite.
+const RS_CHEV = '<svg class="rs-row-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
+function soloList(p) {
+    return `<div class="rs-list">${RS_CATS.map(c => {
+        const rank = rankOfKey(p, c.key);
+        return `<button type="button" class="rs-row" data-goto="${c.tab}" aria-label="${c.title} : ${rank ? ordinal(rank) : 'pas encore classé'}, ${fmt(p.scores[c.key])} points. Voir le détail">
+            <span class="rs-row-t">${c.title}</span>
+            <span class="rs-row-v"><span class="rs-rank">${rank ? ordinal(rank) : '—'}</span><b>${fmt(p.scores[c.key])} pts</b></span>${RS_CHEV}
+        </button>`;
+    }).join('')}</div>`;
+}
+function duelList(a, b) {
+    return `<div class="rs-list rs-list--duel">${RS_CATS.map(c => {
+        const pa = a.scores[c.key] || 0, pb = b.scores[c.key] || 0;
+        const ra = rankOfKey(a, c.key), rb = rankOfKey(b, c.key);
+        return `<button type="button" class="rs-row" data-goto="${c.tab}" aria-label="${c.title} : voir le détail">
+            <span class="rs-row-t">${c.title}</span>
+            <span class="rs-row-side is-a${pa < pb ? ' is-behind' : ''}"><span class="rs-rank">${ra ? ordinal(ra) : '—'}</span><b>${fmt(pa)} pts</b></span>
+            <span class="rs-row-side is-b${pb < pa ? ' is-behind' : ''}"><b>${fmt(pb)} pts</b><span class="rs-rank">${rb ? ordinal(rb) : '—'}</span></span>${RS_CHEV}
+        </button>`;
+    }).join('')}</div>`;
+}
+
 // Mini-courbe du rang sur les derniers relevés
 function sparkline(series) {
     const w = 560, h = 140, top = 26, bottom = 20;
@@ -1060,22 +1129,25 @@ function renderResume() {
 
     if (!isDuel()) {
         const rank = rankOfKey(a, 'total');
-        const ex = exactCount(a);
         panel.innerHTML = `
         <div class="rs-box rs-head">
-            ${storyAvatar(a, `<span class="rs-avatar">${renderAvatarHtml(a.avatar, a.pseudo)}</span>`)}
+            <span class="rs-head-av">
+                ${storyAvatar(a, `<span class="rs-avatar">${renderAvatarHtml(a.avatar, a.pseudo)}</span>`)}
+                ${rank ? `<span class="rs-head-rank" aria-hidden="true">${ordinal(rank)}</span>` : ''}
+            </span>
             <div class="rs-id">
                 <div class="rs-name"><h2>${esc(a.pseudo)}</h2>${trendBadge(weekTrend(a))}</div>
                 ${a.prenom ? `<span class="rs-prenom">${esc(a.prenom)}</span>` : ''}
+                <div class="rs-head-line"><span class="rs-head-pts"><b>${fmt(a.scores.total)}</b> pts</span>${trendBadge(weekTrend(a))}</div>
                 <div class="rs-meta">${gapText(a) ? `<span class="rs-tag">${esc(gapText(a))}</span>` : ''}${championBadge(a)}</div>
             </div>
             <div class="rs-stats">
                 <div class="rs-stat is-lime"><b>${rank ? ordinal(rank) : '—'}</b><span>Classement</span></div>
                 <div class="rs-stat"><b>${fmt(a.scores.total)}</b><span>Points</span></div>
-                <div class="rs-stat"><b>${ex.known ? `${ex.hits}/${ex.total}` : '—'}</b><span>Rangs exacts</span></div>
             </div>
         </div>
         <div class="rs-cards">${RS_CATS.map(c => soloCard(c, a)).join('')}</div>
+        ${soloList(a)}
         <div class="rs-duo">
             ${evoBox([{ ranks: rankSeries(a), color: COLOR_A }])}
             <div class="rs-box"><div class="rs-box-h"><span class="rs-box-t">Meilleur coup</span></div>${bestMoveHtml(a)}</div>
@@ -1112,6 +1184,7 @@ function renderResume() {
             ${side(b, 'is-b')}
         </div>
         <div class="rs-cards">${RS_CATS.map(c => duelCard(c, a, b)).join('')}</div>
+        ${duelList(a, b)}
         <div class="rs-duo">
             ${evoBox([{ ranks: rankSeries(a), color: COLOR_A }, { ranks: rankSeries(b), color: COLOR_B }])}
             ${sameBox(a, b)}

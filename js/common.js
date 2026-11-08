@@ -29,19 +29,19 @@ const HEADER_HTML = `
         </a>
         <a href="pronostics.html" class="nav-item">
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.666 3.334H14M8.666 8H14M8.666 12.666H14M2 11.333l1.333 1.334L6 10M2 4.667 3.333 6 6 3.334"/></svg>
-            <span class="nav-label">Pronostics</span>
+            <span class="nav-label">Pronostics</span><span class="nav-label-short" aria-hidden="true">Pronos</span>
         </a>
         <a href="standings.html" class="nav-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v16a2 2 0 0 0 2 2h16M18 17V9M13 17V5M8 17v-3"/></svg>
-            <span class="nav-label">Statistiques NBA</span>
+            <span class="nav-label">Statistiques NBA</span><span class="nav-label-short" aria-hidden="true">Stats</span>
         </a>
         <a href="rules.html" class="nav-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
-            <span class="nav-label">Règles du jeu</span>
+            <span class="nav-label">Règles du jeu</span><span class="nav-label-short" aria-hidden="true">Règles</span>
         </a>
         <a href="palmares.html" class="nav-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15M11 12 5.12 2.2M13 12l5.88-9.8M8 7h8"/><circle cx="12" cy="17" r="5"/><path d="M12 18v-2h-.5"/></svg>
-            <span class="nav-label">Hall of Fame</span>
+            <span class="nav-label">Hall of Fame</span><span class="nav-label-short" aria-hidden="true">Palmarès</span>
         </a>
     </nav>
   </div>
@@ -93,7 +93,8 @@ function loadHeader() {
     if (activeLink && pageTitle) {
         const icon = activeLink.querySelector('svg');
         if (icon) pageTitle.appendChild(icon.cloneNode(true));
-        pageTitle.appendChild(document.createTextNode(activeLink.textContent.trim()));
+        const label = activeLink.querySelector('.nav-label') || activeLink; // libellé long, pas le libellé court du mobile
+        pageTitle.appendChild(document.createTextNode(label.textContent.trim()));
     }
     const PAGE_SUBTITLES = {
         'index.html': `Le classement général de la saison ${SEASON_LABEL}, mis à jour chaque semaine.`,
@@ -264,7 +265,7 @@ function shotClockState(now = new Date()) {
     const plural = n => (n > 1 ? 's' : '');
     if (toStart > 0) return { text: String(toStart), label: 'Début dans', aria: `${toStart} jour${plural(toStart)} avant le début de la saison` };
     if (toStart === 0) return { text: 'GO', label: "C'est parti !", aria: 'La saison commence aujourd’hui' };
-    if (toEnd > 0) return { text: String(toEnd), label: 'Fin dans', aria: `${toEnd} jour${plural(toEnd)} avant la fin de la saison régulière` };
+    if (toEnd > 0) return { text: String(toEnd), label: 'Jours restants', aria: `${toEnd} jour${plural(toEnd)} avant la fin de la saison régulière` };
     if (toEnd === 0) return { text: '0', label: 'Dernier jour !', aria: 'Dernier jour de la saison régulière' };
     return { text: 'FIN', label: 'Saison terminée', aria: 'La saison régulière est terminée' };
 }
