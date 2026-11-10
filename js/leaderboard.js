@@ -212,6 +212,20 @@ async function fetchLeaderboard() {
     if (list && RevealLock.shouldLockNow('home')) RevealLock.show(list.closest('.rank-card'), REVEAL_TEXTS.home);
 })();
 
+// Ligne du tableau cliquable : on suit le lien du pseudo. Pas de zone invisible (::after) accrochée à la ligne :
+// Safari sur iPhone ne sait pas l'accrocher à une ligne de tableau (<tr>), elle débordait et un toucher
+// ouvrait la fiche d'un autre joueur. Les cartes du podium, elles, gardent le ::after.
+(() => {
+    const list = document.getElementById('leaderboard-body');
+    if (!list) return;
+    list.addEventListener('click', event => {
+        if (!document.body.classList.contains('pronos-open')) return;
+        if (event.target.closest('a')) return; // clic sur le pseudo : le lien fait déjà le travail
+        const link = event.target.closest('.rank-row')?.querySelector('.rank-link');
+        if (link) window.location.href = link.href;
+    });
+})();
+
 document.addEventListener('DOMContentLoaded', fetchLeaderboard);
 // Affiché d'abord avec la visite précédente : on redessine si le Sheet a changé entre-temps
 Api.onUpdate(['leaderboard', 'historique'], fetchLeaderboard);

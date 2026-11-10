@@ -263,7 +263,49 @@ async function fetchNbaDataStatsAwards() {
 
 Api.onUpdate('nba-data', fetchNbaDataStatsAwards);
 
+// ---------- Raccourcis Est / Ouest / Stats / Awards (téléphone et tablette) ----------
+// La barre .stats-jump reste collée en haut (CSS) ; le bouton de la partie visible s'allume.
+function setupStatsJump() {
+    const nav = document.querySelector('.stats-jump');
+    if (!nav) return;
+    const links = [...nav.querySelectorAll('.stats-jump-link')];
+    const targets = links.map(a => document.querySelector(a.getAttribute('href')));
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function setActive(i) {
+        links.forEach((a, j) => {
+            a.classList.toggle('is-active', j === i);
+            if (j === i) a.setAttribute('aria-current', 'true'); else a.removeAttribute('aria-current');
+        });
+    }
+    function update() {
+        if (getComputedStyle(nav).display === 'none') return;
+        nav.classList.toggle('is-stuck', nav.getBoundingClientRect().top <= 0.5 && window.scrollY > 0);
+        const limit = nav.getBoundingClientRect().bottom + 24;
+        let current = 0;
+        targets.forEach((t, i) => { if (t && t.getBoundingClientRect().top <= limit) current = i; });
+        // Tout en bas de la page : la dernière partie, même courte
+        if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) current = targets.length - 1;
+        setActive(current);
+    }
+    links.forEach((a, i) => a.addEventListener('click', e => {
+        const t = targets[i];
+        if (!t) return;
+        e.preventDefault();
+        t.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+        setActive(i);
+    }));
+    let ticking = false;
+    window.addEventListener('scroll', () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(() => { ticking = false; update(); });
+    }, { passive: true });
+    window.addEventListener('resize', update);
+    update();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    setupStatsJump();
     document.querySelector('.nba-confs').addEventListener('click', onSortClick);
     fetchNBAStandings();
     fetchNbaDataStatsAwards();

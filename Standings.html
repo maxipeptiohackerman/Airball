@@ -14,13 +14,21 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Airball">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <link rel="stylesheet" href="css/style.css?v=20261108l">
+    <link rel="stylesheet" href="css/style.css?v=20261108s">
 </head>
 <body>
 
     <div class="container">
         <!-- Fond, menu latéral et barre du haut s'injectent ici (common.js) -->
         <div id="header-container"></div>
+
+        <!-- Raccourcis vers chaque partie (téléphone et tablette) : la barre reste en haut en défilant -->
+        <nav class="stats-jump" aria-label="Aller à une partie de la page">
+            <a class="stats-jump-link" href="#conf-east">Est</a>
+            <a class="stats-jump-link" href="#conf-west">Ouest</a>
+            <a class="stats-jump-link" href="#stats-section">Stats</a>
+            <a class="stats-jump-link" href="#awards-section">Awards</a>
+        </nav>
 
         <!-- Classements des conférences (ESPN, en direct) : même tableau que les pages Pronostics -->
         <div class="tables-grid nba-confs">
@@ -33,24 +41,24 @@
         </div>
 
         <!-- Statistiques (outil outils/maj-stats.html, depuis ESPN) & awards (à la main), onglet "NBA DATA" du Google Sheet -->
-        <section class="card pronostics-card nba-podiums" aria-labelledby="stats-title">
+        <section class="card pronostics-card nba-podiums" id="stats-section" aria-labelledby="stats-title">
             <div class="nba-head"><h3 class="pt-title" id="stats-title">Statistiques</h3><span id="stats-sub">Meneurs actuels de la saison</span></div>
             <div class="pd-grid" id="nba-stats"></div>
         </section>
-        <section class="card pronostics-card nba-podiums" aria-labelledby="awards-title">
+        <section class="card pronostics-card nba-podiums" id="awards-section" aria-labelledby="awards-title">
             <div class="nba-head"><h3 class="pt-title" id="awards-title">Awards</h3><span id="awards-sub">Favoris actuels pour chaque trophée</span></div>
             <div class="pd-grid" id="nba-awards"></div>
         </section>
     </div>
 
     <!-- Réglages (config), appels au serveur (api), pages masquées, menu commun, puis logique propre à la page -->
-    <script src="js/config.js?v=20261108l"></script>
-    <script src="js/api.js?v=20261108l"></script>
-    <script src="js/demo.js?v=20261108l"></script>
-    <script src="js/teams.js?v=20261108l"></script>
-    <script src="js/pages-config.js?v=20261108l"></script>
-    <script src="js/common.js?v=20261108l"></script>
-    <script src="js/jersey.js?v=20261108l"></script>
-    <script src="js/standings.js?v=20261108l"></script>
+    <script src="js/config.js?v=20261108s"></script>
+    <script src="js/api.js?v=20261108s"></script>
+    <script src="js/demo.js?v=20261108s"></script>
+    <script src="js/teams.js?v=20261108s"></script>
+    <script src="js/pages-config.js?v=20261108s"></script>
+    <script src="js/common.js?v=20261108s"></script>
+    <script src="js/jersey.js?v=20261108s"></script>
+    <script src="js/standings.js?v=20261108s"></script>
 </body>
 </html>

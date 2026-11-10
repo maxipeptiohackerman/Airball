@@ -2490,20 +2490,27 @@ body.registration-closed [data-signup] { display: none !important; }
     -webkit-backdrop-filter: blur(30px);
     backdrop-filter: blur(30px);
 }
+/* Titres des cartes : même style que les titres de la page Statistiques NBA (Mattone blanc, sans bandeau),
+   titre court + sous-titre gris en DM Sans pour la précision (tient sur une ligne sur téléphone) */
 .rules-page .card-head {
-    display: flex;
-    align-items: center;
-    min-height: 44px;
-    box-sizing: border-box;
-    padding: 0 24px;
-    background-color: #2f2d35;
-    border-bottom: 1px solid #3c3c43;
+    margin: 0;
+    padding: 20px 24px 16px;
+    background: none;
+    border: none;
     font-family: var(--font-display);
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 700;
     line-height: 1.2;
+    letter-spacing: 0.02em;
     text-transform: uppercase;
-    color: #c0bec3;
+    color: #ffffff;
+}
+.rules-page .card-head-block { padding-bottom: 16px; border-bottom: 1px solid #303034; }
+.rules-page .card-head-block .card-head { padding-bottom: 4px; }
+.rules-page .card-sub { margin: 0; padding: 0 24px; font-size: 12px; line-height: 1.4; color: #8e8d91; }
+.rules-page .card--panel > .card-head { border-bottom: 1px solid #303034; }
+@media (max-width: 768px) {
+    .rules-page .card-head { font-size: 15px; padding-top: 16px; }
 }
 
 /* Le lot : grand maillot à gauche, description, et les 2 derniers maillots remportés */
@@ -3112,13 +3119,13 @@ body.pronos-detail-open .topbar { display: none; }
 .pt-table td.is-hit .gap-mark svg, .pt-table td.is-hit.pt-pts { color: #62d26f; }
 .pt-table td.is-close .gap-mark svg, .pt-table td.is-close.pt-pts { color: #f2c94c; }
 .pt-table td.is-miss .gap-mark svg { color: var(--trend-down); }
-/* Lignes de coupure : trait plein après le 6e (playoffs), pointillé après le 10e (play-in) */
-.pt-table tr.cut-playoffs td { border-bottom: 2px solid #6b6b73; }
-.pt-table tr.cut-playin td { border-bottom: 1px dashed #6b6b73; }
+/* Lignes de coupure : pointillé après le 6e (playoffs), trait plein après le 10e (play-in : la vraie limite d'élimination) */
+.pt-table tr.cut-playoffs td { border-bottom: 1px dashed #6b6b73; }
+.pt-table tr.cut-playin td { border-bottom: 2px solid #6b6b73; }
 .pt-table tr.cut-playoffs td.pt-gap, .pt-table tr.cut-playin td.pt-gap { border-bottom-color: #6b6b73; }
 .pt-legend { margin: 14px 24px 0; font-size: 11px; color: #8e8d91; }
-.pt-key { display: inline-block; width: 18px; margin: 0 6px 3px 0; vertical-align: middle; border-top: 2px solid #6b6b73; }
-.pt-key--playin { margin-left: 10px; border-top: 1px dashed #8e8d91; }
+.pt-key { display: inline-block; width: 18px; margin: 0 6px 3px 0; vertical-align: middle; border-top: 1px dashed #8e8d91; }
+.pt-key--playin { margin-left: 10px; border-top: 2px solid #6b6b73; }
 @media (max-width: 768px) {
     .pt-table { font-size: 12px; }
     .pt-table th, .pt-table td { padding: 0 4px; }
@@ -3666,6 +3673,10 @@ body.pronos-detail-open .topbar { display: none; }
 .lb-link { color: inherit; text-decoration: none; transition: color 0.2s ease; }
 .rank-row, .podium-card { position: relative; }
 body.pronos-open .lb-link::after { content: ''; position: absolute; inset: 0; z-index: 1; }
+/* Lignes du tableau : pas de ::after (mal accroché à un <tr> dans Safari iPhone), clic géré dans leaderboard.js */
+body.pronos-open .rank-row .lb-link::after { content: none; }
+body.pronos-open .rank-row { cursor: pointer; }
+body.pronos-open .rank-row .lb-link:focus-visible { outline: 2px solid var(--accent-lime); outline-offset: 2px; border-radius: 4px; }
 body:not(.pronos-open) .lb-link { pointer-events: none; cursor: default; }
 body.pronos-open .lb-link:focus-visible { outline: none; }
 body.pronos-open .lb-link:focus-visible::after { outline: 2px solid var(--accent-lime); outline-offset: -2px; border-radius: 8px; }
@@ -4167,4 +4178,55 @@ body.has-story { overflow: hidden; }
     z-index: 1000; padding: 12px 18px; border-radius: 12px;
     background: #1B1B20; border: 1px solid rgba(255, 255, 255, 0.12); color: #fff;
     font: 500 15px/1.3 'DM Sans', sans-serif; white-space: nowrap;
+}
+
+/* ---------- Finitions mobiles (08/11/2026, soir) ---------- */
+/* Tablette et petit ordinateur : en-têtes du classement de la Home sur 2 lignes (pas les pseudos), plus de défilement horizontal */
+@media (min-width: 641px) and (max-width: 1100px) {
+    .rank-table { min-width: 0; }
+    .rank-table th { white-space: normal; line-height: 1.25; font-size: 13px; }
+    .rank-table th, .rank-table td { padding-left: 6px; padding-right: 6px; }
+    .rank-col-player { width: 200px; }
+}
+/* Téléphone : colonnes RK, Total et Évolution resserrées pour laisser la place aux pseudos (une seule ligne, « … » si trop long) */
+@media (max-width: 640px) {
+    .rank-col-rk { width: 34px; }
+    .rank-table th { font-size: 12px; }
+    .rank-table th:nth-child(7) { width: 52px; }
+    .rank-table th:nth-child(8) { width: 64px; }
+    .rank-table th:nth-child(n+7), .rank-table td:nth-child(n+7) { padding-left: 4px; padding-right: 4px; }
+    .rank-table th:first-child, .rank-table td:first-child { padding-right: 4px; }
+    .rank-name { font-size: 15px; }
+    /* Onglets de la fiche joueur : les 5 tiennent dans la largeur */
+    .sheet-tabs .tab-btn { padding: 0 8px; }
+}
+@media (max-width: 380px) {
+    .sheet-tabs .tab-btn { padding: 0 5px; font-size: 12px; }
+}
+
+/* ---------- Page Statistiques : barre de raccourcis collante (piste A, 08/11/2026) ---------- */
+.stats-jump { display: none; }
+@media (max-width: 900px) {
+    .stats-jump {
+        display: flex; gap: 8px;
+        position: sticky; top: 0; z-index: 6;
+        padding: 10px 16px;
+        transition: background-color 0.15s;
+    }
+    /* Pleine largeur (le contenu a 16 px de marge) ; fond seulement une fois collée en haut */
+    .container:has(> #header-container) > .stats-jump:not(#header-container) { margin: 0; }
+    .stats-jump.is-stuck {
+        background: rgba(12, 12, 14, 0.94);
+        -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+        box-shadow: 0 1px 0 #2C2C33;
+    }
+    .stats-jump-link {
+        flex: 1; height: 38px; border-radius: 19px;
+        display: flex; align-items: center; justify-content: center;
+        background: #1B1B20; border: 1px solid #34343C;
+        font: 600 13px var(--font-ui); color: #E4E3E7; text-decoration: none;
+    }
+    .stats-jump-link.is-active { background: var(--accent-lime); border-color: var(--accent-lime); color: #0C0C0E; }
+    .stats-jump-link:focus-visible { outline: 2px solid var(--accent-lime); outline-offset: 2px; }
+    #conf-east, #conf-west, #stats-section, #awards-section { scroll-margin-top: 72px; }
 }

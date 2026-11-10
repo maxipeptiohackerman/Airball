@@ -398,3 +398,12 @@ button { font: inherit; color: inherit; }
 @font-face { font-family: 'Saira Extra Condensed'; src: url('../fonts/SairaExtraCondensed-Bold.woff2') format('woff2'); font-weight: 700; font-display: swap; }
 .pick-jersey-wrap { width: 42px; flex-shrink: 0; display: grid; place-items: center; }
 .pick-jersey { display: block; width: 100%; height: auto; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.3)); }
+
+/* Téléphone : les bulles des chapitres défilent ; un fondu à droite montre qu'il y en a d'autres (08/11/2026) */
+@media (max-width: 700px) {
+    .chapters {
+        padding-right: 28px;
+        -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent);
+        mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent);
+    }
+}
